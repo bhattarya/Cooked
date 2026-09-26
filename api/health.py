@@ -1,13 +1,24 @@
-"""Dependency health; missing model artifacts are explicitly a placeholder."""
+"""Dependency health: database, voice cache and the frozen model artifacts."""
 
 from api.cache import check_cache
+from ml.model_interface import ArtifactError, verify
 from scripts.common import connect
+
+
+def artifact_status() -> str:
+    from api.engine import model_dir
+
+    try:
+        verify(model_dir())
+        return "ok"
+    except ArtifactError as exc:
+        return "not_configured" if str(exc) == "not_configured" else "mismatch"
 
 
 def dependency_status() -> dict:
     checks = {
         "database": "unavailable",
-        "artifact_checksum": "not_configured",
+        "artifact_checksum": artifact_status(),
         "cache": "unavailable",
     }
     try:

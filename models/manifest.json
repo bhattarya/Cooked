@@ -1,0 +1,392 @@
+{
+  "autopsy": {
+    "stability": {
+      "ari_mean": 0.9186448202162291,
+      "ari_min": 0.7356383542466743
+    },
+    "stats": {
+      "part-time grind": {
+        "centroid": {
+          "att_mean": 7.4462577421340095,
+          "has_gap": 3.469446951953614e-18,
+          "low_share": 0.9920655892029941,
+          "rep_per_term": 0.0537329881054032,
+          "w_per_term": 0.05872416166888315
+        },
+        "cooked_rate": 0.7811704834605598,
+        "n": 393,
+        "share": 0.1228125,
+        "stability_jaccard": 0.9970898683180506,
+        "ttd_mean": 6.538167938931298,
+        "work_mean": 20.62849872773537
+      },
+      "rough patch": {
+        "centroid": {
+          "att_mean": 12.787607360943335,
+          "has_gap": -1.734723475976807e-18,
+          "low_share": 0.15847617341278195,
+          "rep_per_term": 0.1582300381428749,
+          "w_per_term": 0.18000862053952385
+        },
+        "cooked_rate": 0.04595879556259905,
+        "n": 631,
+        "share": 0.1971875,
+        "stability_jaccard": 0.8420032646821761,
+        "ttd_mean": 3.8979397781299525,
+        "work_mean": 10.521394611727416
+      },
+      "smooth": {
+        "centroid": {
+          "att_mean": 13.225243613859686,
+          "has_gap": -2.0816681711721685e-17,
+          "low_share": 0.14956622274330617,
+          "rep_per_term": 0.0010145030234315622,
+          "w_per_term": 0.004503331214640541
+        },
+        "cooked_rate": 0.000496031746031746,
+        "n": 2016,
+        "share": 0.63,
+        "stability_jaccard": 0.9640427087288661,
+        "ttd_mean": 3.406597222222222,
+        "work_mean": 9.061507936507937
+      },
+      "stop-out": {
+        "centroid": {
+          "att_mean": 9.721340711260066,
+          "has_gap": 1.0000000000000002,
+          "low_share": 0.5257203370106596,
+          "rep_per_term": 0.06956779779360424,
+          "w_per_term": 0.0832670018153889
+        },
+        "cooked_rate": 0.3870967741935484,
+        "n": 31,
+        "share": 0.0096875,
+        "stability_jaccard": 1.0,
+        "ttd_mean": 4.854838709677419,
+        "work_mean": 13.03225806451613
+      },
+      "withdrawal spiral": {
+        "centroid": {
+          "att_mean": 12.417784949761694,
+          "has_gap": 0.0,
+          "low_share": 0.18137486974696276,
+          "rep_per_term": 0.5540719401184517,
+          "w_per_term": 0.5527057782871737
+        },
+        "cooked_rate": 0.6434108527131783,
+        "n": 129,
+        "share": 0.0403125,
+        "stability_jaccard": 0.7807350926150152,
+        "ttd_mean": 4.555813953488372,
+        "work_mean": 10.868217054263566
+      }
+    }
+  },
+  "features": [
+    "entry_transfer",
+    "out_of_state",
+    "work_hours",
+    "major_cs",
+    "k",
+    "att_mean",
+    "earned_mean",
+    "att_min",
+    "att_last",
+    "low_share",
+    "w_sum",
+    "f_sum",
+    "rep_sum",
+    "earned_ratio"
+  ],
+  "files": {
+    "cooked-v1.joblib": "ab1feee3c0d2ff3324080de1662141a3b20b23a54f2fdfb8ed0ca98e0e5383c2",
+    "training_ids.json": "20a0c5c3b8ab4f4246f4eb218ecbee13778acaa3055c6619b9109348c3dcea6f"
+  },
+  "gates": {
+    "cluster_stability": {
+      "ari_mean": 0.9186448202162291,
+      "ari_min": 0.7356383542466743,
+      "pass": true,
+      "per_pattern_jaccard": {
+        "part-time grind": 0.9970898683180506,
+        "rough patch": 0.8420032646821761,
+        "smooth": 0.9640427087288661,
+        "stop-out": 1.0,
+        "withdrawal spiral": 0.7807350926150152
+      },
+      "threshold": 0.7
+    },
+    "no_current_in_training": {
+      "overlap": 0,
+      "pass": true
+    },
+    "no_leakage": {
+      "leaked": [],
+      "pass": true
+    },
+    "risk_calibration": {
+      "brier": {
+        "0": 0.09665614901040145,
+        "1": 0.04602460315179354,
+        "2": 0.04087510653405231,
+        "3": 0.03753268331146303
+      },
+      "pass": true,
+      "range": [
+        0.8,
+        1.2
+      ],
+      "slopes": {
+        "0": 0.8747877119847725,
+        "1": 1.0546932249643175,
+        "2": 0.9864271200454269,
+        "3": 1.064965870412492
+      }
+    },
+    "risk_discrimination": {
+      "auc_after_one_term": 0.9395567090465082,
+      "auc_enrollment_only": 0.8338069581786525,
+      "note": "Headline the enrollment-only AUC: the cooked label is partly defined by load.",
+      "pass": true,
+      "threshold": 0.85
+    },
+    "temporal_integrity": {
+      "max_train_year": 2021,
+      "min_test_year": 2023,
+      "pass": true
+    }
+  },
+  "metrics": {
+    "0": {
+      "auc": 0.8338069581786525,
+      "auc_calibrated": 0.8338069581786525,
+      "base_rate_test": 0.15495342929720576,
+      "brier": 0.09665614901040145,
+      "brier_baseline": 0.13250142662471026,
+      "calibration_slope": 0.8747877119847725,
+      "n_cal": 313,
+      "n_test": 1181,
+      "n_train": 1706,
+      "test_years": [
+        2023,
+        2026
+      ],
+      "top_decile_precision": 0.6440677966101694,
+      "train_years": [
+        2015,
+        2021
+      ],
+      "ttd_interval_coverage": 0.514817950889077,
+      "ttd_mae": 0.6937920140305347,
+      "ttd_mae_baseline": 1.0211685012701102,
+      "ttd_r2": 0.48011332867015344
+    },
+    "1": {
+      "auc": 0.9395567090465082,
+      "auc_calibrated": 0.9395567090465082,
+      "base_rate_test": 0.15495342929720576,
+      "brier": 0.04602460315179354,
+      "brier_baseline": 0.13250142662471026,
+      "calibration_slope": 1.0546932249643175,
+      "n_cal": 313,
+      "n_test": 1181,
+      "n_train": 1706,
+      "test_years": [
+        2023,
+        2026
+      ],
+      "top_decile_precision": 1.0,
+      "train_years": [
+        2015,
+        2021
+      ],
+      "ttd_interval_coverage": 0.4758679085520745,
+      "ttd_mae": 0.4686370203715323,
+      "ttd_mae_baseline": 1.0211685012701102,
+      "ttd_r2": 0.8067680108231646
+    },
+    "2": {
+      "auc": 0.9519530865008705,
+      "auc_calibrated": 0.9519530865008705,
+      "base_rate_test": 0.15495342929720576,
+      "brier": 0.04087510653405231,
+      "brier_baseline": 0.13250142662471026,
+      "calibration_slope": 0.9864271200454269,
+      "n_cal": 313,
+      "n_test": 1181,
+      "n_train": 1706,
+      "test_years": [
+        2023,
+        2026
+      ],
+      "top_decile_precision": 1.0,
+      "train_years": [
+        2015,
+        2021
+      ],
+      "ttd_interval_coverage": 0.4521591871295512,
+      "ttd_mae": 0.43464869177199855,
+      "ttd_mae_baseline": 1.0211685012701102,
+      "ttd_r2": 0.8394223447393484
+    },
+    "3": {
+      "auc": 0.9674679777036026,
+      "auc_calibrated": 0.9674679777036026,
+      "base_rate_test": 0.15508474576271186,
+      "brier": 0.03753268331146303,
+      "brier_baseline": 0.1325970548549911,
+      "calibration_slope": 1.064965870412492,
+      "n_cal": 313,
+      "n_test": 1180,
+      "n_train": 1705,
+      "test_years": [
+        2023,
+        2026
+      ],
+      "top_decile_precision": 0.9830508474576272,
+      "train_years": [
+        2015,
+        2021
+      ],
+      "ttd_interval_coverage": 0.4533898305084746,
+      "ttd_mae": 0.4336713404788664,
+      "ttd_mae_baseline": 1.019491525423729,
+      "ttd_r2": 0.8449243693775478
+    },
+    "4": {
+      "auc": 0.9822276431085561,
+      "auc_calibrated": 0.9822276431085561,
+      "base_rate_test": 0.15996503496503497,
+      "brier": 0.033076468196724926,
+      "brier_baseline": 0.1360222363495091,
+      "calibration_slope": 1.1027172403551795,
+      "n_cal": 308,
+      "n_test": 1144,
+      "n_train": 1650,
+      "test_years": [
+        2023,
+        2026
+      ],
+      "top_decile_precision": 1.0,
+      "train_years": [
+        2015,
+        2021
+      ],
+      "ttd_interval_coverage": 0.4597902097902098,
+      "ttd_mae": 0.3988872067479291,
+      "ttd_mae_baseline": 0.9756993006993006,
+      "ttd_r2": 0.8530807244258065
+    },
+    "5": {
+      "auc": 0.9823983612690351,
+      "auc_calibrated": 0.9823983612690351,
+      "base_rate_test": 0.17039106145251395,
+      "brier": 0.034054133287628845,
+      "brier_baseline": 0.14301447633884112,
+      "calibration_slope": 0.9637986999901398,
+      "n_cal": 291,
+      "n_test": 1074,
+      "n_train": 1519,
+      "test_years": [
+        2023,
+        2026
+      ],
+      "top_decile_precision": 1.0,
+      "train_years": [
+        2015,
+        2021
+      ],
+      "ttd_interval_coverage": 0.44227188081936686,
+      "ttd_mae": 0.3859361787903132,
+      "ttd_mae_baseline": 0.9153631284916202,
+      "ttd_r2": 0.8453731039031556
+    },
+    "6": {
+      "auc": 0.9805030494398548,
+      "auc_calibrated": 0.9805030494398548,
+      "base_rate_test": 0.1944739638682253,
+      "brier": 0.036093579425073,
+      "brier_baseline": 0.1591044426752428,
+      "calibration_slope": 1.1374057920313798,
+      "n_cal": 253,
+      "n_test": 941,
+      "n_train": 1352,
+      "test_years": [
+        2023,
+        2026
+      ],
+      "top_decile_precision": 1.0,
+      "train_years": [
+        2015,
+        2021
+      ],
+      "ttd_interval_coverage": 0.4952178533475027,
+      "ttd_mae": 0.3624553408908453,
+      "ttd_mae_baseline": 0.8397449521785335,
+      "ttd_r2": 0.8483353748270992
+    }
+  },
+  "numpy": "2.5.3",
+  "python": "3.14.6",
+  "shocks": {
+    "bands": [
+      "0 h",
+      "1\u201310 h",
+      "11\u201320 h",
+      "21\u201330 h",
+      "31+ h"
+    ],
+    "intern_ended_early": 0.12186454849498328,
+    "intern_offer_declined": 0.15948996655518394,
+    "lighter_load": [
+      0.2302504816955684,
+      0.2407088122605364,
+      0.22533062054933875,
+      0.1845861084681256,
+      0.16408668730650156
+    ],
+    "seeking_by_internships": [
+      {
+        "internships": 0,
+        "n": 642,
+        "rate": 0.14174454828660435
+      },
+      {
+        "internships": 1,
+        "n": 1169,
+        "rate": 0.09409751924721985
+      },
+      {
+        "internships": 2,
+        "n": 726,
+        "rate": 0.06336088154269973
+      },
+      {
+        "internships": 3,
+        "n": 183,
+        "rate": 0.04371584699453552
+      }
+    ],
+    "terms_observed": [
+      1188,
+      11957,
+      11052,
+      3442,
+      345
+    ],
+    "withdraw": [
+      0.031144781144781145,
+      0.06297566279167015,
+      0.07093738689829895,
+      0.09006391632771645,
+      0.09855072463768116
+    ]
+  },
+  "sklearn": "1.9.1",
+  "trained_at": "2026-09-26T20:24:41+00:00",
+  "twin_support_coverage": {
+    "scored": 1386,
+    "supported": 837
+  },
+  "version": "cooked-v1-202609262024"
+}

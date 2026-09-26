@@ -1,6 +1,6 @@
-"""Draft §12 contracts. Product responses are explicitly mock and contain no predictions."""
+"""§12 contracts. Every numeric field travels with the tool_result_id that produced it."""
 
-from typing import Annotated, Generic, Literal, TypeVar
+from typing import Annotated, Any, Generic, Literal, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -21,13 +21,16 @@ class ErrorResponse(StrictModel):
 
 class HealthChecks(StrictModel):
     database: Literal["ok", "unavailable"]
-    artifact_checksum: Literal["not_configured"] = "not_configured"
+    artifact_checksum: Literal["ok", "not_configured", "mismatch"] = "not_configured"
     cache: Literal["ok", "unavailable"]
 
 
 class HealthResponse(StrictModel):
     status: Literal["ok", "degraded"]
-    mode: Literal["scaffold"] = "scaffold"
+    mode: Literal["scaffold", "models"] = "scaffold"
+    model_version: str | None = None
+    demo_mode: bool = False
+    providers: dict[str, bool] = Field(default_factory=dict)
     checks: HealthChecks
 
 
@@ -75,7 +78,8 @@ class FeedbackRequest(StrictModel):
 
 
 class FeedbackResult(StrictModel):
-    saved: Literal[False] = False
+    saved: bool
+    memory: Literal["backboard", "local"]
 
 
 class Profile(StrictModel):
@@ -88,6 +92,8 @@ class Profile(StrictModel):
 class DrillRequest(StrictModel):
     campus_id: CampusID | None = None
     profile: Profile | None = None
+    plan_load: Annotated[float, Field(ge=3, le=21)] | None = None
+    work_hours: Annotated[int, Field(ge=0, le=60)] | None = None
 
     @model_validator(mode="after")
     def one_input(self):
@@ -115,6 +121,35 @@ class SurvivalReport(StrictModel):
 
 class RepairRequest(StrictModel):
     campus_id: CampusID
+    work_hours: Annotated[int, Field(ge=0, le=60)] | None = None
+
+
+class NarrateRequest(StrictModel):
+    kind: Literal["alarm", "drill", "repair"]
+    campus_id: CampusID
+    plan_load: Annotated[float, Field(ge=3, le=21)] | None = None
+    work_hours: Annotated[int, Field(ge=0, le=60)] | None = None
+
+
+class VoiceRequest(StrictModel):
+    text: Annotated[str, Field(min_length=1, max_length=500)]
+    voice: Literal["narrator", "coach"] = "narrator"
+
+
+class MemoryRequest(StrictModel):
+    kind: Literal["decision", "constraint", "outcome"] = "decision"
+    note: Annotated[str, Field(min_length=1, max_length=280)]
+
+
+class Envelope(StrictModel, Generic[T]):
+    """Real (non-mock) product response."""
+
+    mock: Literal[False] = False
+    model_version: str
+    data: T
+
+
+Data = dict[str, Any]
 
 
 class RepairChange(StrictModel):

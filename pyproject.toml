@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cooked"
 version = "0.1.0"
-description = "COOKED synthetic-data hackathon foundation"
+description = "COOKED: early warning and stress tests for degree trajectories (synthetic data)"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115,<1",
@@ -13,6 +13,11 @@ dependencies = [
   "psycopg[binary]>=3.2,<4",
   "python-dotenv>=1.0,<2",
   "httpx>=0.28,<1",
+  "numpy>=2.2,<3",
+  "pandas>=2.2,<4",
+  "scikit-learn>=1.6,<2",
+  "joblib>=1.4,<2",
+  "python-multipart>=0.0.20,<1",
 ]
 
 [project.optional-dependencies]

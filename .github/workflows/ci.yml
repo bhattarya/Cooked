@@ -39,6 +39,8 @@ jobs:
       - run: python -m scripts.migrate
       - run: python -m scripts.load
       - run: python -m scripts.check_integrity
+      # retrain from scratch: proves the frozen models reproduce and the §7.5 gates still pass
+      - run: python -m ml.train
       - run: pytest -ra
       - run: python -m scripts.smoke_tiger
       - run: python -m scripts.export_openapi --check

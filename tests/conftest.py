@@ -15,3 +15,15 @@ def db():
     yield conn
     conn.rollback()
     conn.close()
+
+
+@pytest.fixture
+def engine_client(monkeypatch):
+    """API client over the real models; needs a migrated, loaded DB and models/."""
+    from fastapi.testclient import TestClient
+
+    from api.main import app
+
+    monkeypatch.setenv("DEMO_MODE", "0")
+    with TestClient(app) as client:
+        yield client

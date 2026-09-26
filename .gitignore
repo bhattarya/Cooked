@@ -152,6 +152,8 @@ __pycache__/
 data/raw/
 data/smoke/
 models/*.joblib
+# the frozen, checksummed artifact is versioned so the API image can load it (make train rebuilds it)
+!models/cooked-v1.joblib
 models/*.pkl
 .DS_Store
 .env.local-test
