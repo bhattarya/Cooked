@@ -2,13 +2,15 @@
 
 Know you are cooked before it is too late — and get un-cooked.
 
+> **Dataset:** built on the official [HackUMBC 2026 Career Pathways & Degree ROI dataset](https://github.com/jasonpaluck/hackumbc-2026) (UMBC DoIT, CC0, synthetic), pinned to commit [`41398972`](https://github.com/jasonpaluck/hackumbc-2026/tree/41398972ce9ce8c6756159207b00386a75ed5be5) with a SHA-256 for every file. [docs/DATASET.md](docs/DATASET.md) maps each CSV to the code that uses it. To check the hashes yourself, run `make verify-data`.
+
 Built for HackUMBC 2026, Career Pathways & Degree ROI. **All data is synthetic, CC0.** No records describe real UMBC students, employers, courses, or outcomes. Do not upload real student data. This is a demo, not academic or financial advice.
 
 The build plan PDF is the design reference. Dhruv owns infrastructure and then frontend; one teammate owns backend/ML/agents, and one owns frontend. The trained models, real API routes, Watchtower worker and frontend are implemented (see [Models, API and frontend](#models-api-and-frontend)). Gemini, ElevenLabs and Backboard calls are wired but only activate once their keys are configured.
 
 ## Data
 
-Everything runs on the official [HackUMBC 2026 Career Pathways & Degree ROI dataset](https://github.com/jasonpaluck/hackumbc-2026), pinned to commit `41398972` with SHA-256 checks in `db/dataset.json` (CC0 1.0). **The dataset is synthetic:** it was produced by a simulation for the event, and nothing COOKED shows is a fact about real UMBC students or graduates. The app says so on the landing page and on every dashboard.
+Everything runs on the official [HackUMBC 2026 Career Pathways & Degree ROI dataset](https://github.com/jasonpaluck/hackumbc-2026), pinned to commit `41398972` with SHA-256 checks in `db/dataset.json` (CC0 1.0). File-by-file usage and hashes: [docs/DATASET.md](docs/DATASET.md). **The dataset is synthetic:** it was produced by a simulation for the event, and nothing COOKED shows is a fact about real UMBC students or graduates. The app says so on the landing page and on every dashboard.
 
 How we follow the dataset's rules:
 - `Not Applicable` is a literal string; typed `feat` views turn it into NULL before casting.
@@ -79,6 +81,8 @@ All six §7.5 gates pass (`models/manifest.json`). Isotonic calibration on ~300 
 **API**: every §12 route is real, plus `/narrate`, `/voice`, `/students/{id}/memory` and `/audit/parse`. Every number carries a `tool_result_id`; narration is assembled from tokens and must pass the provenance check (§8.4) before it is shown. `DEMO_MODE=1` blocks all outbound calls: narration and voice replay from `app.llm_cache` / `app.voice_clip`, and the models run locally. Drill trajectories are written to the `app.drill_trajectory` hypertable and survival is aggregated in SQL; the Watchtower feeds `app.risk_snapshot` and the `app.risk_by_day_pattern` continuous aggregate.
 
 **Frontend** (`web/`): a minimal landing page (walking crowd, COOKED mark, Google sign-in with a guest fallback) and the agent workspace at `/app`. You drop a degree audit (a real PDF read by Gemini, or a synthetic sample), a voice greets you, and seven agents run (Reader · Gemini, Matcher and Fire drill · Tiger Data, Watchtower and Repair · the COOKED model, Narrator · ElevenLabs, Memory · Backboard), each showing whether its sponsor is live or on a fallback. Then the dashboard appears. Ask follow-ups by voice (tap the orb) or text, e.g. "what if I take CMSC 341 instead of CMSC 313?", and get a spoken answer plus a visual. The advisor queue lives at `/app/advisor`. See `web/README.md`.
+
+The audit-free cohort explorer at `/app/explore` accepts conversational questions before a student uploads anything. Gemini function calling chooses one of six fixed aggregate views; Tiger Data computes the chart and sample sizes, and a provenance-checked script is spoken by ElevenLabs. A private ElevenLabs live agent can also call the explorer as a client tool once its agent ID is configured; see [live agent setup](docs/elevenlabs-agent.md). The charts are descriptive associations over synthetic records, never personalized predictions.
 
 ## Checks, accounts and deployment
 

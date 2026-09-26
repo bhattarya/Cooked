@@ -3,7 +3,7 @@ PY := .venv/bin/python
 COMPOSE ?= docker compose
 
 .PHONY: help bootstrap setup env db-up db-down migrate load train watchtower dev dev-api dev-web \
-	test e2e warm openapi check smoke-e2e
+	test e2e warm openapi check smoke-e2e verify-data
 
 help: ## Show every target
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-12s %s\n", $$1, $$2}'
@@ -34,6 +34,9 @@ migrate: ## Apply db/*.sql migrations
 load: ## Download the pinned dataset, load it, run integrity checks
 	$(PY) -m scripts.load
 	$(PY) -m scripts.check_integrity
+
+verify-data: ## Re-download the official dataset at the pinned commit and check every hash (no DB needed)
+	$(PY) -m scripts.verify_dataset
 
 train: ## Retrain and freeze models/ (only when ml/ changes)
 	$(PY) -m ml.train

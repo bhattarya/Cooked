@@ -93,7 +93,9 @@ export function Landing({ googleReady, signedIn, error }: { googleReady: boolean
       </div>
 
       <div className="absolute inset-x-0 bottom-3 z-10 mx-auto flex w-fit max-w-[92%] flex-wrap justify-center gap-x-4 gap-y-1 rounded-full bg-[#f4f1ea]/85 px-4 py-1.5 text-[10.5px] text-black/55 backdrop-blur-sm">
-        <span>Synthetic HackUMBC 2026 data</span>
+        <a href="https://github.com/jasonpaluck/hackumbc-2026" target="_blank" rel="noreferrer" className="underline decoration-black/25 underline-offset-2 hover:text-black/80">
+          Synthetic HackUMBC 2026 dataset (UMBC DoIT, CC0)
+        </a>
         <span>Gemini · ElevenLabs · Backboard · Tiger Data · DigitalOcean</span>
         <span>Crowd: Skiper UI · Open Peeps</span>
       </div>

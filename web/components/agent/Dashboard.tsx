@@ -109,7 +109,11 @@ export function Dashboard({
 
       <p className="rounded-xl border border-line bg-white/[0.02] px-4 py-2.5 text-[12px] leading-relaxed text-muted">
         Compared against <span className="text-text">synthetic</span> HackUMBC 2026 alumni (a simulation, not UMBC records). Nothing here is a fact about real UMBC
-        graduates or a prediction about you; it shows what happened to similar simulated students.
+        graduates or a prediction about you; it shows what happened to similar simulated students. Source:{" "}
+        <a href="https://github.com/jasonpaluck/hackumbc-2026" target="_blank" rel="noreferrer" className="text-text underline decoration-white/25 underline-offset-2 hover:decoration-white/60">
+          HackUMBC 2026 dataset (UMBC DoIT, CC0)
+        </a>
+        .
       </p>
 
       <div className="grid gap-4 md:grid-cols-3">
