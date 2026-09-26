@@ -70,6 +70,16 @@ def feasibility(people: People, cid: str, major: str, target: int) -> dict:
         pre = _text(pre)
         return [] if not pre else [g.split(" or ") for g in pre.split("|")]
 
+    # Transfer credit is not in the transcripts (dataset README): anyone taking or past a course
+    # must already hold its prerequisites, so infer them transitively. For "A or B" we can't tell
+    # which was taken, so neither is assumed.
+    stack = [c for c in have if c in cat.index]
+    while stack:
+        for g in groups(cat.at[stack.pop(), "prerequisite_ids"]):
+            if len(g) == 1 and g[0].strip() not in have and g[0].strip() in cat.index:
+                have.add(g[0].strip())
+                stack.append(g[0].strip())
+
     def prereq_ok(course_id):
         return all(any(p.strip() in have for p in g) for g in groups(cat.at[course_id, "prerequisite_ids"]))
 

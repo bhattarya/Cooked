@@ -5,8 +5,8 @@ import { useMemo, useState } from "react";
 import { majorSubject, NEXT_TERM } from "@/lib/engine";
 import type { Course } from "@/lib/types";
 
-type NodeState = "done" | "ip" | "open" | "blocked";
-const COLORS: Record<NodeState, string> = { done: "#2dd4bf", ip: "#ffb020", open: "#eef0f5", blocked: "#555a68" };
+type NodeState = "done" | "inferred" | "ip" | "open" | "blocked";
+const COLORS: Record<NodeState, string> = { done: "#2dd4bf", inferred: "#2dd4bf", ip: "#ffb020", open: "#eef0f5", blocked: "#555a68" };
 
 // Layered prerequisite graph for one major, lit up by what the student has done.
 export function PrereqMap({ catalog, major, done, ip, picks = [] }: { catalog: Course[]; major: string; done: string[]; ip: string[]; picks?: string[] }) {
@@ -50,8 +50,28 @@ export function PrereqMap({ catalog, major, done, ip, picks = [] }: { catalog: C
       cs.forEach((c, i) => pos.set(c.id, { x: 20 + k * colW, y: 20 + off + i * rowH }));
     });
     const have = new Set([...done, ...ip]);
+    // transfer credit is missing from transcripts: a course taken implies its single prerequisites
+    const inferred = new Set<string>();
+    const stack = [...have];
+    while (stack.length) {
+      for (const g of byId.get(stack.pop()!)?.pre ?? []) {
+        if (g.length === 1 && !have.has(g[0]) && byId.has(g[0])) {
+          have.add(g[0]);
+          inferred.add(g[0]);
+          stack.push(g[0]);
+        }
+      }
+    }
     const nodes = list.map((c) => {
-      const st: NodeState = done.includes(c.id) ? "done" : ip.includes(c.id) ? "ip" : c.pre.every((g) => g.some((p) => have.has(p))) && c.offered.includes(NEXT_TERM.season) ? "open" : "blocked";
+      const st: NodeState = done.includes(c.id)
+        ? "done"
+        : inferred.has(c.id)
+          ? "inferred"
+          : ip.includes(c.id)
+            ? "ip"
+            : c.pre.every((g) => g.some((p) => have.has(p))) && c.offered.includes(NEXT_TERM.season)
+              ? "open"
+              : "blocked";
       return { c, st, ...pos.get(c.id)! };
     });
     const edges = list.flatMap((c) => c.pre.flat().filter((p) => keep.has(p)).map((p) => ({ from: p, to: c.id, a: pos.get(p)!, b: pos.get(c.id)! })));
@@ -96,7 +116,7 @@ export function PrereqMap({ catalog, major, done, ip, picks = [] }: { catalog: C
               key={i}
               d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
               fill="none"
-              stroke={on ? "#ff5a1f" : src.st === "done" ? "rgba(45,212,191,0.35)" : "rgba(255,255,255,0.08)"}
+              stroke={on ? "#ff5a1f" : src.st === "done" || src.st === "inferred" ? "rgba(45,212,191,0.35)" : "rgba(255,255,255,0.08)"}
               strokeWidth={on ? 1.8 : 1}
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1, opacity: related && !on ? 0.15 : 1 }}
@@ -124,11 +144,11 @@ export function PrereqMap({ catalog, major, done, ip, picks = [] }: { catalog: C
                 width={nodeW}
                 height={22}
                 rx={11}
-                fill={n.st === "done" ? "rgba(45,212,191,0.12)" : n.st === "ip" ? "rgba(255,176,32,0.12)" : "rgba(255,255,255,0.02)"}
+                fill={n.st === "done" ? "rgba(45,212,191,0.12)" : n.st === "inferred" ? "rgba(45,212,191,0.05)" : n.st === "ip" ? "rgba(255,176,32,0.12)" : "rgba(255,255,255,0.02)"}
                 stroke={picked ? "#ff5a1f" : col}
                 strokeOpacity={n.st === "blocked" && !picked ? 0.4 : 0.9}
                 strokeWidth={picked ? 1.8 : 1}
-                strokeDasharray={n.st === "open" && !picked ? "3 3" : undefined}
+                strokeDasharray={(n.st === "open" || n.st === "inferred") && !picked ? "3 3" : undefined}
               />
               {n.st === "ip" && (
                 <rect x={n.x} y={n.y} width={nodeW} height={22} rx={11} fill="none" stroke="#ffb020">
@@ -159,6 +179,7 @@ export function PrereqMap({ catalog, major, done, ip, picks = [] }: { catalog: C
         {(
           [
             ["done", "completed"],
+            ["inferred", "inferred (transfer credit)"],
             ["ip", "in progress"],
             ["open", `open for ${NEXT_TERM.label}`],
             ["blocked", "blocked by prerequisites"],

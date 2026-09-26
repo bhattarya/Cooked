@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 COMPOSE ?= docker compose
 
-.PHONY: setup db-up migrate load train watchtower test dev-api dev-web openapi check smoke-e2e
+.PHONY: setup db-up migrate load train watchtower e2e test dev-api dev-web openapi check smoke-e2e
 setup:
 	python3 -m venv .venv
 	$(PY) -m pip install -c requirements.lock -e '.[dev]'
@@ -23,6 +23,9 @@ train:
 
 watchtower:
 	WATCHTOWER_ONCE=1 $(PY) -m worker.watchtower
+
+e2e:
+	$(PY) -m scripts.e2e_demo
 
 test:
 	$(PY) -m pytest -ra

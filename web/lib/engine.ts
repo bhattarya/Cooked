@@ -421,6 +421,18 @@ export interface Feasibility {
 export function catalogFeasibility(ds: Dataset, st: State, target: number): ToolResult<Feasibility> {
   return run("catalog_feasibility", { campus_id: st.id, target_load: target, term: NEXT_TERM.label }, () => {
     const have = new Set([...st.done, ...st.ip]);
+    // Transfer credit is missing from transcripts: taking or passing a course implies its
+    // single-course prerequisites were satisfied, transitively ("A or B" is left unknown).
+    const byId = new Map(ds.catalog.map((c) => [c.id, c]));
+    const stack = [...have];
+    while (stack.length) {
+      for (const g of byId.get(stack.pop()!)?.pre ?? []) {
+        if (g.length === 1 && !have.has(g[0]) && byId.has(g[0])) {
+          have.add(g[0]);
+          stack.push(g[0]);
+        }
+      }
+    }
     const forMajor = (c: Course) => c.majors.includes(st.major);
     const prereqOk = (c: Course) => c.pre.every((g) => g.some((p) => have.has(p)));
     const offered = (c: Course) => c.offered.includes(NEXT_TERM.season);
