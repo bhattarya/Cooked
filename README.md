@@ -6,6 +6,20 @@ Built for HackUMBC 2026, Career Pathways & Degree ROI. **All data is synthetic, 
 
 The build plan PDF is the design reference. Dhruv owns infrastructure and then frontend; one teammate owns backend/ML/agents, and one owns frontend. The trained models, real API routes, Watchtower worker and frontend are implemented (see [Models, API and frontend](#models-api-and-frontend)). Gemini, ElevenLabs and Backboard calls are wired but only activate once their keys are configured.
 
+## Data
+
+Everything runs on the official [HackUMBC 2026 Career Pathways & Degree ROI dataset](https://github.com/jasonpaluck/hackumbc-2026), pinned to commit `41398972` with SHA-256 checks in `db/dataset.json` (CC0 1.0). **The dataset is synthetic:** it was produced by a simulation for the event, and nothing COOKED shows is a fact about real UMBC students or graduates. The app says so on the landing page and on every dashboard.
+
+How we follow the dataset's rules:
+- `Not Applicable` is a literal string; typed `feat` views turn it into NULL before casting.
+- `W` and `IP` are excluded from completed terms; Summer terms are excluded from the per-term features by design.
+- Transfer credits appear in `students_current.credits_earned` but not in `transcripts.csv`. We use the former for progress, and infer the prerequisites of courses a transfer student is already taking.
+- `No Response` (about 15% of alumni) means *unknown*, not unemployed: it is excluded from still-seeking rates, and the UI says so.
+- Money is nominal dollars of its year. Degree burden (net cost ÷ first salary) is labelled nominal, and no cross-year dollar comparisons are made.
+- There are no race, gender or ethnicity fields, and COOKED builds no proxies for them.
+
+External services (Gemini, ElevenLabs, Backboard) only ever receive synthetic records, or an audit a user chooses to upload; uploaded files are never stored.
+
 ## Getting started
 
 You need **Python 3.11+**, **Node.js 22+**, **Git**, and a running **Docker** engine (Docker Desktop, or Colima; use `make ... COMPOSE=docker-compose` if you only have standalone `docker-compose`).

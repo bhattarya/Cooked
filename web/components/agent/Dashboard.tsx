@@ -107,15 +107,20 @@ export function Dashboard({
         </div>
       </motion.section>
 
+      <p className="rounded-xl border border-line bg-white/[0.02] px-4 py-2.5 text-[12px] leading-relaxed text-muted">
+        Compared against <span className="text-text">synthetic</span> HackUMBC 2026 alumni (a simulation, not UMBC records). Nothing here is a fact about real UMBC
+        graduates or a prediction about you; it shows what happened to similar simulated students.
+      </p>
+
       <div className="grid gap-4 md:grid-cols-3">
         <RangeTile label="Expected delay" lo={st.delay.low} mid={st.delay.mid} hi={st.delay.high} max={5} fmt={(x) => `+${x.toFixed(1)}y`} hint="beyond 4 years · model p25–p75" tr={st.delay.tool_result_id} n={st.delay.support} color={col} />
         {st.still_seeking_risk ? (
-          <RangeTile label="Still seeking a job" lo={st.still_seeking_risk.low} mid={st.still_seeking_risk.mid} hi={st.still_seeking_risk.high} max={0.4} fmt={(x) => `${Math.round(x * 100)}%`} hint="at 6 months · matched twins, 90% interval" tr={st.still_seeking_risk.tool_result_id} n={st.still_seeking_risk.support} color="#ffb020" />
+          <RangeTile label="Still seeking a job" lo={st.still_seeking_risk.low} mid={st.still_seeking_risk.mid} hi={st.still_seeking_risk.high} max={0.4} fmt={(x) => `${Math.round(x * 100)}%`} hint="at 6 months · matched twins, 90% interval · excludes No Response (outcome unknown)" tr={st.still_seeking_risk.tool_result_id} n={st.still_seeking_risk.support} color="#ffb020" />
         ) : (
           <div className="panel flex items-center p-4 text-sm text-muted">Job outcomes: not enough balanced twins.</div>
         )}
         {st.degree_burden ? (
-          <RangeTile label="Degree burden" lo={st.degree_burden.low} mid={st.degree_burden.mid} hi={st.degree_burden.high} max={1.2} fmt={(x) => x.toFixed(2)} hint="net cost ÷ first salary" tr={st.degree_burden.tool_result_id} n={st.degree_burden.support} color="#a78bfa" />
+          <RangeTile label="Degree burden" lo={st.degree_burden.low} mid={st.degree_burden.mid} hi={st.degree_burden.high} max={1.2} fmt={(x) => x.toFixed(2)} hint="net cost ÷ first salary · nominal dollars" tr={st.degree_burden.tool_result_id} n={st.degree_burden.support} color="#a78bfa" />
         ) : (
           <div className="panel flex items-center p-4 text-sm text-muted">Degree burden: not enough salaried twins.</div>
         )}
