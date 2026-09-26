@@ -83,6 +83,19 @@ def workspace(page: Page):
     expect(page.get_by_text("Working 22 h")).to_be_visible(timeout=T)
 
 
+@step("Cohort explorer: conversational question -> Tiger-backed chart")
+def explorer(page: Page):
+    page.goto(f"{WEB}/app/explore", wait_until="domcontentloaded")
+    expect(page.get_by_text("Ask what the data actually says.")).to_be_visible(timeout=T)
+    page.get_by_placeholder(re.compile("Hey COOKED")).fill("How do internships relate to first jobs?")
+    page.get_by_role("button", name="Explore", exact=True).click()
+    expect(page.get_by_text("Internships and first destination")).to_be_visible(timeout=T)
+    expect(page.get_by_text(re.compile(r"No Response excluded")).first).to_be_visible(timeout=T)
+    expect(page.get_by_text(re.compile(r"Evidence tr_")).first).to_be_visible(timeout=T)
+    page.screenshot(path=SHOTS / "e2e-explorer.png", full_page=True)
+    page.goto(f"{WEB}/app", wait_until="domcontentloaded")
+
+
 @step("Sample audit: every agent finishes, dashboard appears")
 def pipeline(page: Page):
     page.get_by_text("Working 22 h").first.click()
@@ -158,11 +171,12 @@ def main():
         page = browser.new_page(viewport={"width": 1440, "height": 900})
         errors: list[str] = []
         page.on("console", lambda m: m.type == "error" and errors.append(m.text[:200]))
-        page.on("pageerror", lambda e: errors.append(f"pageerror: {str(e)[:200]}"))
+        page.on("pageerror", lambda e: errors.append(f"pageerror at {page.url}: {str(e)[:1200]}"))
         api_health(page)
         guard(page)
         landing(page)
         workspace(page)
+        explorer(page)
         pipeline(page)
         q_course(page)
         q_whatif(page)

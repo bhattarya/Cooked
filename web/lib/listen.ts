@@ -1,5 +1,7 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
+
 // Voice input via the browser's speech recognition (Chrome, Edge, Safari). Push-to-talk.
 interface Rec {
   lang: string;
@@ -20,6 +22,12 @@ function ctor(): RecCtor | null {
 }
 
 export const canListen = () => ctor() !== null;
+
+const subscribeCapability = () => () => {};
+
+export function useCanListen(): boolean {
+  return useSyncExternalStore(subscribeCapability, canListen, () => false);
+}
 
 export function listen(onText: (text: string, final: boolean) => void, onEnd: (error?: string) => void): { stop: () => void } {
   const C = ctor();

@@ -112,6 +112,13 @@ services:
         type: SECRET
         scope: RUN_TIME
         value: ""
+      - key: ELEVENLABS_API_KEY
+        type: SECRET
+        scope: RUN_TIME
+        value: ""
+      - key: ELEVENLABS_AGENT_ID
+        scope: RUN_TIME
+        value: ""
 workers:
   - name: worker
     github:

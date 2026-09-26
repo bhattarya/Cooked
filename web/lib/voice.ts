@@ -54,6 +54,14 @@ export function speak(
       an.connect(ctx.destination);
       const buf = new Uint8Array(an.frequencyBinCount);
       let raf = 0;
+      let finishPlayback = () => {};
+      let cleaned = false;
+      const cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+        cancelAnimationFrame(raf);
+        void ctx.close();
+      };
       const tick = () => {
         an.getByteFrequencyData(buf);
         onLevel(buf.reduce((s, v) => s + v, 0) / buf.length / 255);
@@ -63,13 +71,22 @@ export function speak(
       };
       stopFn = () => {
         audio.pause();
-        cancelAnimationFrame(raf);
-        ctx.close();
+        finishPlayback();
+        cleanup();
       };
-      await audio.play();
+      try {
+        await audio.play();
+      } catch (error) {
+        cleanup();
+        if (stopped || (error instanceof DOMException && error.name === "AbortError")) return;
+        throw error;
+      }
       tick();
-      await new Promise<void>((res) => (audio.onended = () => res()));
-      stopFn();
+      await new Promise<void>((resolve) => {
+        finishPlayback = resolve;
+        audio.onended = () => resolve();
+      });
+      cleanup();
       onWord(text.length);
       return;
     }

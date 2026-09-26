@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { alarmCheck, askAgent, findRepair, getMyths, getState, narrate, remember, runDrill, sayLine, setWorkHours, uploadAudit, type Answer, type Myths } from "@/lib/agentApi";
 import { auditLines, auditPdf } from "@/lib/audit";
 import { useDataset } from "@/lib/data";
-import { canListen, listen } from "@/lib/listen";
+import { listen, useCanListen } from "@/lib/listen";
 import { apiHealth, type Health, type ServerDrill, type ServerRepair } from "@/lib/live";
 import { speak, type Speaking } from "@/lib/voice";
 import type { SessionUser } from "@/lib/session";
@@ -28,7 +29,11 @@ const SAMPLES = [
 
 const SPONSOR_ORDER: SponsorKey[] = ["gemini", "elevenlabs", "backboard", "tiger", "model", "digitalocean"];
 
-export function Workspace({ user }: { user: SessionUser }) {
+export function Workspace({ user, liveAgentConfigured }: { user: SessionUser; liveAgentConfigured: boolean }) {
+  return <ConversationProvider><WorkspaceContent user={user} liveAgentConfigured={liveAgentConfigured} /></ConversationProvider>;
+}
+
+function WorkspaceContent({ user, liveAgentConfigured }: { user: SessionUser; liveAgentConfigured: boolean }) {
   const ds = useDataset();
   const [health, setHealth] = useState<(Health & { database_kind?: string }) | null>(null);
   const live: SponsorLive = useMemo(() => sponsorLive(health), [health]);
@@ -51,12 +56,39 @@ export function Workspace({ user }: { user: SessionUser }) {
   const [feed, setFeed] = useState<Answer[]>([]);
   const [highlight, setHighlight] = useState<string[]>([]);
   const [text, setText] = useState("");
+  const voiceInput = useCanListen();
+  const [liveAgentError, setLiveAgentError] = useState("");
   const voice = useRef<Speaking | null>(null);
   const stopListen = useRef<(() => void) | null>(null);
   const workResolve = useRef<((h: number) => void) | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const mode: OrbMode = listening ? "listening" : speaking ? "speaking" : busy ? "thinking" : "idle";
+  const conversation = useConversation({
+    clientTools: {
+      askStudent: async ({ question }: { question: string }) => {
+        if (!id) return "Please ask the student to upload a degree audit or try a synthetic sample first.";
+        setBusy(true);
+        try {
+          const loadNow = st?.terms.length ? Math.round(st.terms.reduce((a, t) => a + t.attempted, 0) / st.terms.length) : undefined;
+          const result = await askAgent(id, question, work, loadNow);
+          setFeed((f) => [result.data, ...f].slice(0, 8));
+          if (result.data.visual.type === "course" && result.data.visual.highlight) setHighlight(result.data.visual.highlight);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return JSON.stringify({ answer: result.data.text, visual: result.data.visual.type, evidence: result.data.provenance, instruction: "The chart is now visible. Speak the answer exactly; do not invent other numbers." });
+        } catch {
+          return "The student analysis failed. Ask them to try again.";
+        } finally {
+          setBusy(false);
+        }
+      },
+    },
+    onMessage: (message) => { if (message.message) setCaption(message.message); },
+    onError: (message) => setLiveAgentError(message),
+  });
+  const liveConnected = conversation.status === "connected";
+  const liveConnecting = conversation.status === "connecting";
+
+  const mode: OrbMode = liveConnected ? conversation.isSpeaking ? "speaking" : "listening" : listening ? "listening" : speaking ? "speaking" : busy || liveConnecting ? "thinking" : "idle";
   const heat = st ? st.risk.value : 0;
 
   // ---------- voice out ----------
@@ -87,6 +119,27 @@ export function Workspace({ user }: { user: SessionUser }) {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!liveConnected) return;
+    const timer = window.setInterval(() => setLevel(conversation.getOutputVolume()), 80);
+    return () => window.clearInterval(timer);
+  }, [liveConnected, conversation]);
+
+  const toggleLiveAgent = async () => {
+    if (liveConnected || liveConnecting) { conversation.endSession(); return; }
+    setLiveAgentError("");
+    voice.current?.stop();
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const response = await fetch("/voice-session", { cache: "no-store" });
+      const body = await response.json() as { signedUrl?: string; error?: string };
+      if (!response.ok || !body.signedUrl) throw new Error(body.error || "Live agent unavailable.");
+      conversation.startSession({ signedUrl: body.signedUrl });
+    } catch (e) {
+      setLiveAgentError(e instanceof Error ? e.message : "Could not start live voice.");
+    }
+  };
 
   // ---------- pipeline ----------
   const patch = (key: string, p: Partial<Step>) => setSteps((s) => s.map((x) => (x.key === key ? { ...x, ...p } : x)));
@@ -212,6 +265,7 @@ export function Workspace({ user }: { user: SessionUser }) {
   const ask = useCallback(
     async (q: string) => {
       if (!id || !q.trim()) return;
+      if (liveConnected) { conversation.sendUserMessage(q.trim()); setText(""); return; }
       setBusy(true);
       setText("");
       try {
@@ -227,10 +281,11 @@ export function Workspace({ user }: { user: SessionUser }) {
         setBusy(false);
       }
     },
-    [id, st, work, say],
+    [id, st, work, say, liveConnected, conversation],
   );
 
   const toggleListen = () => {
+    if (liveConnected || liveConnecting) { conversation.endSession(); return; }
     if (listening) {
       stopListen.current?.();
       return;
@@ -279,6 +334,10 @@ export function Workspace({ user }: { user: SessionUser }) {
             ))}
           </div>
           <div className="ml-auto flex items-center gap-3">
+            {phase === "dashboard" && liveAgentConfigured && <button onClick={() => void toggleLiveAgent()} className="hidden rounded-full border border-cool/40 px-3 py-1.5 text-xs text-cool transition hover:bg-cool/10 sm:inline">{liveConnected || liveConnecting ? "End live agent" : "Live voice agent"}</button>}
+            <Link href="/app/explore" className="hidden text-xs text-muted hover:text-text sm:inline">
+              Explore the cohort
+            </Link>
             <Link href="/app/advisor" className="hidden text-xs text-muted hover:text-text sm:inline">
               Advisor view
             </Link>
@@ -311,6 +370,11 @@ export function Workspace({ user }: { user: SessionUser }) {
               <div>
                 {phase === "intro" && (
                   <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                    <Link href="/app/explore" className="block rounded-3xl border border-cool/30 bg-cool/[0.05] p-5 transition hover:bg-cool/[0.09]">
+                      <div className="label !text-cool">Start with a conversation</div>
+                      <div className="display mt-2 text-xl font-semibold">No audit? Ask the cohort first →</div>
+                      <div className="mt-1 text-sm text-muted">Talk through work, classes, internships, career outcomes, and cost before sharing your own plan.</div>
+                    </Link>
                     <div
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
@@ -357,7 +421,7 @@ export function Workspace({ user }: { user: SessionUser }) {
                               {h === 0 ? "I don't" : `${h} h`}
                             </button>
                           ))}
-                          {canListen() && (
+                          {voiceInput && (
                             <button onClick={toggleListen} className="rounded-full bg-text px-4 py-1.5 text-sm text-bg">
                               {listening ? "Listening…" : "Say it"}
                             </button>
@@ -372,6 +436,9 @@ export function Workspace({ user }: { user: SessionUser }) {
             </motion.div>
           ) : (
             <motion.div key="dash" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+              {liveAgentError && <p role="alert" className="rounded-xl border border-hot/30 bg-hot/5 px-4 py-3 text-sm text-hot">{liveAgentError}</p>}
+              {liveAgentConfigured && !liveConnected && <button onClick={() => void toggleLiveAgent()} className="rounded-full border border-cool/40 px-4 py-2 text-xs text-cool sm:hidden">Start live voice agent</button>}
+              {liveConnected && <div className="panel flex items-center gap-4 p-4"><Orb mode={mode} level={level} size={30} heat={heat} onClick={() => conversation.endSession()} /><span className="text-sm text-cool">ElevenLabs agent {conversation.isSpeaking ? "speaking" : "listening"} · ask about your audit</span></div>}
               <AnimatePresence initial={false}>
                 {feed.map((a, i) => (
                   <AnswerCard key={`${a.question}-${feed.length - i}`} a={a} live={live} />
@@ -406,7 +473,7 @@ export function Workspace({ user }: { user: SessionUser }) {
               <input
                 value={listening ? heard : text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder={busy ? "Agents are thinking…" : canListen() ? "Tap the orb and talk, or type: what if I take CMSC 341 instead?" : "Ask: what if I take CMSC 341 instead?"}
+                placeholder={busy ? "Agents are thinking…" : voiceInput ? "Tap the orb and talk, or type: what if I take CMSC 341 instead?" : "Ask: what if I take CMSC 341 instead?"}
                 className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-dim"
                 disabled={busy}
               />

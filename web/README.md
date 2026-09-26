@@ -14,6 +14,7 @@ npm run dev    # http://localhost:3000
 | --- | --- |
 | `/` | Landing: walking crowd (Skiper UI canvas), COOKED mark, Google sign-in or guest |
 | `/app` | Agent workspace (signed-in only): voice orb, audit upload, sponsor-tagged agent pipeline, dashboard, voice/text questions |
+| `/app/explore` | Audit-free cohort questions: Gemini routes to a fixed Tiger Data aggregate, with a chart and spoken response |
 | `/app/advisor` | Institution queue: every current student scored by the model |
 | `/auth/*` | Google OAuth (PKCE, ID token verified against Google's keys), guest session, sign out |
 
@@ -23,6 +24,7 @@ npm run dev    # http://localhost:3000
 - `lib/engine.ts` is the local engine. Its functions mirror the tool contracts in build plan §8.2 (`get_state`, `find_twins`, `fire_drill`, `survival`, `escapee_stats`, `catalog_feasibility`, `alarm_check`, `plan_outcome`). Every result carries a `tr_…` id that the UI shows as evidence.
 - Narration scripts are arrays of text and number tokens (`Seg[]`). The language model never writes a number; tokens render highlighted and trace to a tool result.
 - `lib/voice.ts` posts to `${NEXT_PUBLIC_API_URL}/voice` and plays `/audio/{hash}` (ElevenLabs, cached). With no backend it falls back to browser speech so the demo still talks.
+- A private ElevenLabs live agent can be enabled with `ELEVENLABS_AGENT_ID` and `ELEVENLABS_API_KEY` in the web runtime. `/voice-session` verifies the app session and obtains a short-lived signed URL; the key stays on the server. In the ElevenLabs dashboard, add a client tool named `exploreCohort` with one required string parameter named `question`, turn on **Wait for response**, and tell the agent to call it for every cohort question. The returned data comes from `/explore`; the agent speaks while the chart updates. Without an agent ID, the existing ElevenLabs clip path still works.
 - `lib/audit.ts` builds sample degree-audit PDFs from synthetic students and reads uploads: it uses `POST /audit/parse` (Gemini) when the backend is up and pulls the campus ID from the raw bytes otherwise.
 
 ## Live mode (trained models)

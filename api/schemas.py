@@ -151,6 +151,10 @@ class AskRequest(StrictModel):
     plan_load: Annotated[float, Field(ge=3, le=21)] | None = None
 
 
+class ExploreRequest(StrictModel):
+    question: Annotated[str, Field(min_length=1, max_length=500)]
+
+
 class SayRequest(StrictModel):
     line: Literal["greeting", "thanks", "ask_work", "ready", "listening"]
     name: Annotated[str, Field(max_length=60)] | None = None

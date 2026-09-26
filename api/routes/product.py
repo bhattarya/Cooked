@@ -8,13 +8,14 @@ from uuid import UUID
 from fastapi import APIRouter, File, Path, Query, UploadFile
 from fastapi.responses import Response
 
-from api import agent
+from api import agent, explore
 from api.engine import NotFound, db, get_engine
 from api.schemas import (
     AskRequest,
     CampusID,
     Data,
     DrillRequest,
+    ExploreRequest,
     Envelope,
     FeedbackRequest,
     FeedbackResult,
@@ -154,6 +155,12 @@ def ask(id: CampusID, body: AskRequest):
     """Voice/text question -> one tool (Gemini function calling or local router) -> spoken
     answer segments (provenance-checked) + a visual spec."""
     return wrap(agent.ask(get_engine(), id, body.question, body.work_hours, body.plan_load))
+
+
+@router.post("/explore", response_model=Envelope[Data])
+def cohort_explore(body: ExploreRequest):
+    """Ask about the synthetic cohort before uploading an audit; returns SQL-grounded chart data."""
+    return wrap(explore.explore(get_engine(), body.question))
 
 
 @router.post("/say", response_model=Envelope[Data])
