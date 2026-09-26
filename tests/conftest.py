@@ -23,7 +23,14 @@ def engine_client(monkeypatch):
     from fastapi.testclient import TestClient
 
     from api.main import app
+    from api.providers import net
 
     monkeypatch.setenv("DEMO_MODE", "0")
-    with TestClient(app) as client:
-        yield client
+    # tests never call paid providers (Gemini, ElevenLabs, Backboard): deterministic and free,
+    # and they exercise the same fallbacks a keyless deployment uses
+    net.allow(False)
+    try:
+        with TestClient(app) as client:
+            yield client
+    finally:
+        net.allow(True)

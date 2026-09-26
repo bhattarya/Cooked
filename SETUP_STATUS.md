@@ -11,6 +11,19 @@ New teammates: `make bootstrap && make dev` (see README and CONTRIBUTING.md). Re
 - Frontend production build passes; live mode verified in the browser against the local API.
 - **Not verified:** Gemini, ElevenLabs and Backboard live calls (no keys yet; clients fall back to template / browser voice / `app.memory_note`), Tiger Cloud and DigitalOcean deployment.
 
+## Live services (verified 2026-09-26, local API against the real providers)
+
+| Service | Status | Evidence / notes |
+| --- | --- | --- |
+| Tiger Cloud | ✅ live | PostgreSQL 18.6, TimescaleDB 2.30.1. Migrations 00–08 applied; dataset loaded, all integrity checks PASS; `pytest` 54 passed against it; `smoke_tiger` PASS; Watchtower scored 1,386 students (179 alarms). `scripts/migrate.py` now gives role `owner` LOGIN **without a password** when it is NOLOGIN: TimescaleDB requires the hypertable owner to have LOGIN to run columnstore / continuous-aggregate jobs, and with no password nobody can sign in as it (verified). |
+| Gemini | ✅ live, quota-limited | `gemini-3-flash` is not available to this key; using `gemini-3.8-flash` (routing + structured audit parsing verified; `smoke_gemini` PASS). Free-tier 429s are frequent: calls back off (bounded), question routing fails fast to the local router, and narration answers with the traced template while Gemini writes in the background and caches in `app.llm_cache`. Real audit PDF → profile verified. |
+| Backboard | ✅ writes, ⚠️ recall | Memory writes succeed from the app. `smoke_backboard` created/deleted its assistant but cross-thread recall did not appear within its 3 retries (memory extraction is asynchronous). `app.memory_note` is always written first. |
+| ElevenLabs | ✅ live (free plan, 10,000 credits/month) | New unrestricted key. The earlier voice ids were a library "professional" voice (needs a paid plan for API use: 402) and a voice not on this account, so the app uses premade voices: narrator **Eric** (`cjVigY5qzO86Huf0OWal`), coach **Sarah** (`EXAVITQu4vr4xnSDxMaL`). Model `eleven_flash_v2_5` (≈0.5 credit per character). Clips are cached in `app.voice_clip` on Tiger, so repeated lines cost nothing; `/healthz` → `voice_usage` tracks credits billed via the `character-cost` header. One full e2e run ≈ 530 credits. |
+| Google sign-in | ⏳ not configured | See `docs/accounts.md` step 8; guest sign-in works meanwhile. |
+| DigitalOcean | ⏳ not deployed | `.do/app.yaml` ready; needs the secrets above as encrypted env vars plus `AUTH_URL`. |
+
+**Rotate every credential after the event**: they were shared in chat while setting up.
+
 # COOKED Phase 1 setup status
 
 Updated: 2026-09-26. Rules gate: Dhruv authorized proceeding after the pre-event rules question. The assistant has not independently verified organizer rules.

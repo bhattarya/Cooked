@@ -8,8 +8,10 @@ from uuid import UUID
 from fastapi import APIRouter, File, Path, Query, UploadFile
 from fastapi.responses import Response
 
+from api import agent
 from api.engine import NotFound, db, get_engine
 from api.schemas import (
+    AskRequest,
     CampusID,
     Data,
     DrillRequest,
@@ -19,7 +21,9 @@ from api.schemas import (
     MemoryRequest,
     NarrateRequest,
     RepairRequest,
+    SayRequest,
     VoiceRequest,
+    WorkRequest,
 )
 
 router = APIRouter(tags=["product"])
@@ -98,7 +102,7 @@ def repair(body: RepairRequest):
 @router.post("/narrate", response_model=Envelope[Data])
 def narrate(body: NarrateRequest):
     """Script as segments; numbers are tokens tied to tool results (Gemini, cache or template)."""
-    return wrap(get_engine().narrate(body.kind, body.campus_id, body.plan_load, body.work_hours))
+    return wrap(get_engine().narrate(body.kind, body.campus_id, body.plan_load, body.work_hours, body.wait))
 
 
 @router.post("/voice", response_model=Envelope[Data])
@@ -132,11 +136,30 @@ def recall(id: CampusID):
 
 @router.post("/audit/parse", response_model=Envelope[Data])
 async def audit(file: Annotated[UploadFile, File()]):
-    """Synthetic degree audits only. Gemini reads the PDF when configured; otherwise a local ID scan."""
-    data = await file.read(2_000_001)
-    if len(data) > 2_000_000:
+    """Sample audits map to their synthetic student; real PDFs are read by Gemini into a profile.
+    The file is never stored; only parsed courses and terms are kept."""
+    data = await file.read(8_000_001)
+    if len(data) > 8_000_000:
         raise NotFound("audit too large")
-    return wrap(get_engine().read_audit(data, file.content_type or "application/pdf"))
+    return wrap(agent.intake(get_engine(), data, file.content_type or "application/pdf"))
+
+
+@router.post("/profiles/{id}/work", response_model=Envelope[Data])
+def work(id: CampusID, body: WorkRequest):
+    return wrap(agent.set_work(get_engine(), id, body.work_hours))
+
+
+@router.post("/students/{id}/ask", response_model=Envelope[Data])
+def ask(id: CampusID, body: AskRequest):
+    """Voice/text question -> one tool (Gemini function calling or local router) -> spoken
+    answer segments (provenance-checked) + a visual spec."""
+    return wrap(agent.ask(get_engine(), id, body.question, body.work_hours, body.plan_load))
+
+
+@router.post("/say", response_model=Envelope[Data])
+def say(body: SayRequest):
+    """Fixed spoken lines (greeting, thanks for uploading...) registered so /voice can render them."""
+    return wrap(agent.say(get_engine(), body.line, body.name))
 
 
 @router.get("/institution/queue", response_model=Envelope[Data])

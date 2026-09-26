@@ -64,7 +64,7 @@ All six §7.5 gates pass (`models/manifest.json`). Isotonic calibration on ~300 
 
 **API**: every §12 route is real, plus `/narrate`, `/voice`, `/students/{id}/memory` and `/audit/parse`. Every number carries a `tool_result_id`; narration is assembled from tokens and must pass the provenance check (§8.4) before it is shown. `DEMO_MODE=1` blocks all outbound calls: narration and voice replay from `app.llm_cache` / `app.voice_clip`, and the models run locally. Drill trajectories are written to the `app.drill_trajectory` hypertable and survival is aggregated in SQL; the Watchtower feeds `app.risk_snapshot` and the `app.risk_by_day_pattern` continuous aggregate.
 
-**Frontend** (`web/`): landing, student cockpit (alarm → fire drill → repair), queue and myths. With the API healthy it shows the trained model's numbers ("live model" badge); otherwise it falls back to a browser-side engine over the same dataset. See `web/README.md`.
+**Frontend** (`web/`): a minimal landing page (walking crowd, COOKED mark, Google sign-in with a guest fallback) and the agent workspace at `/app`. You drop a degree audit (a real PDF read by Gemini, or a synthetic sample), a voice greets you, and seven agents run (Reader · Gemini, Matcher and Fire drill · Tiger Data, Watchtower and Repair · the COOKED model, Narrator · ElevenLabs, Memory · Backboard), each showing whether its sponsor is live or on a fallback. Then the dashboard appears. Ask follow-ups by voice (tap the orb) or text, e.g. "what if I take CMSC 341 instead of CMSC 313?", and get a spoken answer plus a visual. The advisor queue lives at `/app/advisor`. See `web/README.md`.
 
 ## Checks, accounts and deployment
 

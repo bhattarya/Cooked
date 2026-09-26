@@ -62,26 +62,77 @@ def _text(v) -> str:
     return v if isinstance(v, str) else ""
 
 
-def feasibility(people: People, cid: str, major: str, target: int) -> dict:
+def prereq_groups(cat, course_id: str) -> list[list[str]]:
+    """"A|B" = all of; "A or B" inside a group = any of."""
+    pre = _text(cat.at[course_id, "prerequisite_ids"])
+    return [] if not pre else [[p.strip() for p in g.split(" or ")] for g in pre.split("|")]
+
+
+def holdings(people: People, cid: str) -> tuple[set[str], set[str]]:
+    """(courses the student holds, of which inferred). Transfer credit is not in the transcripts
+    (dataset README): anyone taking or past a course must already hold its single-course
+    prerequisites, so those are inferred transitively. For "A or B" neither is assumed."""
     cat = people.catalog
     have = set(people.courses_done.get(cid, set())) | set(people.courses_ip.get(cid, []))
-
-    def groups(pre):
-        pre = _text(pre)
-        return [] if not pre else [g.split(" or ") for g in pre.split("|")]
-
-    # Transfer credit is not in the transcripts (dataset README): anyone taking or past a course
-    # must already hold its prerequisites, so infer them transitively. For "A or B" we can't tell
-    # which was taken, so neither is assumed.
+    inferred: set[str] = set()
     stack = [c for c in have if c in cat.index]
     while stack:
-        for g in groups(cat.at[stack.pop(), "prerequisite_ids"]):
-            if len(g) == 1 and g[0].strip() not in have and g[0].strip() in cat.index:
-                have.add(g[0].strip())
-                stack.append(g[0].strip())
+        for g in prereq_groups(cat, stack.pop()):
+            if len(g) == 1 and g[0] not in have and g[0] in cat.index:
+                have.add(g[0])
+                inferred.add(g[0])
+                stack.append(g[0])
+    return have, inferred
+
+
+def downstream(cat, course_id: str) -> set[str]:
+    """Every course that needs this one, directly or through a chain."""
+    children: dict[str, list[str]] = {}
+    for c in cat.index:
+        for g in prereq_groups(cat, c):
+            for p in g:
+                children.setdefault(p, []).append(c)
+    seen: set[str] = set()
+    stack = [course_id]
+    while stack:
+        for ch in children.get(stack.pop(), []):
+            if ch not in seen:
+                seen.add(ch)
+                stack.append(ch)
+    return seen
+
+
+def course_status(people: People, cid: str, major: str, course_id: str) -> dict:
+    """Can this student take `course_id` next term, and what does it unlock?"""
+    cat = people.catalog
+    if course_id not in cat.index:
+        return {"course_id": course_id, "known": False}
+    have, _ = holdings(people, cid)
+    missing = [" or ".join(g) for g in prereq_groups(cat, course_id) if not any(p in have for p in g)]
+    gates = downstream(cat, course_id)
+    return {
+        "course_id": course_id,
+        "known": True,
+        "title": cat.at[course_id, "course_title"],
+        "credits": int(cat.at[course_id, "credits"]),
+        "type": cat.at[course_id, "course_type"],
+        "required_for_major": major in _text(cat.at[course_id, "required_for_majors"]).split("|"),
+        "already_have": course_id in have,
+        "offered_next_term": NEXT_TERM[1] in _text(cat.at[course_id, "typical_terms_offered"]),
+        "offered": _text(cat.at[course_id, "typical_terms_offered"]).split("|"),
+        "missing_prereqs": missing,
+        "gates": len(gates),
+        "gates_required": sorted(g for g in gates if major in _text(cat.at[g, "required_for_majors"]).split("|")),
+        "term": NEXT_TERM[0],
+    }
+
+
+def feasibility(people: People, cid: str, major: str, target: int) -> dict:
+    cat = people.catalog
+    have, _ = holdings(people, cid)
 
     def prereq_ok(course_id):
-        return all(any(p.strip() in have for p in g) for g in groups(cat.at[course_id, "prerequisite_ids"]))
+        return all(any(p in have for p in g) for g in prereq_groups(cat, course_id))
 
     def for_major(course_id):
         return major in _text(cat.at[course_id, "required_for_majors"]).split("|")

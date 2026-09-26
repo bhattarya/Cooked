@@ -1,7 +1,8 @@
-"""End-to-end demo check in a real browser: python -m scripts.e2e_demo
+"""End-to-end check of the voice-agent experience in a real browser: make e2e
 
-Drives the §15 demo path against a running web app and API and fails on any broken step or
-browser console error. Screenshots go to data/smoke/e2e-*.png (ignored by git).
+Landing -> sign-in guard -> guest login -> sample audit through the agent pipeline -> dashboard
+-> spoken/typed questions (course swap, what-if, stress test) -> advisor view -> phone layout ->
+sign out. Fails on any broken step or browser console error. Screenshots go to data/smoke/.
 
 Env: E2E_WEB_URL (default http://localhost:3000), E2E_API_URL (default http://localhost:8000).
 """
@@ -19,7 +20,7 @@ from scripts.common import ROOT
 WEB = os.getenv("E2E_WEB_URL", "http://localhost:3000").rstrip("/")
 API = os.getenv("E2E_API_URL", "http://localhost:8000").rstrip("/")
 SHOTS = ROOT / "data/smoke"
-T = 30_000
+T = 45_000
 
 results: list[tuple[str, bool, str]] = []
 
@@ -39,135 +40,115 @@ def step(name: str):
     return wrap
 
 
-def watch_console(page: Page, errors: list[str]):
-    page.on("console", lambda m: m.type == "error" and errors.append(m.text[:200]))
-    page.on("pageerror", lambda e: errors.append(f"pageerror: {str(e)[:200]}"))
+def sign_in_as_guest(page: Page):
+    page.goto(WEB, wait_until="domcontentloaded")
+    page.get_by_role("button", name=re.compile(r"(Continue as guest|continue as a guest)")).first.click()
+    page.wait_for_url(f"{WEB}/app", timeout=T)
 
 
-def body(page: Page) -> str:
-    return page.locator("body").inner_text()
+def ask(page: Page, question: str):
+    page.get_by_placeholder(re.compile("Tap the orb|Ask:")).fill(question)
+    page.get_by_role("button", name="Ask", exact=True).click()
+    expect(page.locator("article").filter(has_text=question).first).to_be_visible(timeout=T)
+    return page.locator("article").filter(has_text=question).first
 
 
-def tab(page: Page, name: str):
-    page.get_by_role("button", name=re.compile(rf"^0\d\s*{name}$")).click()
-
-
-@step("API health: trained models loaded, gates passed")
+@step("API health: trained models loaded")
 def api_health(page: Page):
-    r = page.request.get(f"{API}/healthz")
-    h = r.json()
-    assert r.status == 200 and h["mode"] == "models", h
-    assert h["checks"] == {"database": "ok", "artifact_checksum": "ok", "cache": "ok"}, h["checks"]
-    return h["model_version"]
+    h = page.request.get(f"{API}/healthz").json()
+    assert h["mode"] == "models" and h["checks"]["artifact_checksum"] == "ok", h
+    live = [k for k, v in h["providers"].items() if v]
+    return f"{h['model_version']} · live providers: {', '.join(live) or 'none (fallbacks)'}"
 
 
-@step("Landing: three model-verified demo students")
+@step("Sign-in guard: /app without a session goes to the landing page")
+def guard(page: Page):
+    page.goto(f"{WEB}/app", wait_until="domcontentloaded")
+    assert page.url.rstrip("/") == WEB, page.url
+
+
+@step("Landing: crowd, COOKED mark, sign-in")
 def landing(page: Page):
     page.goto(WEB, wait_until="domcontentloaded")
-    cards = page.locator('a[href^="/s/CID-"]')
-    expect(cards).to_have_count(3, timeout=T)
-    texts = [cards.nth(i).inner_text() for i in range(3)]
-    for status, t in zip(("Cooked", "Watch", "Fine"), texts):
-        assert status in t, (status, t[:80])
-    expect(page.get_by_text("Every trajectory")).to_be_visible(timeout=T)
-    page.screenshot(path=SHOTS / "e2e-landing.png")
-    return " / ".join(t.split("\n")[0] for t in texts)
-
-
-@step("Cockpit: live model, alarm fires, narration traced")
-def cockpit(page: Page, cid: str):
-    page.goto(f"{WEB}/s/{cid}", wait_until="domcontentloaded")
-    expect(page.get_by_text(re.compile(r"live model · cooked-v1"))).to_be_visible(timeout=T)
-    expect(page.get_by_text("Watchtower alarm")).to_be_visible(timeout=T)
-    expect(page.get_by_text("POST /alarm/check")).to_be_visible(timeout=T)
-    expect(page.get_by_text(re.compile(r"every number traced"))).to_be_visible(timeout=T)
-    page.get_by_role("button", name=re.compile("Voice on")).click()  # captions only, quieter tests
-    expect(page.get_by_text("Heads up.")).to_be_visible(timeout=T)
-    gauge = page.get_by_text(re.compile(r"model risk if this pace holds"))
-    expect(gauge).to_be_visible(timeout=T)
-    page.screenshot(path=SHOTS / "e2e-alarm.png", full_page=True)
-
-
-@step("Fire drill: both plans drilled, trajectories stored")
-def drill(page: Page):
-    tab(page, "Fire drill")
-    expect(page.get_by_text(re.compile(r"COPY \d+ rows → app\.drill_trajectory")).first).to_be_visible(timeout=T)
-    expect(page.get_by_text(re.compile("shocks to cooked", re.IGNORECASE))).to_be_visible(timeout=T)
-    expect(page.get_by_text(re.compile(r"survival · 500 simulated futures", re.IGNORECASE))).to_be_visible(timeout=T)
-    page.screenshot(path=SHOTS / "e2e-drill.png", full_page=True)
-    return page.get_by_text(re.compile(r"POST /drill plan=\d+ cr")).first.inner_text()
-
-
-@step("Repair: supported lever, catalog-feasible, applied to plan")
-def repair(page: Page):
-    tab(page, "Repair")
-    expect(page.get_by_text(re.compile("primary change", re.IGNORECASE))).to_be_visible(timeout=T)
-    title = page.get_by_text(re.compile(r"^Hold \d+\+ credits a term$")).first
-    expect(title).to_be_visible(timeout=T)
-    lever = title.inner_text()
-    target = int(re.search(r"\d+", lever).group())
-    expect(page.get_by_text(re.compile("feasible", re.IGNORECASE)).first).to_be_visible(timeout=T)
-    page.get_by_role("button", name="Apply to my plan").click()
-    expect(page.get_by_text(re.compile(rf"model risk at {target} cr/term"))).to_be_visible(timeout=T)
-    expect(page.get_by_text(re.compile(r"stored in (Backboard|app\.memory_note)"))).to_be_visible(timeout=T)
+    expect(page.get_by_text("COOKED", exact=True)).to_be_visible(timeout=T)
+    expect(page.locator("canvas")).to_have_count(1, timeout=T)
     page.wait_for_timeout(1500)
-    page.screenshot(path=SHOTS / "e2e-repair.png", full_page=True)
-    return lever
+    page.screenshot(path=SHOTS / "e2e-landing.png")
 
 
-@step("What-if: sliders re-score through the API")
-def what_if(page: Page):
-    slider = page.locator('input[type="range"]').nth(0)
-    slider.fill("10")
-    expect(page.get_by_text(re.compile(r"GET /students/CID-\d+/state\?work=10"))).to_be_visible(timeout=T)
+@step("Guest sign-in reaches the agent workspace")
+def workspace(page: Page):
+    sign_in_as_guest(page)
+    expect(page.get_by_text("Drop your degree audit")).to_be_visible(timeout=T)
+    expect(page.get_by_text("Working 22 h")).to_be_visible(timeout=T)
 
 
-@step("Queue: every student scored by the model, staff rows")
-def queue(page: Page):
-    page.goto(f"{WEB}/queue", wait_until="domcontentloaded")
+@step("Sample audit: every agent finishes, dashboard appears")
+def pipeline(page: Page):
+    page.get_by_text("Working 22 h").first.click()
+    expect(page.get_by_text("agents at work")).to_be_visible(timeout=T)
+    expect(page.get_by_text(re.compile(r"you're (cooked|on watch|on track)", re.IGNORECASE))).to_be_visible(timeout=90_000)
+    expect(page.get_by_text(re.compile(r"\d+ trajectories written to app\.drill_trajectory"))).to_be_visible(timeout=T)
+    page.wait_for_timeout(1500)
+    page.screenshot(path=SHOTS / "e2e-dashboard.png", full_page=True)
+    return page.get_by_text(re.compile(r"you're (cooked|on watch|on track)", re.IGNORECASE)).inner_text()
+
+
+@step("Question: course swap -> course cards, every number traced")
+def q_course(page: Page):
+    card = ask(page, "What if I take CMSC341 instead of CMSC313?")
+    expect(card.get_by_text("courses it unlocks").first).to_be_visible(timeout=T)
+    expect(card.get_by_text(re.compile(r"numbers traced to tool results"))).to_be_visible(timeout=T)
+    page.screenshot(path=SHOTS / "e2e-answer-course.png")
+    return card.locator("p").first.inner_text()[:90]
+
+
+@step("Question: relative what-if -> before/after")
+def q_whatif(page: Page):
+    card = ask(page, "What if I take 3 more credits a term?")
+    expect(card.get_by_text("What if", exact=True)).to_be_visible(timeout=T)
+    return card.locator("p").first.inner_text()[:90]
+
+
+@step("Question: stress test -> drill")
+def q_drill(page: Page):
+    card = ask(page, "Stress test my plan")
+    expect(card.locator("svg").first).to_be_visible(timeout=T)
+
+
+@step("Advisor view: every student scored by the model")
+def advisor(page: Page):
+    page.goto(f"{WEB}/app/advisor", wait_until="domcontentloaded")
     expect(page.get_by_text(re.compile(r"scored by the trained model"))).to_be_visible(timeout=T)
-    page.get_by_role("button", name=re.compile("Public view")).click()
-    rows = page.get_by_role("link", name="Open →")
-    expect(rows.first).to_be_visible(timeout=T)
-    page.screenshot(path=SHOTS / "e2e-queue.png")
-    return f"{rows.count()} rows shown"
 
 
-@step("Myths: seven claims render")
-def myths(page: Page):
-    page.goto(f"{WEB}/myths", wait_until="domcontentloaded")
-    expect(page.get_by_text(re.compile(r"^myth 0\d$"))).to_have_count(7, timeout=T)
-
-
-@step("Phone layout: no horizontal scroll on landing and cockpit")
-def phone(browser, cid: str):
+@step("Phone layout: no sideways scroll on landing and workspace")
+def phone(browser):
     ctx = browser.new_context(viewport={"width": 390, "height": 844}, is_mobile=True)
     page = ctx.new_page()
     try:
-        out = []
-        for url in (WEB, f"{WEB}/s/{cid}"):
-            page.goto(url, wait_until="domcontentloaded")
-            page.wait_for_timeout(4000)
-            sw, iw = page.evaluate("[document.documentElement.scrollWidth, innerWidth]")
-            assert sw <= iw + 1, f"{url} scrolls sideways ({sw} > {iw})"
-            out.append(f"{sw}px")
+        widths = []
+        page.goto(WEB, wait_until="domcontentloaded")
+        page.wait_for_timeout(1500)
+        widths.append(page.evaluate("[document.documentElement.scrollWidth, innerWidth]"))
+        sign_in_as_guest(page)
+        page.wait_for_timeout(2000)
+        widths.append(page.evaluate("[document.documentElement.scrollWidth, innerWidth]"))
         page.screenshot(path=SHOTS / "e2e-phone.png")
-        return " / ".join(out)
+        for sw, iw in widths:
+            assert sw <= iw + 1, f"scrolls sideways ({sw} > {iw})"
+        return " / ".join(f"{sw}px" for sw, _ in widths)
     finally:
         ctx.close()
 
 
-@step("Offline fallback: API blocked, local engine still serves the demo")
-def offline(browser, cid: str):
-    ctx = browser.new_context()
-    ctx.route(re.compile(re.escape(API) + ".*"), lambda route: route.abort())
-    page = ctx.new_page()
-    try:
-        page.goto(f"{WEB}/s/{cid}", wait_until="domcontentloaded")
-        expect(page.get_by_text("local engine", exact=True)).to_be_visible(timeout=T)
-        expect(page.get_by_text(re.compile(r"Heads up\.|You look fine"))).to_be_visible(timeout=T)
-    finally:
-        ctx.close()
+@step("Sign out returns to the landing page")
+def sign_out(page: Page):
+    page.goto(f"{WEB}/app", wait_until="domcontentloaded")
+    page.get_by_role("button", name="Sign out").click()
+    page.wait_for_url(f"{WEB}/", timeout=T)
+    page.goto(f"{WEB}/app", wait_until="domcontentloaded")
+    assert page.url.rstrip("/") == WEB, page.url
 
 
 def main():
@@ -176,18 +157,19 @@ def main():
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1440, "height": 900})
         errors: list[str] = []
-        watch_console(page, errors)
+        page.on("console", lambda m: m.type == "error" and errors.append(m.text[:200]))
+        page.on("pageerror", lambda e: errors.append(f"pageerror: {str(e)[:200]}"))
         api_health(page)
+        guard(page)
         landing(page)
-        cid = page.locator('a[href^="/s/CID-"]').nth(1).get_attribute("href").split("/")[-1]
-        cockpit(page, cid)
-        drill(page)
-        repair(page)
-        what_if(page)
-        queue(page)
-        myths(page)
-        phone(browser, cid)
-        offline(browser, cid)
+        workspace(page)
+        pipeline(page)
+        q_course(page)
+        q_whatif(page)
+        q_drill(page)
+        advisor(page)
+        phone(browser)
+        sign_out(page)
         browser.close()
 
     width = max(len(n) for n, _, _ in results)

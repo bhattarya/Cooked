@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
 from api.engine import NotFound, NotReady, model_dir
-from api.health import dependency_status
+from api.health import database_kind, dependency_status
 from api.providers import backboard, elevenlabs, gemini, net
 from api.routes.product import router
 from api.schemas import ErrorResponse, HealthResponse
@@ -133,6 +133,8 @@ def healthz(response: Response):
         mode="models" if version else "scaffold",
         model_version=version,
         demo_mode=not net.enabled(),
+        database_kind=database_kind(),
+        voice_usage=dict(elevenlabs.usage),
         providers={
             "gemini": gemini.configured(),
             "elevenlabs": elevenlabs.configured("narrator"),

@@ -1,8 +1,22 @@
 """Dependency health: database, voice cache and the frozen model artifacts."""
 
+import os
+
 from api.cache import check_cache
 from ml.model_interface import ArtifactError, verify
 from scripts.common import connect
+
+
+def database_kind() -> str:
+    """Which Postgres serves the app: only the kind, never the host or credentials."""
+    from urllib.parse import urlsplit
+
+    host = urlsplit(os.getenv("DATABASE_URL_APP", "")).hostname or ""
+    if not host:
+        return "unknown"
+    if "tsdb.cloud.timescale.com" in host or "timescale" in host or "tigerdata" in host:
+        return "tiger-cloud"
+    return "timescaledb-local" if host in {"localhost", "127.0.0.1", "db"} else "unknown"
 
 
 def artifact_status() -> str:

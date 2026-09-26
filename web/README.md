@@ -12,11 +12,10 @@ npm run dev    # http://localhost:3000
 
 | Route | What it is |
 | --- | --- |
-| `/` | Landing: animated field of all 3,200 alumni trajectories, three auto-picked demo students (cooked / watch / fine), audit drop zone, the load-cliff finding |
-| `/s/[id]` | Student cockpit: risk gauge, three range tiles, Alarm → Fire drill → Repair story with narration, what-if sliders, agent console, "where you sit", load cliff, prerequisite map |
-| `/lab` | Interactive plan lab: search synthetic students, change work hours and planned credits, reveal drill shocks, inspect repair support, and filter cohort evidence |
-| `/queue` | Institution queue: every current student with 2+ terms, ranked; per-student rows behind a staff toggle |
-| `/myths` | Ideas the data refuted (flip cards) |
+| `/` | Landing: walking crowd (Skiper UI canvas), COOKED mark, Google sign-in or guest |
+| `/app` | Agent workspace (signed-in only): voice orb, audit upload, sponsor-tagged agent pipeline, dashboard, voice/text questions |
+| `/app/advisor` | Institution queue: every current student scored by the model |
+| `/api/auth/*` | Google OAuth (PKCE, ID token verified against Google's keys), guest session, sign out |
 
 ## How the pieces fit
 

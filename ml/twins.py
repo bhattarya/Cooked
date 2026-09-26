@@ -89,10 +89,29 @@ class TwinIndex:
         smd = np.abs(means - target) / sd
         ok = np.where((smd < SMD_MAX).all(axis=1))[0] + 1
         ok = ok[ok >= min_support]
-        if not len(ok):
-            return TwinResult(k, [], n_max, True, "matches not balanced on work hours and load")
-        n = int(ok.max())
-        chosen = order[:n]
+        if len(ok):
+            n = int(ok.max())
+            chosen = order[:n]
+            final = smd[n - 1]
+        else:
+            # The nearest set leans to one side (the student sits at the edge of the cohort).
+            # Trim toward balance: repeatedly drop the member pulling the worst-balanced variable
+            # furthest from the student. Same gate: every SMD < 0.1 with at least 30 twins left.
+            vals = tab[BALANCE].to_numpy(dtype=float)
+            idx = list(order[:n_max])
+            while True:
+                cur = vals[idx]
+                gap = (cur.mean(axis=0) - target) / sd
+                if (np.abs(gap) < SMD_MAX).all():
+                    break
+                if len(idx) <= min_support:
+                    return TwinResult(k, [], n_max, True, "matches not balanced on work hours and load")
+                worst = int(np.argmax(np.abs(gap)))
+                pull = (cur[:, worst] - target[worst]) * np.sign(gap[worst])
+                idx.pop(int(np.argmax(pull)))
+            chosen = np.array(idx)
+            n = len(idx)
+            final = np.abs(gap)
         return TwinResult(
             k,
             tab.index[chosen].tolist(),
@@ -100,5 +119,5 @@ class TwinIndex:
             False,
             None,
             float(dist[chosen].max()),
-            {c: float(v) for c, v in zip(BALANCE, smd[n - 1])},
+            {c: float(v) for c, v in zip(BALANCE, final)},
         )

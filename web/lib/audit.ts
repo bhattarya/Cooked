@@ -3,9 +3,8 @@
 import type { Course, Student } from "./types";
 
 // Sample degree audits built from synthetic students, so the upload flow can be demoed
-// without anyone's real records. The PDF is written uncompressed so the local fallback
-// can read the campus ID straight out of the bytes; the backend parser (Gemini) reads
-// the whole document.
+// without anyone's real records. The PDF is written uncompressed so the API can recognise a
+// sample (and its synthetic campus ID) without Gemini; real audits are read by Gemini.
 
 export function auditLines(s: Student, catalog: Course[]): string[] {
   const byId = new Map(catalog.map((c) => [c.id, c]));
@@ -68,27 +67,4 @@ export function auditPdf(lines: string[]): Blob {
   for (let i = 1; i < objs.length; i++) out += `${String(xref[i]).padStart(10, "0")} 00000 n \n`;
   out += `trailer\n<< /Size ${objs.length} /Root 1 0 R >>\nstartxref\n${xrefAt}\n%%EOF`;
   return new Blob([out], { type: "application/pdf" });
-}
-
-const API = process.env.NEXT_PUBLIC_API_URL;
-
-// Returns the campus ID the audit belongs to. Backend: Gemini reads the document.
-// Offline: look for a campus ID in the raw bytes (works for the sample audits).
-export async function readAudit(file: File): Promise<{ id: string | null; via: "gemini" | "local" }> {
-  if (API) {
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const r = await fetch(`${API}/audit/parse`, { method: "POST", body: fd });
-      if (r.ok) {
-        const j = (await r.json()) as { data?: { campus_id?: string | null; source?: string } };
-        if (j.data?.campus_id) return { id: j.data.campus_id, via: j.data.source === "gemini" ? "gemini" : "local" };
-      }
-    } catch {
-      /* fall through to local */
-    }
-  }
-  const text = new TextDecoder("latin1").decode(await file.arrayBuffer());
-  const m = text.match(/CID-\d{6}/);
-  return { id: m ? m[0] : null, via: "local" };
 }

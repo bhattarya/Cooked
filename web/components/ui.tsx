@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { animate, motion, useMotionValue, useTransform } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import type { Status } from "@/lib/engine";
@@ -41,37 +40,17 @@ export function Logo({ size = 18 }: { size?: number }) {
   );
 }
 
+// Top bar for secondary pages (the advisor view); the agent workspace has its own.
 export function Nav() {
-  const path = usePathname();
-  const items = [
-    { href: "/", label: "Students" },
-    { href: "/lab", label: "Plan lab" },
-    { href: "/queue", label: "Queue" },
-    { href: "/myths", label: "Myths" },
-  ];
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/70 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between px-4 sm:px-6">
-        <Link href="/">
+        <Link href="/app">
           <Logo />
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
-          {items.map((it) => {
-            const on = it.href === "/" ? path === "/" || path.startsWith("/s/") : path.startsWith(it.href);
-            return (
-              <Link key={it.href} href={it.href} className="relative rounded-full px-3 py-1.5 text-muted transition hover:text-text">
-                {on && (
-                  <motion.span
-                    layoutId="nav-pill"
-                    className="absolute inset-0 rounded-full bg-white/[0.06] ring-1 ring-line-2"
-                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                  />
-                )}
-                <span className={`relative ${on ? "text-text" : ""}`}>{it.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <Link href="/app" className="text-sm text-muted transition hover:text-text">
+          ← Back to your agent
+        </Link>
         <span className="hidden items-center gap-2 rounded-full border border-line px-2.5 py-1 text-[11px] text-muted sm:inline-flex">
           <ApiStatus />
           Synthetic data · not real students

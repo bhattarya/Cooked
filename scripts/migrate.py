@@ -65,6 +65,17 @@ def secure_roles(conn, configs):
     )
 
 
+def allow_owner_jobs(conn):
+    """TimescaleDB runs columnstore and continuous-aggregate policies as the hypertable owner,
+    which must have LOGIN. On managed services (Tiger) `owner` is created NOLOGIN; give it LOGIN
+    with no password, so background jobs can start but nobody can sign in as it. Local Docker,
+    where `owner` is already the bootstrap login, is left alone."""
+    row = conn.execute("SELECT rolcanlogin FROM pg_roles WHERE rolname = 'owner'").fetchone()
+    if row and not row[0]:
+        conn.execute("ALTER ROLE owner LOGIN PASSWORD NULL")
+        print("Enabled background jobs for role owner (LOGIN, no password)")
+
+
 def main():
     configs = role_connections()
     with connect(autocommit=True) as conn:
@@ -87,6 +98,8 @@ def main():
                     print(f"Already applied: {path.name}")
                     continue
                 print(f"Applying: {path.name}")
+                if not path.name.startswith("00_"):
+                    allow_owner_jobs(conn)
                 with conn.transaction():
                     if not path.name.startswith("00_"):
                         conn.execute("SET LOCAL ROLE owner")

@@ -8,6 +8,12 @@ from urllib.parse import quote
 from api.providers import net
 
 VOICES = {"narrator": "VOICE_ID_NARRATOR", "coach": "VOICE_ID_COACH"}
+_denied = False  # set when ElevenLabs rejects the key, so health and the UI stop claiming voice
+usage = {"clips": 0, "characters_billed": 0}  # from the character-cost response header
+
+
+def denied() -> bool:
+    return _denied
 
 
 def voice_id(voice: str) -> str | None:
@@ -15,10 +21,11 @@ def voice_id(voice: str) -> str | None:
 
 
 def configured(voice: str) -> bool:
-    return bool(net.key("ELEVENLABS_API_KEY") and voice_id(voice) and os.getenv("ELEVENLABS_MODEL"))
+    return not _denied and bool(net.key("ELEVENLABS_API_KEY") and voice_id(voice) and os.getenv("ELEVENLABS_MODEL"))
 
 
 def render(text: str, voice: str) -> bytes | None:
+    global _denied
     if not configured(voice):
         return None
     try:
@@ -30,7 +37,15 @@ def render(text: str, voice: str) -> bytes | None:
             json={"text": text, "model_id": os.getenv("ELEVENLABS_MODEL")},
             timeout=90,
         )
+        if r.status_code in (401, 403):
+            _denied = True  # e.g. a restricted key without text-to-speech permission
+            return None
         r.raise_for_status()
-        return r.content if "audio" in r.headers.get("content-type", "") else None
+        if "audio" not in r.headers.get("content-type", ""):
+            return None
+        # ElevenLabs reports what each render cost against the plan's character quota
+        usage["clips"] += 1
+        usage["characters_billed"] += int(r.headers.get("character-cost") or len(text))
+        return r.content
     except Exception:  # noqa: BLE001
         return None
