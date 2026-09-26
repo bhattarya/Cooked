@@ -33,6 +33,7 @@ class HealthResponse(StrictModel):
     demo_mode: bool = False
     providers: dict[str, bool] = Field(default_factory=dict)
     database_kind: Literal["tiger-cloud", "timescaledb-local", "unknown"] = "unknown"
+    voice_usage: dict[str, int] = Field(default_factory=dict)
     checks: HealthChecks
 
 

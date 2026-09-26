@@ -134,6 +134,7 @@ def healthz(response: Response):
         model_version=version,
         demo_mode=not net.enabled(),
         database_kind=database_kind(),
+        voice_usage=dict(elevenlabs.usage),
         providers={
             "gemini": gemini.configured(),
             "elevenlabs": elevenlabs.configured("narrator"),

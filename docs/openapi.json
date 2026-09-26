@@ -323,6 +323,13 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "voice_usage": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Voice Usage",
+            "type": "object"
           }
         },
         "required": [
