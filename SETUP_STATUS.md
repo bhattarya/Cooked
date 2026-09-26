@@ -1,3 +1,14 @@
+# COOKED setup status
+
+## Phase 2 (models, API, worker, frontend): implemented and verified locally
+
+- `make train`: all six §7.5 gates pass; held-out AUC 0.834 (enrollment only) / 0.940 (one term); artifacts frozen with SHA-256 manifest.
+- `pytest`: **40 passed, 0 skipped** against local TimescaleDB 2.18.2 (the eight handoff skips are now real tests, plus golden drills).
+- API Docker image (`api/Dockerfile`, Python 3.12) builds, verifies the artifact checksum and serves the same predictions as local.
+- Watchtower: two passes scored 1,386 students; the second opened no duplicate alarms (hysteresis).
+- Frontend production build passes; live mode verified in the browser against the local API.
+- **Not verified:** Gemini, ElevenLabs and Backboard live calls (no keys yet; clients fall back to template / browser voice / `app.memory_note`), Tiger Cloud and DigitalOcean deployment.
+
 # COOKED Phase 1 setup status
 
 Updated: 2026-09-26. Rules gate: Dhruv authorized proceeding after the pre-event rules question. The assistant has not independently verified organizer rules.

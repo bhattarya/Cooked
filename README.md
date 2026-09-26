@@ -4,7 +4,7 @@ Know you are cooked before it is too late — and get un-cooked.
 
 Phase 1 foundation for HackUMBC 2026, Career Pathways & Degree ROI. **All data is synthetic, CC0.** No records describe real UMBC students, employers, courses, or outcomes. Do not upload real student data. This is a demo, not academic or financial advice.
 
-The build plan PDF is the design reference. Dhruv owns infrastructure and then frontend; one teammate owns backend/ML/agents, and one owns frontend. Models, agents, production prompts, predictions, and voice rendering are not implemented here. API product routes return `mock: true`, empty collections, and null predictions.
+The build plan PDF is the design reference. Dhruv owns infrastructure and then frontend; one teammate owns backend/ML/agents, and one owns frontend. The trained models, real API routes, Watchtower worker and frontend are implemented (see [Models, API and frontend](#models-api-and-frontend)). Gemini, ElevenLabs and Backboard calls are wired but only activate once their keys are configured.
 
 ## Getting started
 
@@ -52,7 +52,29 @@ Local/CI image: TimescaleDB 2.18.2 on PostgreSQL 17. SQL requires TimescaleDB >=
 
 Open [docs/openapi.json](docs/openapi.json), or local [Swagger UI](http://localhost:8000/docs). `make openapi` regenerates the committed contract; CI rejects stale exports and publishes it as an Actions artifact. Every §12 route exists. These are **draft mock contracts for teammate review**, not completed backend behavior. See [handoff notes](docs/handoff.md) and share interface changes in the group chat before implementation.
 
-`web/` is a minimal Next.js page with a real browser health request. `worker/watchtower.py` stays alive and handles shutdown, but schedules nothing. `ml/`, `api/agents`, `api/tools`, the evidence notebook, and provenance module are placeholders. No model binaries or reproduced evidence claims are included.
+## Models, API and frontend
+
+```sh
+make train        # fit, validate (§7.5 gates) and freeze models/ (≈25 s)
+make watchtower   # one Watchtower pass: risk snapshots + alarms with hysteresis
+make dev-api      # real §12 routes over the frozen models
+make dev-web      # Next.js app; uses the API when /healthz reports mode=models
+```
+
+**Models** (`ml/`, trained from `feat.*` as `app_rw`; train ≤2021, calibrate 2022, test 2023–2026):
+
+| Model | Held-out result |
+| --- | --- |
+| Risk of getting cooked, per stage k=0..6 (boosted trees, Platt-calibrated) | AUC 0.834 enrollment-only, 0.940 after one term, 0.967 after three; calibration slope 0.87–1.14 |
+| Time to degree p25/p50/p75 | MAE 0.47 y after one term (baseline 1.02 y); p25–p75 covers ~48% |
+| Autopsy clusters (k-means, 5 patterns) | bootstrap ARI 0.92 mean |
+| Twin matcher (Gower, caliper 0.10, SMD < 0.1 on work hours and load) | refuses below 30 balanced twins |
+
+All six §7.5 gates pass (`models/manifest.json`). Isotonic calibration on ~300 rows failed the slope gate, so Platt scaling is used; the change is recorded in `ml/risk_model.py`. Artifacts are SHA-256 checked and the API refuses to start on a mismatch. CI retrains from scratch before running tests.
+
+**API**: every §12 route is real, plus `/narrate`, `/voice`, `/students/{id}/memory` and `/audit/parse`. Every number carries a `tool_result_id`; narration is assembled from tokens and must pass the provenance check (§8.4) before it is shown. `DEMO_MODE=1` blocks all outbound calls: narration and voice replay from `app.llm_cache` / `app.voice_clip`, and the models run locally. Drill trajectories are written to the `app.drill_trajectory` hypertable and survival is aggregated in SQL; the Watchtower feeds `app.risk_snapshot` and the `app.risk_by_day_pattern` continuous aggregate.
+
+**Frontend** (`web/`): landing, student cockpit (alarm → fire drill → repair), queue and myths. With the API healthy it shows the trained model's numbers ("live model" badge); otherwise it falls back to a browser-side engine over the same dataset. See `web/README.md`.
 
 ## Checks, accounts and deployment
 

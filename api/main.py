@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
 
 from fastapi import FastAPI, Request, Response
@@ -7,14 +8,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
+from api.engine import NotFound, NotReady, model_dir
 from api.health import dependency_status
-from api.routes.mock import router
+from api.providers import backboard, elevenlabs, gemini, net
+from api.routes.product import router
 from api.schemas import ErrorResponse, HealthResponse
+from ml.model_interface import ArtifactError, verify
+
+
+@asynccontextmanager
+async def lifespan(app):
+    """Refuse to start on a modified artifact (§5.4); a missing one keeps scaffold mode."""
+    try:
+        verify(model_dir())
+    except ArtifactError as exc:
+        if str(exc) != "not_configured":
+            raise
+    yield
+
 
 app = FastAPI(
-    title="COOKED Phase 1 — Synthetic Data Only",
-    version="0.1.0",
-    description="Draft interface for teammate review. All product endpoints return mock JSON.",
+    title="COOKED — Synthetic Data Only",
+    version="1.0.0",
+    description="Early-warning and stress-test API over frozen, checksummed models. "
+    "Every number carries the tool_result_id that produced it.",
+    lifespan=lifespan,
     openapi_url="/openapi.json",
     root_path=os.getenv("API_ROOT_PATH", ""),
     responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
@@ -25,25 +43,15 @@ app.add_middleware(
         s.strip() for s in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
     ],
     allow_methods=["GET", "POST"],
+    allow_credentials=True,
     allow_headers=["Content-Type"],
 )
 
 
 @app.middleware("http")
 async def demo_session(request: Request, call_next):
-    if os.getenv("DEMO_MODE") == "1" and request.url.path not in {
-        "/healthz",
-        "/openapi.json",
-        "/docs",
-    }:
-        return JSONResponse(
-            status_code=503,
-            content={
-                "error": "cache_replay_not_implemented",
-                "message": "Backend cache replay is pending.",
-                "needs": ["backend cache replay implementation"],
-            },
-        )
+    # DEMO_MODE=1 is enforced in api.providers.net: no provider call can leave the machine,
+    # so narration and voice replay from Postgres caches and the models run locally.
     session = request.cookies.get("cooked_session", "")
     try:
         UUID(session)
@@ -72,6 +80,21 @@ async def validation_error(request, exc):
     )
 
 
+@app.exception_handler(NotReady)
+async def not_ready(request, exc: NotReady):
+    return JSONResponse(
+        status_code=503, content={"error": exc.error, "message": exc.message, "needs": exc.needs}
+    )
+
+
+@app.exception_handler(NotFound)
+async def not_found(request, exc: NotFound):
+    return JSONResponse(
+        status_code=404,
+        content={"error": "not_found", "message": "No synthetic record matches.", "needs": []},
+    )
+
+
 @app.exception_handler(HTTPException)
 async def http_error(request, exc):
     return JSONResponse(
@@ -94,7 +117,24 @@ def healthz(response: Response):
     checks = dependency_status()
     ready = checks["database"] == "ok" and checks["cache"] == "ok"
     response.status_code = 200 if ready else 503
-    return HealthResponse(status="ok" if ready else "degraded", checks=checks)
+    version = None
+    if checks["artifact_checksum"] == "ok":
+        try:
+            version = verify(model_dir())["version"]
+        except ArtifactError:
+            version = None
+    return HealthResponse(
+        status="ok" if ready else "degraded",
+        mode="models" if version else "scaffold",
+        model_version=version,
+        demo_mode=not net.enabled(),
+        providers={
+            "gemini": gemini.configured(),
+            "elevenlabs": elevenlabs.configured("narrator"),
+            "backboard": backboard.configured(),
+        },
+        checks=checks,
+    )
 
 
 app.include_router(router)

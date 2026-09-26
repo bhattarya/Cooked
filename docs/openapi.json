@@ -1,152 +1,18 @@
 {
   "components": {
     "schemas": {
-      "Alarm": {
-        "additionalProperties": false,
+      "Body_audit_audit_parse_post": {
         "properties": {
-          "campus_id": {
-            "anyOf": [
-              {
-                "pattern": "^CID-[0-9]{6}$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Campus Id"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
-          },
-          "pattern": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Pattern"
-          },
-          "risk": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvidenceNumber"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "status": {
-            "anyOf": [
-              {
-                "enum": [
-                  "open",
-                  "acknowledged",
-                  "resolved",
-                  "dismissed"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Status"
-          }
-        },
-        "title": "Alarm",
-        "type": "object"
-      },
-      "AlarmList": {
-        "additionalProperties": false,
-        "properties": {
-          "aggregated": {
-            "const": true,
-            "default": true,
-            "title": "Aggregated",
-            "type": "boolean"
-          },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/Alarm"
-            },
-            "title": "Items",
-            "type": "array"
-          }
-        },
-        "title": "AlarmList",
-        "type": "object"
-      },
-      "AudioPlaceholder": {
-        "additionalProperties": false,
-        "properties": {
-          "available": {
-            "const": false,
-            "default": false,
-            "title": "Available",
-            "type": "boolean"
-          },
-          "hash": {
-            "title": "Hash",
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
             "type": "string"
           }
         },
         "required": [
-          "hash"
+          "file"
         ],
-        "title": "AudioPlaceholder",
-        "type": "object"
-      },
-      "DrillReport": {
-        "additionalProperties": false,
-        "properties": {
-          "drill_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Drill Id"
-          },
-          "shocks_to_cooked": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvidenceNumber"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "single_point_of_failure": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Single Point Of Failure"
-          }
-        },
-        "title": "DrillReport",
+        "title": "Body_audit_audit_parse_post",
         "type": "object"
       },
       "DrillRequest": {
@@ -164,6 +30,19 @@
             ],
             "title": "Campus Id"
           },
+          "plan_load": {
+            "anyOf": [
+              {
+                "maximum": 21.0,
+                "minimum": 3.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Load"
+          },
           "profile": {
             "anyOf": [
               {
@@ -173,9 +52,72 @@
                 "type": "null"
               }
             ]
+          },
+          "work_hours": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Hours"
           }
         },
         "title": "DrillRequest",
+        "type": "object"
+      },
+      "Envelope_FeedbackResult_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FeedbackResult"
+          },
+          "mock": {
+            "const": false,
+            "default": false,
+            "title": "Mock",
+            "type": "boolean"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_version",
+          "data"
+        ],
+        "title": "Envelope[FeedbackResult]",
+        "type": "object"
+      },
+      "Envelope_dict_str__Any__": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "mock": {
+            "const": false,
+            "default": false,
+            "title": "Mock",
+            "type": "boolean"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_version",
+          "data"
+        ],
+        "title": "Envelope[dict[str, Any]]",
         "type": "object"
       },
       "ErrorResponse": {
@@ -204,54 +146,6 @@
         "title": "ErrorResponse",
         "type": "object"
       },
-      "EvidenceNumber": {
-        "additionalProperties": false,
-        "properties": {
-          "tool_result_id": {
-            "title": "Tool Result Id",
-            "type": "string"
-          },
-          "value": {
-            "title": "Value",
-            "type": "number"
-          }
-        },
-        "required": [
-          "value",
-          "tool_result_id"
-        ],
-        "title": "EvidenceNumber",
-        "type": "object"
-      },
-      "EvidenceRange": {
-        "additionalProperties": false,
-        "properties": {
-          "high": {
-            "title": "High",
-            "type": "number"
-          },
-          "low": {
-            "title": "Low",
-            "type": "number"
-          },
-          "support": {
-            "title": "Support",
-            "type": "integer"
-          },
-          "tool_result_id": {
-            "title": "Tool Result Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "low",
-          "high",
-          "support",
-          "tool_result_id"
-        ],
-        "title": "EvidenceRange",
-        "type": "object"
-      },
       "FeedbackRequest": {
         "additionalProperties": false,
         "properties": {
@@ -275,13 +169,23 @@
       "FeedbackResult": {
         "additionalProperties": false,
         "properties": {
+          "memory": {
+            "enum": [
+              "backboard",
+              "local"
+            ],
+            "title": "Memory",
+            "type": "string"
+          },
           "saved": {
-            "const": false,
-            "default": false,
             "title": "Saved",
             "type": "boolean"
           }
         },
+        "required": [
+          "saved",
+          "memory"
+        ],
         "title": "FeedbackResult",
         "type": "object"
       },
@@ -289,8 +193,12 @@
         "additionalProperties": false,
         "properties": {
           "artifact_checksum": {
-            "const": "not_configured",
             "default": "not_configured",
+            "enum": [
+              "ok",
+              "not_configured",
+              "mismatch"
+            ],
             "title": "Artifact Checksum",
             "type": "string"
           },
@@ -324,11 +232,37 @@
           "checks": {
             "$ref": "#/components/schemas/HealthChecks"
           },
+          "demo_mode": {
+            "default": false,
+            "title": "Demo Mode",
+            "type": "boolean"
+          },
           "mode": {
-            "const": "scaffold",
             "default": "scaffold",
+            "enum": [
+              "scaffold",
+              "models"
+            ],
             "title": "Mode",
             "type": "string"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "providers": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Providers",
+            "type": "object"
           },
           "status": {
             "enum": [
@@ -346,282 +280,81 @@
         "title": "HealthResponse",
         "type": "object"
       },
-      "MockResponse_AlarmList_": {
+      "MemoryRequest": {
         "additionalProperties": false,
         "properties": {
-          "data": {
-            "$ref": "#/components/schemas/AlarmList"
-          },
-          "message": {
-            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
-            "title": "Message",
+          "kind": {
+            "default": "decision",
+            "enum": [
+              "decision",
+              "constraint",
+              "outcome"
+            ],
+            "title": "Kind",
             "type": "string"
           },
-          "mock": {
-            "const": true,
-            "default": true,
-            "title": "Mock",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "MockResponse[AlarmList]",
-        "type": "object"
-      },
-      "MockResponse_Alarm_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/Alarm"
-          },
-          "message": {
-            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
-            "title": "Message",
-            "type": "string"
-          },
-          "mock": {
-            "const": true,
-            "default": true,
-            "title": "Mock",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "MockResponse[Alarm]",
-        "type": "object"
-      },
-      "MockResponse_AudioPlaceholder_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/AudioPlaceholder"
-          },
-          "message": {
-            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
-            "title": "Message",
-            "type": "string"
-          },
-          "mock": {
-            "const": true,
-            "default": true,
-            "title": "Mock",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "MockResponse[AudioPlaceholder]",
-        "type": "object"
-      },
-      "MockResponse_DrillReport_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/DrillReport"
-          },
-          "message": {
-            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
-            "title": "Message",
-            "type": "string"
-          },
-          "mock": {
-            "const": true,
-            "default": true,
-            "title": "Mock",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "MockResponse[DrillReport]",
-        "type": "object"
-      },
-      "MockResponse_FeedbackResult_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/FeedbackResult"
-          },
-          "message": {
-            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
-            "title": "Message",
-            "type": "string"
-          },
-          "mock": {
-            "const": true,
-            "default": true,
-            "title": "Mock",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "MockResponse[FeedbackResult]",
-        "type": "object"
-      },
-      "MockResponse_MythsReport_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/MythsReport"
-          },
-          "message": {
-            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
-            "title": "Message",
-            "type": "string"
-          },
-          "mock": {
-            "const": true,
-            "default": true,
-            "title": "Mock",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "MockResponse[MythsReport]",
-        "type": "object"
-      },
-      "MockResponse_QueueReport_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/QueueReport"
-          },
-          "message": {
-            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
-            "title": "Message",
-            "type": "string"
-          },
-          "mock": {
-            "const": true,
-            "default": true,
-            "title": "Mock",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "MockResponse[QueueReport]",
-        "type": "object"
-      },
-      "MockResponse_RepairReport_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/RepairReport"
-          },
-          "message": {
-            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
-            "title": "Message",
-            "type": "string"
-          },
-          "mock": {
-            "const": true,
-            "default": true,
-            "title": "Mock",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "MockResponse[RepairReport]",
-        "type": "object"
-      },
-      "MockResponse_StudentState_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/StudentState"
-          },
-          "message": {
-            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
-            "title": "Message",
-            "type": "string"
-          },
-          "mock": {
-            "const": true,
-            "default": true,
-            "title": "Mock",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "MockResponse[StudentState]",
-        "type": "object"
-      },
-      "MockResponse_SurvivalReport_": {
-        "additionalProperties": false,
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/SurvivalReport"
-          },
-          "message": {
-            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
-            "title": "Message",
-            "type": "string"
-          },
-          "mock": {
-            "const": true,
-            "default": true,
-            "title": "Mock",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "MockResponse[SurvivalReport]",
-        "type": "object"
-      },
-      "Myth": {
-        "additionalProperties": false,
-        "properties": {
-          "evidence": {
-            "title": "Evidence",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          },
-          "tool_result_id": {
-            "title": "Tool Result Id",
+          "note": {
+            "maxLength": 280,
+            "minLength": 1,
+            "title": "Note",
             "type": "string"
           }
         },
         "required": [
-          "title",
-          "evidence",
-          "tool_result_id"
+          "note"
         ],
-        "title": "Myth",
+        "title": "MemoryRequest",
         "type": "object"
       },
-      "MythsReport": {
+      "NarrateRequest": {
         "additionalProperties": false,
         "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/Myth"
-            },
-            "title": "Items",
-            "type": "array"
+          "campus_id": {
+            "pattern": "^CID-[0-9]{6}$",
+            "title": "Campus Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "alarm",
+              "drill",
+              "repair"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "plan_load": {
+            "anyOf": [
+              {
+                "maximum": 21.0,
+                "minimum": 3.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Load"
+          },
+          "work_hours": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Hours"
           }
         },
-        "title": "MythsReport",
+        "required": [
+          "kind",
+          "campus_id"
+        ],
+        "title": "NarrateRequest",
         "type": "object"
       },
       "Profile": {
@@ -665,71 +398,6 @@
         "title": "Profile",
         "type": "object"
       },
-      "QueueReport": {
-        "additionalProperties": false,
-        "properties": {
-          "aggregated": {
-            "const": true,
-            "default": true,
-            "title": "Aggregated",
-            "type": "boolean"
-          },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/Alarm"
-            },
-            "title": "Items",
-            "type": "array"
-          }
-        },
-        "title": "QueueReport",
-        "type": "object"
-      },
-      "RepairChange": {
-        "additionalProperties": false,
-        "properties": {
-          "effect": {
-            "$ref": "#/components/schemas/EvidenceRange"
-          },
-          "lever": {
-            "title": "Lever",
-            "type": "string"
-          }
-        },
-        "required": [
-          "lever",
-          "effect"
-        ],
-        "title": "RepairChange",
-        "type": "object"
-      },
-      "RepairReport": {
-        "additionalProperties": false,
-        "properties": {
-          "fallback": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RepairChange"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "primary": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RepairChange"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "title": "RepairReport",
-        "type": "object"
-      },
       "RepairRequest": {
         "additionalProperties": false,
         "properties": {
@@ -737,6 +405,19 @@
             "pattern": "^CID-[0-9]{6}$",
             "title": "Campus Id",
             "type": "string"
+          },
+          "work_hours": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Hours"
           }
         },
         "required": [
@@ -745,108 +426,43 @@
         "title": "RepairRequest",
         "type": "object"
       },
-      "StudentState": {
+      "VoiceRequest": {
         "additionalProperties": false,
         "properties": {
-          "campus_id": {
-            "pattern": "^CID-[0-9]{6}$",
-            "title": "Campus Id",
+          "text": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Text",
             "type": "string"
           },
-          "degree_burden": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvidenceRange"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "delay": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvidenceRange"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "still_seeking_risk": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EvidenceRange"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": [
-          "campus_id"
-        ],
-        "title": "StudentState",
-        "type": "object"
-      },
-      "SurvivalPoint": {
-        "additionalProperties": false,
-        "properties": {
-          "survival": {
-            "title": "Survival",
-            "type": "number"
-          },
-          "term_k": {
-            "title": "Term K",
-            "type": "integer"
-          },
-          "tool_result_id": {
-            "title": "Tool Result Id",
+          "voice": {
+            "default": "narrator",
+            "enum": [
+              "narrator",
+              "coach"
+            ],
+            "title": "Voice",
             "type": "string"
           }
         },
         "required": [
-          "term_k",
-          "survival",
-          "tool_result_id"
+          "text"
         ],
-        "title": "SurvivalPoint",
-        "type": "object"
-      },
-      "SurvivalReport": {
-        "additionalProperties": false,
-        "properties": {
-          "drill_id": {
-            "format": "uuid",
-            "title": "Drill Id",
-            "type": "string"
-          },
-          "points": {
-            "items": {
-              "$ref": "#/components/schemas/SurvivalPoint"
-            },
-            "title": "Points",
-            "type": "array"
-          }
-        },
-        "required": [
-          "drill_id"
-        ],
-        "title": "SurvivalReport",
+        "title": "VoiceRequest",
         "type": "object"
       }
     }
   },
   "info": {
-    "description": "Draft interface for teammate review. All product endpoints return mock JSON.",
-    "title": "COOKED Phase 1 \u2014 Synthetic Data Only",
-    "version": "0.1.0"
+    "description": "Early-warning and stress-test API over frozen, checksummed models. Every number carries the tool_result_id that produced it.",
+    "title": "COOKED \u2014 Synthetic Data Only",
+    "version": "1.0.0"
   },
   "openapi": "3.1.0",
   "paths": {
     "/alarms": {
       "get": {
+        "description": "Aggregated alarm counts by pattern from the continuous aggregate; no per-student rows.",
         "operationId": "alarms_alarms_get",
         "parameters": [
           {
@@ -871,7 +487,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MockResponse_AlarmList_"
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
                 }
               }
             },
@@ -885,7 +501,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           },
           "503": {
             "content": {
@@ -900,7 +516,7 @@
         },
         "summary": "Alarms",
         "tags": [
-          "mock \u2014 backend handoff"
+          "product"
         ]
       }
     },
@@ -934,7 +550,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MockResponse_FeedbackResult_"
+                  "$ref": "#/components/schemas/Envelope_FeedbackResult_"
                 }
               }
             },
@@ -948,7 +564,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           },
           "503": {
             "content": {
@@ -963,13 +579,12 @@
         },
         "summary": "Feedback",
         "tags": [
-          "mock \u2014 backend handoff"
+          "product"
         ]
       }
     },
     "/audio/{hash}": {
       "get": {
-        "description": "Scaffold returns JSON only. Backend must add the PDF's audio/mpeg response.",
         "operationId": "audio_audio__hash__get",
         "parameters": [
           {
@@ -986,11 +601,7 @@
         "responses": {
           "200": {
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MockResponse_AudioPlaceholder_"
-                }
-              }
+              "audio/mpeg": {}
             },
             "description": "Successful Response"
           },
@@ -1002,7 +613,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           },
           "503": {
             "content": {
@@ -1017,12 +628,65 @@
         },
         "summary": "Audio",
         "tags": [
-          "mock \u2014 backend handoff"
+          "product"
+        ]
+      }
+    },
+    "/audit/parse": {
+      "post": {
+        "description": "Synthetic degree audits only. Gemini reads the PDF when configured; otherwise a local ID scan.",
+        "operationId": "audit_audit_parse_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_audit_audit_parse_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Audit",
+        "tags": [
+          "product"
         ]
       }
     },
     "/drill": {
       "post": {
+        "description": "Greedy adversarial drill plus 200 Monte Carlo futures written to app.drill_trajectory.",
         "operationId": "drill_drill_post",
         "requestBody": {
           "content": {
@@ -1039,7 +703,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MockResponse_DrillReport_"
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
                 }
               }
             },
@@ -1053,7 +717,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           },
           "503": {
             "content": {
@@ -1068,12 +732,13 @@
         },
         "summary": "Drill",
         "tags": [
-          "mock \u2014 backend handoff"
+          "product"
         ]
       }
     },
     "/drill/{id}/survival": {
       "get": {
+        "description": "Survival curve aggregated in SQL over the stored trajectories.",
         "operationId": "survival_drill__id__survival_get",
         "parameters": [
           {
@@ -1092,7 +757,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MockResponse_SurvivalReport_"
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
                 }
               }
             },
@@ -1106,7 +771,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           },
           "503": {
             "content": {
@@ -1121,7 +786,7 @@
         },
         "summary": "Survival",
         "tags": [
-          "mock \u2014 backend handoff"
+          "product"
         ]
       }
     },
@@ -1147,7 +812,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           },
           "503": {
             "content": {
@@ -1168,13 +833,38 @@
     },
     "/institution/queue": {
       "get": {
+        "description": "Aggregated by pattern by default; per-student rows only behind the staff toggle.",
         "operationId": "queue_institution_queue_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "staff",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Staff",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 2000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MockResponse_QueueReport_"
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
                 }
               }
             },
@@ -1188,7 +878,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           },
           "503": {
             "content": {
@@ -1203,7 +893,7 @@
         },
         "summary": "Queue",
         "tags": [
-          "mock \u2014 backend handoff"
+          "product"
         ]
       }
     },
@@ -1215,7 +905,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MockResponse_MythsReport_"
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
                 }
               }
             },
@@ -1229,7 +919,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           },
           "503": {
             "content": {
@@ -1244,7 +934,59 @@
         },
         "summary": "Myths",
         "tags": [
-          "mock \u2014 backend handoff"
+          "product"
+        ]
+      }
+    },
+    "/narrate": {
+      "post": {
+        "description": "Script as segments; numbers are tokens tied to tool results (Gemini, cache or template).",
+        "operationId": "narrate_narrate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NarrateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Narrate",
+        "tags": [
+          "product"
         ]
       }
     },
@@ -1266,7 +1008,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MockResponse_RepairReport_"
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
                 }
               }
             },
@@ -1280,7 +1022,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           },
           "503": {
             "content": {
@@ -1295,12 +1037,13 @@
         },
         "summary": "Repair",
         "tags": [
-          "mock \u2014 backend handoff"
+          "product"
         ]
       }
     },
     "/students/{id}/alarm/check": {
       "post": {
+        "description": "Run the Watchtower for one student now (idempotent under hysteresis).",
         "operationId": "alarm_check_students__id__alarm_check_post",
         "parameters": [
           {
@@ -1319,7 +1062,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MockResponse_Alarm_"
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
                 }
               }
             },
@@ -1333,7 +1076,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           },
           "503": {
             "content": {
@@ -1348,13 +1091,13 @@
         },
         "summary": "Alarm Check",
         "tags": [
-          "mock \u2014 backend handoff"
+          "product"
         ]
       }
     },
-    "/students/{id}/state": {
+    "/students/{id}/memory": {
       "get": {
-        "operationId": "state_students__id__state_get",
+        "operationId": "recall_students__id__memory_get",
         "parameters": [
           {
             "in": "path",
@@ -1372,7 +1115,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MockResponse_StudentState_"
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
                 }
               }
             },
@@ -1386,7 +1129,158 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Recall",
+        "tags": [
+          "product"
+        ]
+      },
+      "post": {
+        "operationId": "remember_students__id__memory_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^CID-[0-9]{6}$",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Remember",
+        "tags": [
+          "product"
+        ]
+      }
+    },
+    "/students/{id}/state": {
+      "get": {
+        "description": "Risk, time-to-degree range, twin-based tiles; refuses tiles below 30 balanced twins.",
+        "operationId": "state_students__id__state_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^CID-[0-9]{6}$",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "work_hours",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 60,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Work Hours"
+            }
+          },
+          {
+            "in": "query",
+            "name": "plan_load",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 21,
+                  "minimum": 3,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Plan Load"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
           },
           "503": {
             "content": {
@@ -1401,7 +1295,59 @@
         },
         "summary": "State",
         "tags": [
-          "mock \u2014 backend handoff"
+          "product"
+        ]
+      }
+    },
+    "/voice": {
+      "post": {
+        "description": "Render (or reuse) an ElevenLabs clip for a script this server narrated.",
+        "operationId": "voice_voice_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Voice",
+        "tags": [
+          "product"
         ]
       }
     }

@@ -6,6 +6,8 @@ COPY api ./api
 COPY scripts ./scripts
 COPY worker ./worker
 COPY ml ./ml
+# frozen, checksummed artifacts; the API refuses to start if they were modified
+COPY models ./models
 RUN pip install --no-cache-dir -c requirements.lock . && useradd --create-home cooked
 USER cooked
 EXPOSE 8080
