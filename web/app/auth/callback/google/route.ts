@@ -9,8 +9,8 @@ export async function GET(req: NextRequest) {
   const origin = publicOrigin(req);
   const fail = (why: string) => {
     const res = NextResponse.redirect(`${origin}/?error=${why}`);
-    res.cookies.delete({ name: "g_state", path: "/api/auth" });
-    res.cookies.delete({ name: "g_verifier", path: "/api/auth" });
+    res.cookies.delete({ name: "g_state", path: "/auth" });
+    res.cookies.delete({ name: "g_verifier", path: "/auth" });
     return res;
   };
   if (!googleConfigured()) return fail("google_not_configured");
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       code: q.get("code")!,
       client_id: process.env.AUTH_GOOGLE_ID!,
       client_secret: process.env.AUTH_GOOGLE_SECRET!,
-      redirect_uri: `${origin}/api/auth/callback/google`,
+      redirect_uri: `${origin}/auth/callback/google`,
       grant_type: "authorization_code",
       code_verifier: verifier,
     }),
@@ -50,8 +50,8 @@ export async function GET(req: NextRequest) {
     });
     const res = NextResponse.redirect(`${origin}/app`);
     res.cookies.set(SESSION_COOKIE, session, cookieOptions(origin.startsWith("https://")));
-    res.cookies.delete({ name: "g_state", path: "/api/auth" });
-    res.cookies.delete({ name: "g_verifier", path: "/api/auth" });
+    res.cookies.delete({ name: "g_state", path: "/auth" });
+    res.cookies.delete({ name: "g_verifier", path: "/auth" });
     return res;
   } catch {
     return fail("bad_id_token");

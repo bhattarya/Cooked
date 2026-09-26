@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.search = new URLSearchParams({
     client_id: process.env.AUTH_GOOGLE_ID!,
-    redirect_uri: `${origin}/api/auth/callback/google`,
+    redirect_uri: `${origin}/auth/callback/google`,
     response_type: "code",
     scope: "openid email profile",
     state,
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   }).toString();
   const res = NextResponse.redirect(url);
   const secure = origin.startsWith("https://");
-  const opts = { httpOnly: true, sameSite: "lax" as const, secure, path: "/api/auth", maxAge: 600 };
+  const opts = { httpOnly: true, sameSite: "lax" as const, secure, path: "/auth", maxAge: 600 };
   res.cookies.set("g_state", state, opts);
   res.cookies.set("g_verifier", verifier, opts);
   return res;

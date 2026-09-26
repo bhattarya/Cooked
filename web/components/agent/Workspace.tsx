@@ -288,7 +288,7 @@ export function Workspace({ user }: { user: SessionUser }) {
             ) : (
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs">{user.name[0]}</span>
             )}
-            <form action="/api/auth/logout" method="POST">
+            <form action="/auth/logout" method="POST">
               <button className="text-xs text-muted hover:text-text">Sign out</button>
             </form>
           </div>

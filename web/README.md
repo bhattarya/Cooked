@@ -15,7 +15,7 @@ npm run dev    # http://localhost:3000
 | `/` | Landing: walking crowd (Skiper UI canvas), COOKED mark, Google sign-in or guest |
 | `/app` | Agent workspace (signed-in only): voice orb, audit upload, sponsor-tagged agent pipeline, dashboard, voice/text questions |
 | `/app/advisor` | Institution queue: every current student scored by the model |
-| `/api/auth/*` | Google OAuth (PKCE, ID token verified against Google's keys), guest session, sign out |
+| `/auth/*` | Google OAuth (PKCE, ID token verified against Google's keys), guest session, sign out |
 
 ## How the pieces fit
 

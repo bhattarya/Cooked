@@ -3,7 +3,7 @@ PY := .venv/bin/python
 COMPOSE ?= docker compose
 
 .PHONY: help bootstrap setup env db-up db-down migrate load train watchtower dev dev-api dev-web \
-	test e2e openapi check smoke-e2e
+	test e2e warm openapi check smoke-e2e
 
 help: ## Show every target
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-12s %s\n", $$1, $$2}'
@@ -56,6 +56,9 @@ test: ## Python tests (needs the loaded DB)
 e2e: ## Browser walkthrough of the demo (needs make dev running)
 	$(PY) -m playwright install chromium
 	$(PY) -m scripts.e2e_demo
+
+warm: ## Pre-render the demo's narration and voice into Tiger (costs ElevenLabs credits once)
+	$(PY) -m scripts.warm_demo
 
 openapi: ## Regenerate docs/openapi.json after API changes
 	$(PY) -m scripts.export_openapi

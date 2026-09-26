@@ -68,19 +68,19 @@ export function Landing({ googleReady, signedIn, error }: { googleReady: boolean
             </button>
           ) : googleReady ? (
             <>
-              <button onClick={() => go("/api/auth/google")} className="flex items-center gap-3 rounded-full bg-[#07080b] px-7 py-3.5 text-[15px] font-medium text-[#f4f1ea] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] transition hover:scale-[1.03]">
+              <button onClick={() => go("/auth/google")} className="flex items-center gap-3 rounded-full bg-[#07080b] px-7 py-3.5 text-[15px] font-medium text-[#f4f1ea] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] transition hover:scale-[1.03]">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white">
                   <GoogleG />
                 </span>
                 Continue with Google
               </button>
-              <button onClick={() => go("/api/auth/guest", true)} className="text-sm text-black/45 underline-offset-4 hover:text-black/70 hover:underline">
+              <button onClick={() => go("/auth/guest", true)} className="text-sm text-black/45 underline-offset-4 hover:text-black/70 hover:underline">
                 or continue as a guest
               </button>
             </>
           ) : (
             <>
-              <button onClick={() => go("/api/auth/guest", true)} className="rounded-full bg-[#07080b] px-7 py-3.5 text-[15px] font-medium text-[#f4f1ea] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] transition hover:scale-[1.03]">
+              <button onClick={() => go("/auth/guest", true)} className="rounded-full bg-[#07080b] px-7 py-3.5 text-[15px] font-medium text-[#f4f1ea] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] transition hover:scale-[1.03]">
                 Continue as guest →
               </button>
               <span className="flex items-center gap-2 text-xs text-black/40">

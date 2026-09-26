@@ -44,7 +44,7 @@ services:
         value: ""
       - key: GEMINI_MODEL
         scope: RUN_TIME
-        value: ""
+        value: gemini-3.8-flash
       - key: BACKBOARD_API_KEY
         type: SECRET
         scope: RUN_TIME
@@ -58,13 +58,14 @@ services:
         value: ""
       - key: ELEVENLABS_MODEL
         scope: RUN_TIME
-        value: ""
+        value: eleven_flash_v2_5
+      # premade voices (free plan): narrator Eric, coach Sarah
       - key: VOICE_ID_NARRATOR
         scope: RUN_TIME
-        value: ""
+        value: cjVigY5qzO86Huf0OWal
       - key: VOICE_ID_COACH
         scope: RUN_TIME
-        value: ""
+        value: EXAVITQu4vr4xnSDxMaL
       - key: CORS_ORIGINS
         scope: RUN_TIME
         value: ${APP_URL}
@@ -95,6 +96,22 @@ services:
       - key: NEXT_PUBLIC_API_URL
         scope: RUN_AND_BUILD_TIME
         value: ${APP_URL}/api
+      # sign-in: the web app's own routes live under /auth (the /api prefix belongs to the API)
+      - key: AUTH_URL
+        scope: RUN_TIME
+        value: ${APP_URL}
+      - key: AUTH_SECRET
+        type: SECRET
+        scope: RUN_TIME
+        value: ""
+      - key: AUTH_GOOGLE_ID
+        type: SECRET
+        scope: RUN_TIME
+        value: ""
+      - key: AUTH_GOOGLE_SECRET
+        type: SECRET
+        scope: RUN_TIME
+        value: ""
 workers:
   - name: worker
     github:
@@ -111,4 +128,10 @@ workers:
         type: SECRET
         scope: RUN_TIME
         value: ""
+      - key: MODEL_ARTIFACT_DIR
+        scope: RUN_TIME
+        value: models/
+      - key: WATCHTOWER_INTERVAL_SECONDS
+        scope: RUN_TIME
+        value: "1800"
 # Owner credentials intentionally stay off API/web/worker; migrations run separately.

@@ -15,11 +15,12 @@ State as of the merge of #3: models, API, Watchtower and frontend are on `main`,
 
 | Task | Owner | Notes |
 | --- | --- | --- |
-| Tiger Cloud service; URLs in `.env` and DigitalOcean; `make migrate load` against it | Dhruv | Record the version and limits in `SETUP_STATUS.md` |
-| Gemini, ElevenLabs and Backboard keys; run `scripts/smoke_*` | Dhruv | Until then: samples only (no real audits), local question router, browser voice, local memory |
-| Google OAuth client (`docs/accounts.md` step 8) | Dhruv | Until then the landing page offers "Continue as guest" |
-| DigitalOcean deploy from `.do/app.yaml`; verify on a phone | Dhruv | Set `DO_DEPLOY_ENABLED=true` when ready |
-| Render and cache the demo narration audio once keys exist | Backend | Hit `/narrate` then `/voice` for the three demo students so the demo replays offline |
+| ~~Tiger Cloud: migrate + load~~ | done | PostgreSQL 18.6 / TimescaleDB 2.30.1, all data loaded; see `SETUP_STATUS.md` |
+| ~~Gemini, ElevenLabs, Backboard keys~~ | done | All live locally; Gemini free-tier quota is tight (consider billing before judging) |
+| Google OAuth client (`docs/accounts.md` step 8) | Dhruv | Redirect URI `/auth/callback/google`; guest sign-in works meanwhile |
+| DigitalOcean deploy from `.do/app.yaml` | Dhruv | Spec is complete; fill the encrypted secrets listed in `docs/deployment.md`, deploy, check `https://<app>/api/healthz` on a phone |
+| ~~Render and cache the demo audio~~ | done | `make warm`: 25 demo texts voiced and cached in Tiger; re-run after changing templates or voices |
+| Rotate every credential after the event | Dhruv | Keys were shared in chat during setup |
 | Evidence notebook reproducing §3 numbers | ML | `notebooks/evidence_log.ipynb` is still a placeholder; myths marked "team evidence notebook" depend on it |
 | Custom-profile drills | Backend | On the cut list; `/drill` currently needs a `campus_id` |
 | Demo script and backup video | Pitch | Suggested order in the build plan §15.1 |
