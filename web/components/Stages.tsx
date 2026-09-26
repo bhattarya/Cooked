@@ -13,6 +13,7 @@ import {
   type getState,
   type Outcomes,
   type Repair,
+  type Seg,
   type State,
   type SurvivalPoint,
   type ToolResult,
@@ -36,6 +37,7 @@ export function AlarmStage({
   muted,
   onDrill,
   onFeedback,
+  liveSegs,
 }: {
   st: State;
   gs: GS;
@@ -46,8 +48,10 @@ export function AlarmStage({
   muted: boolean;
   onDrill: () => void;
   onFeedback: (useful: boolean) => void;
+  liveSegs?: Seg[] | null;
 }) {
-  const segs = useMemo(() => alarmScript(st, base, tw, gs), [st, base, tw, gs]);
+  const localSegs = useMemo(() => alarmScript(st, base, tw, gs), [st, base, tw, gs]);
+  const segs = liveSegs ?? localSegs;
   const [fb, setFb] = useState<boolean | null>(null);
   const a = alarm.data;
   const fires = a.fires;
@@ -204,6 +208,7 @@ export function DrillStage({
   muted,
   onRepair,
   runKey,
+  liveSegs,
 }: {
   drill: ToolResult<Drill>;
   plan: "current" | "repair";
@@ -215,16 +220,22 @@ export function DrillStage({
   muted: boolean;
   onRepair: () => void;
   runKey: number;
+  liveSegs?: Seg[] | null;
 }) {
   const d = drill.data;
   const [shown, setShown] = useState(0);
   const total = d.alreadyCooked ? 1 : d.path.length;
+  const isRisk = d.unit === "risk";
+  const scale = isRisk ? 1 : 7;
+  const line = isRisk ? 0.5 : 5;
+  const fv = (v: number) => (isRisk ? `${Math.round(v * 100)}%` : `${v.toFixed(1)}y`);
   useEffect(() => {
     const ids = [setTimeout(() => setShown(0), 0), ...Array.from({ length: total }, (_, i) => setTimeout(() => setShown(i + 1), 500 + i * 850))];
     return () => ids.forEach(clearTimeout);
   }, [drill.id, runKey, total]);
   const revealed = shown >= total;
-  const segs = useMemo(() => drillScript(drill), [drill]);
+  const localSegs = useMemo(() => drillScript(drill), [drill]);
+  const segs = liveSegs ?? localSegs;
   const broke = d.shocksToCooked !== null;
   const load = plan === "repair" && repairLoad ? repairLoad : currentLoad;
 
@@ -264,6 +275,12 @@ export function DrillStage({
                 >
                   <div className="text-sm font-medium text-hot">Broken before the first shock</div>
                   <div className="num mt-2 text-[13px] leading-relaxed text-text/80">
+                    {isRisk && d.baselineRisk !== undefined && (
+                      <>
+                        Model risk after one more term at this load: <span className="text-hot">{fv(d.baselineRisk)}</span>
+                        <br />
+                      </>
+                    )}
                     {d.baseline.remaining} credits left ÷ {load}/term = {d.baseline.termsNeeded} more terms
                     <br />→ {d.baseline.totalTerms} regular terms = <span className="text-hot">{d.baseline.years.toFixed(1)} years</span>
                   </div>
@@ -284,7 +301,7 @@ export function DrillStage({
             <>
               <div className="num flex items-center justify-between rounded-lg border border-line px-3 py-2 text-xs text-muted">
                 <span>Baseline projection</span>
-                <span className="text-text">{d.baseline.years.toFixed(1)} years</span>
+                <span className="text-text">{isRisk && d.baselineRisk !== undefined ? `${fv(d.baselineRisk)} model risk` : `${d.baseline.years.toFixed(1)} years`}</span>
               </div>
               <AnimatePresence>
                 {d.path.slice(0, shown).map((s, i) => (
@@ -311,20 +328,24 @@ export function DrillStage({
                       </div>
                     </div>
                     <div className="num mt-2.5 flex items-center gap-2 text-xs">
-                      <span className="text-muted">{s.yearsBefore.toFixed(1)}y</span>
+                      <span className="text-muted">{fv(s.yearsBefore)}</span>
                       <div className="relative h-1 flex-1 rounded-full bg-white/[0.06]">
                         <motion.div
                           className="absolute h-full rounded-full"
                           style={{ background: s.cooked ? "#ff2e4d" : "#ff5a1f" }}
-                          initial={{ width: `${(s.yearsBefore / 7) * 100}%` }}
-                          animate={{ width: `${Math.min(100, (s.yearsAfter / 7) * 100)}%` }}
+                          initial={{ width: `${(s.yearsBefore / scale) * 100}%` }}
+                          animate={{ width: `${Math.min(100, (s.yearsAfter / scale) * 100)}%` }}
                           transition={{ duration: 0.7, delay: 0.2 }}
                         />
-                        <div className="absolute -top-1 h-3 w-px bg-hot" style={{ left: `${(5 / 7) * 100}%` }} />
+                        <div className="absolute -top-1 h-3 w-px bg-hot" style={{ left: `${(line / scale) * 100}%` }} />
                       </div>
-                      <span className={s.cooked ? "text-hot" : "text-text"}>{s.yearsAfter.toFixed(1)}y</span>
+                      <span className={s.cooked ? "text-hot" : "text-text"}>{fv(s.yearsAfter)}</span>
                     </div>
-                    {s.cooked && <div className="mt-2 text-xs font-medium text-hot">Plan breaks here · past 5 years{s.yearsAfter <= 5 ? " or 5 withdrawals" : ""}</div>}
+                    {s.cooked && (
+                      <div className="mt-2 text-xs font-medium text-hot">
+                        {isRisk ? "Plan breaks here · model risk past 50%" : `Plan breaks here · past 5 years${s.yearsAfter <= 5 ? " or 5 withdrawals" : ""}`}
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -394,16 +415,19 @@ export function RepairStage({
   onApply,
   muted,
   status,
+  liveSegs,
 }: {
   rep: ToolResult<Repair>;
   applied: boolean;
   onApply: (load: number) => void;
   muted: boolean;
   status: string;
+  liveSegs?: Seg[] | null;
 }) {
   const r = rep.data;
   const p = r.primary;
-  const segs = useMemo(() => repairScript(rep), [rep]);
+  const localSegs = useMemo(() => repairScript(rep), [rep]);
+  const segs = liveSegs ?? localSegs;
   const feas = r.feasibility?.data;
 
   if (!p) {

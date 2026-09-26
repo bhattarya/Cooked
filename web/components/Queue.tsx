@@ -4,7 +4,8 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { useDataset } from "@/lib/data";
-import { institutionQueue, type QueueRow } from "@/lib/engine";
+import { institutionQueue, statusOf, type QueueRow } from "@/lib/engine";
+import { api, useApiHealth } from "@/lib/live";
 import type { PatternName } from "@/lib/types";
 import { Counter, Loading, Nav, PATTERN_COLOR, PatternChip, StatusBadge, riskColor } from "./ui";
 
@@ -19,11 +20,40 @@ export function Queue() {
   const [pat, setPat] = useState<PatternName | "All">("All");
   const [show, setShow] = useState(40);
 
+  const health = useApiHealth();
+  const live = !!health?.live;
+
   useEffect(() => {
-    if (!ds) return;
-    const id = setTimeout(() => setRows(institutionQueue(ds)), 50);
-    return () => clearTimeout(id);
-  }, [ds]);
+    if (!ds || health === null) return;
+    if (!live) {
+      const id = setTimeout(() => setRows(institutionQueue(ds)), 50);
+      return () => clearTimeout(id);
+    }
+    // live: every current student scored by the trained model (the Watchtower's view)
+    let on = true;
+    type Item = { campus_id: string; risk: number; k: number; avg_credits: number; lead_time_terms: number; pattern: string | null };
+    api<{ items: Item[] }>("/institution/queue?staff=true&limit=2000")
+      .then((c) => {
+        if (!on) return;
+        const byId = new Map(ds.current.map((x) => [x.id, x]));
+        setRows(
+          c.data.items
+            .filter((i) => byId.has(i.campus_id))
+            .map((i) => ({
+              student: { ...byId.get(i.campus_id)!, pattern: (i.pattern ?? byId.get(i.campus_id)!.pattern) as PatternName | null },
+              risk: i.risk,
+              n: 0,
+              status: statusOf(i.risk),
+              avgCredits: i.avg_credits,
+              lead: i.lead_time_terms,
+            })),
+        );
+      })
+      .catch(() => on && setRows(institutionQueue(ds)));
+    return () => {
+      on = false;
+    };
+  }, [ds, health, live]);
 
   const filtered = useMemo(
     () => (rows ?? []).filter((r) => (cls === "All" || r.student.cls === cls) && (pat === "All" || r.student.pattern === pat) && r.status !== "fine"),
@@ -51,7 +81,7 @@ export function Queue() {
             <div className="label !text-amber">Institution queue · Fall 2026</div>
             <h1 className="display mt-2 text-4xl font-semibold sm:text-5xl">Who needs a conversation this term</h1>
             <p className="mt-3 max-w-2xl text-muted">
-              {rows.length.toLocaleString()} current students with 2+ completed terms, scored against matched alumni. It prompts advisors; it never acts on its own.
+              {rows.length.toLocaleString()} current students with 2+ completed terms, {live ? `scored by the trained model (${health?.version})` : "scored against matched alumni"}. It prompts advisors; it never acts on its own.
             </p>
           </div>
           <button onClick={() => setStaff((s) => !s)} className={`rounded-full border px-4 py-2 text-sm transition ${staff ? "border-heat/60 bg-heat/10 text-text" : "border-line text-muted"}`}>

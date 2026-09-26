@@ -21,8 +21,8 @@ async function clipUrl(text: string, voice: VoiceName): Promise<string | null> {
       body: JSON.stringify({ text, voice }),
     });
     if (!r.ok) return null;
-    const { hash } = (await r.json()) as { hash: string };
-    return `${API}/audio/${hash}`;
+    const { data } = (await r.json()) as { data: { hash: string; available: boolean } };
+    return data.available ? `${API}/audio/${data.hash}` : null;
   } catch {
     return null;
   }

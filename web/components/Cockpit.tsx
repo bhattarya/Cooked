@@ -19,8 +19,10 @@ import {
   stateFrom,
   statusOf,
   survival,
+  type Seg,
 } from "@/lib/engine";
 import { useDataset } from "@/lib/data";
+import { api, toDrill, toOutcomes, toRepair, toSegs, toSurvival, useApiHealth, type ServerDrill, type ServerNarration, type ServerRepair, type ServerState } from "@/lib/live";
 import type { Dataset, Student } from "@/lib/types";
 import { AgentConsole, parseIntent, type LogEntry } from "./AgentConsole";
 import { CliffChart } from "./Charts";
@@ -86,18 +88,46 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
   const po = useMemo(() => planOutcome(ds, st, tw.data), [ds, st, tw]);
   const alarm = useMemo(() => alarmCheck(st, base, tw.data), [st, base, tw]);
   const rep = useMemo(() => repair(ds, stateFrom(student, { work }), tw.data), [ds, student, work, tw]);
-  const repairLoad = rep.data.primary?.target ?? null;
-  const drillLoad = drillPlan === "repair" && repairLoad ? repairLoad : currentLoad;
-  const drill = useMemo(() => fireDrill(ds.meta, { ...st, planLoad: drillLoad }), [ds, st, drillLoad]);
-  const survNow = useMemo(() => survival(ds.meta, st, currentLoad), [ds, st, currentLoad]);
-  const survRep = useMemo(() => (repairLoad ? survival(ds.meta, st, repairLoad) : null), [ds, st, repairLoad]);
+  const localRepairLoad = rep.data.primary?.target ?? null;
+  const localDrillLoad = drillPlan === "repair" && localRepairLoad ? localRepairLoad : currentLoad;
+  const drillLocal = useMemo(() => fireDrill(ds.meta, { ...st, planLoad: localDrillLoad }), [ds, st, localDrillLoad]);
+  const survNowLocal = useMemo(() => survival(ds.meta, st, currentLoad), [ds, st, currentLoad]);
+  const survRepLocal = useMemo(() => (localRepairLoad ? survival(ds.meta, st, localRepairLoad) : null), [ds, st, localRepairLoad]);
   const proj = useMemo(() => project(st, []), [st]);
-  const twinIds = useMemo(() => new Set(tw.data.twins.map((a) => a.id)), [tw]);
+  const localTwinIds = useMemo(() => new Set(tw.data.twins.map((a) => a.id)), [tw]);
   const onGood = useMemo(() => ds.alumni.filter((a) => !a.cooked && a.entry === student.entry), [ds, student.entry]);
 
-  const risk = po.data.outcomes.risk;
-  const status = statusOf(base.risk, tw.data.refused);
-  const o = po.data.outcomes;
+  const localRisk = po.data.outcomes.risk;
+  const localO = po.data.outcomes;
+
+  // ---------- live mode: trained, checksummed models behind the FastAPI backend ----------
+  const health = useApiHealth();
+  const live = !!health?.live;
+  const [srv, setSrv] = useState<ServerState | null>(null);
+  const [srvAlarm, setSrvAlarm] = useState<{ id: number | null; fires: boolean } | null>(null);
+  const [srvRepair, setSrvRepair] = useState<ServerRepair | null>(null);
+  const [srvDrills, setSrvDrills] = useState<Record<string, ServerDrill>>({});
+  const [narr, setNarr] = useState<Record<string, Seg[]>>({});
+
+  const liveO = live && srv ? toOutcomes(srv) : null;
+  const o = liveO ?? localO;
+  const risk = liveO ? liveO.risk : localRisk;
+  const nowRisk = live && srv ? srv.risk.value : base.risk;
+  const refused = live && srv ? srv.twins.refused : tw.data.refused;
+  const status = statusOf(nowRisk, refused);
+  const repV = live && srvRepair ? toRepair(srvRepair, ds.catalog) : rep;
+  const repairLoad = repV.data.primary?.target ?? null;
+  const drillLoad = drillPlan === "repair" && repairLoad ? repairLoad : currentLoad;
+  const dkey = (load: number) => `${load}|${work}`;
+  const drill = live && srvDrills[dkey(drillLoad)] ? toDrill(srvDrills[dkey(drillLoad)], { ...st, planLoad: drillLoad }) : drillLocal;
+  const survNow = live && srvDrills[dkey(currentLoad)] ? toSurvival(srvDrills[dkey(currentLoad)]) : survNowLocal;
+  const survRep = live && repairLoad && srvDrills[dkey(repairLoad)] ? toSurvival(srvDrills[dkey(repairLoad)]) : survRepLocal;
+  const projYears = live && srv?.plan ? srv.plan.projected_years.value : null;
+  const twV = live && srv ? { ...tw, id: srv.twins.tool_result_id, data: { ...tw.data, n: srv.twins.n, refused: srv.twins.refused } } : tw;
+  const alarmV = live && srv ? { ...alarm, data: { ...alarm.data, fires: srvAlarm ? srvAlarm.fires : nowRisk >= 0.35, status, risk: nowRisk } } : alarm;
+
+  const srvTwinIds = srv?.twins.ids;
+  const twinIds = useMemo(() => (live && srvTwinIds ? new Set(srvTwinIds) : localTwinIds), [live, srvTwinIds, localTwinIds]);
 
   const push = useCallback((entries: Omit<LogEntry, "key">[], gap = 420) => {
     timers.current.push(window.setTimeout(() => setBusy(true), 0));
@@ -111,8 +141,15 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
     });
   }, []);
 
-  // boot sequence: the Watchtower checks this student
+  // boot sequence: the Watchtower checks this student (local engine only when the API is offline)
+  const booted = useRef(false);
   useEffect(() => {
+    if (health === null || booted.current) return;
+    booted.current = true;
+    if (health.live) {
+      push([{ agent: "watchtower", call: "GET /healthz", result: `trained model ${health.version} · all §7.5 gates passed`, ok: true }]);
+      return;
+    }
     push([
       { agent: "watchtower", call: `get_state("${student.id}")`, result: `${gs.data.termsDone} terms · ${gs.data.avgCredits.toFixed(1)} cr/term · ${gs.data.wTotal} W · ${student.work} h/wk`, tr: gs.id, ms: gs.ms },
       { agent: "watchtower", call: `find_twins(${tw.args})`, result: tw.data.refused ? `only ${tw.data.n} matches → refuse` : `${tw.data.n} matched alumni (tier ${tw.data.tier})`, tr: tw.id, ms: tw.ms, ok: !tw.data.refused },
@@ -126,15 +163,89 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
         return { agent: "claim-check" as const, call: "verify_numbers(alarm_script)", result: pv.ok ? `no stray digits · ${pv.tokens} tokens traced` : `stray digits: ${pv.stray.join(", ")}`, ok: pv.ok };
       })(),
     ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [health]);
+  useEffect(() => {
     const t = timers.current;
     return () => t.forEach(clearTimeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // live: state + tiles (debounced on the what-if sliders), narration and repair follow work hours
+  useEffect(() => {
+    if (!live) return;
+    const t = window.setTimeout(async () => {
+      try {
+        const c = await api<ServerState>(`/students/${student.id}/state?work_hours=${work}&plan_load=${plan}`);
+        setSrv(c.data);
+        push([{ agent: "watchtower", call: `GET /students/${student.id}/state?work=${work}&plan=${plan}`, result: `model risk ${pct(c.data.risk.value)} now · ${c.data.plan ? pct(c.data.plan.risk.value) : "–"} on plan · ${c.data.twins.refused ? `twins refused (${c.data.twins.reason})` : `${c.data.twins.n} balanced twins`}`, tr: c.data.risk.tool_result_id, ms: c.ms, ok: !c.data.twins.refused }], 0);
+      } catch {
+        push([{ agent: "watchtower", call: "GET /state", result: "API error · showing local engine", ok: false }], 0);
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [live, work, plan, student.id, push]);
+
+  useEffect(() => {
+    if (!live) return;
+    const t = window.setTimeout(async () => {
+      try {
+        const [n, r] = await Promise.all([
+          api<ServerNarration>("/narrate", { kind: "alarm", campus_id: student.id, work_hours: work }),
+          api<ServerRepair>("/repair", { campus_id: student.id, work_hours: work }),
+        ]);
+        setNarr((m) => ({ ...m, [`alarm|${work}`]: toSegs(n.data) }));
+        setSrvRepair(r.data);
+        push([
+          { agent: "narrator", call: "POST /narrate kind=alarm", result: `${n.data.source === "gemini" ? "Gemini" : n.data.source === "cache" ? "cached Gemini" : "template (no LLM)"} · ${n.data.provenance.tokens} tokens`, ms: n.ms },
+          { agent: "claim-check", call: "provenance(alarm)", result: n.data.provenance.ok ? `every number traced · ${n.data.provenance.tokens} tokens` : "blocked: untraced number", ok: n.data.provenance.ok },
+        ], 200);
+      } catch {
+        /* the local engine keeps serving */
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [live, work, student.id, push]);
+
+  // live: one Watchtower check on open (hysteresis decides whether an alarm opens)
+  useEffect(() => {
+    if (!live) return;
+    api<{ id: number | null; fires: boolean; decision: string; tool_result_id: string }>(`/students/${student.id}/alarm/check`, {})
+      .then((c) => {
+        setSrvAlarm({ id: c.data.id, fires: c.data.fires });
+        push([{ agent: "watchtower", call: "POST /alarm/check", result: `${c.data.decision} · ${c.data.fires ? `alarm #${c.data.id} open` : "no alarm"} (hysteresis 0.35/0.25)`, tr: c.data.tool_result_id, ms: c.ms, ok: true }], 0);
+      })
+      .catch(() => undefined);
+  }, [live, student.id, push]);
+
+  // live: drills for the current pace and the repair plan (stored in Timescale)
+  useEffect(() => {
+    if (!live || phase !== "drill") return;
+    const loads = [currentLoad, ...(repairLoad ? [repairLoad] : [])];
+    loads.forEach(async (load) => {
+      const key = `${load}|${work}`;
+      if (srvDrills[key]) return;
+      try {
+        const [d, n] = await Promise.all([
+          api<ServerDrill>("/drill", { campus_id: student.id, plan_load: load, work_hours: work }),
+          api<ServerNarration>("/narrate", { kind: "drill", campus_id: student.id, plan_load: load, work_hours: work }),
+        ]);
+        setSrvDrills((m) => ({ ...m, [key]: d.data }));
+        setNarr((m) => ({ ...m, [`drill|${key}`]: toSegs(n.data) }));
+        push([
+          { agent: "fire-drill", call: `POST /drill plan=${load} cr`, result: d.data.shocks_to_cooked === null ? `resilient · survived ${d.data.path.length} shocks` : `shocks_to_cooked=${d.data.shocks_to_cooked.value}`, tr: d.data.tool_result_id, ms: d.ms },
+          { agent: "fire-drill", call: `COPY ${d.data.rows_stored} rows → app.drill_trajectory`, result: `survival after ${d.data.survival.length - 1} terms: ${pct(d.data.survival[d.data.survival.length - 1]?.survival ?? 1)}` },
+        ], 250);
+      } catch {
+        /* local drill stays on screen */
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live, phase, currentLoad, repairLoad, work, student.id]);
 
   // log what-if changes (debounced)
   const first = useRef(true);
   useEffect(() => {
-    if (first.current) {
+    if (first.current || live || health === null) {
       first.current = false;
       return;
     }
@@ -154,14 +265,26 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
   const goDrill = useCallback(() => {
     setPhase("drill");
     setDrillRun((r) => r + 1);
+    if (live) return; // the live drill effect logs the server's results
     push([
       { agent: "fire-drill", call: `run_shock(withdraw, lighter_load) × ≤4 · plan=${drillLoad} cr`, result: drill.data.alreadyCooked ? "already past 5y before any shock" : `shocks_to_cooked=${drill.data.shocksToCooked ?? "none (resilient)"}`, tr: drill.id, ms: drill.ms },
       { agent: "fire-drill", call: "survival(sims=500)", result: `alive after 10 terms: ${pct(survNow.data[survNow.data.length - 1].alive)}`, tr: survNow.id, ms: survNow.ms },
     ]);
-  }, [push, drill, drillLoad, survNow]);
+  }, [push, drill, drillLoad, survNow, live]);
 
   const goRepair = useCallback(() => {
     setPhase("repair");
+    if (live) {
+      api<ServerNarration>("/narrate", { kind: "repair", campus_id: student.id, work_hours: work })
+        .then((n) => setNarr((m) => ({ ...m, [`repair|${work}`]: toSegs(n.data) })))
+        .catch(() => undefined);
+      const p = srvRepair?.primary;
+      push([
+        { agent: "repair", call: "POST /repair (escapee_stats)", result: p ? `${p.title} → ${p.diff_years.toFixed(1)}y sooner · n=${p.support} · CI ${p.ci90?.map((x) => x.toFixed(1)).join("–")}` : srvRepair?.refusal ?? "no supported change", tr: srvRepair?.tool_result_id ?? undefined, ok: !!p },
+        ...(p?.feasibility ? [{ agent: "repair" as const, call: "catalog_feasibility (Spring 2027)", result: p.feasibility.feasible ? `feasible · ${p.feasibility.picks.length} courses open` : "not feasible", tr: p.feasibility.tool_result_id, ok: p.feasibility.feasible }] : []),
+      ]);
+      return;
+    }
     const p = rep.data.primary;
     push([
       { agent: "repair", call: `escapee_stats(twins=${tw.data.n}, lever=load)`, result: p ? `${p.title} → ${p.diffYears.toFixed(1)}y sooner · n=${p.n}` : rep.data.refusal ?? "no lever", tr: rep.id, ms: rep.ms, ok: !!p },
@@ -173,12 +296,19 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
         return { agent: "claim-check" as const, call: "verify_numbers(repair_script)", result: pv.ok ? `no stray digits · ${pv.tokens} tokens traced` : `stray digits: ${pv.stray.join(", ")}`, ok: pv.ok };
       })(),
     ]);
-  }, [push, rep, tw]);
+  }, [push, rep, tw, live, student.id, work, srvRepair]);
 
   const apply = (load: number) => {
     setPlan(load);
     setApplied(true);
     setDrillPlan("repair");
+    if (live) {
+      push([{ agent: "you", call: `apply_plan(load=${load})` }], 0);
+      api<{ stored: string }>(`/students/${student.id}/memory`, { kind: "decision", note: `Chose ${load} credits per term after the repair check.` })
+        .then((c) => push([{ agent: "memory", call: "POST /students/…/memory", result: c.data.stored === "backboard" ? "stored in Backboard" : "stored in app.memory_note (Backboard not configured)", ms: c.ms, ok: true }], 0))
+        .catch(() => undefined);
+      return;
+    }
     push([
       { agent: "you", call: `apply_plan(load=${load})` },
       { agent: "memory", call: `remember("chose ${load} credits/term")`, result: "noted in this demo session · Backboard pending" },
@@ -208,8 +338,11 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="num text-xs text-muted">{student.id}</span>
-              <PatternChip pattern={student.pattern} />
+              <PatternChip pattern={(live && srv?.pattern ? srv.pattern : student.pattern) as Student["pattern"]} />
               <StatusBadge status={status} />
+              <span className={`rounded-full border px-2 py-0.5 text-[10px] ${live ? "border-cool/40 text-cool" : "border-line text-dim"}`} title={live ? "Scored by the trained, checksummed model behind the API" : "API offline: browser-side engine on the same dataset"}>
+                {live ? `live model · ${health?.version}` : "local engine"}
+              </span>
             </div>
             <h1 className="display mt-2 text-3xl font-semibold sm:text-4xl">
               {student.major}
@@ -230,12 +363,17 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
             </div>
             <TermStrip student={student} ipCredits={student.ip.reduce((s, id) => s + (ds.catalog.find((c) => c.id === id)?.credits ?? 3), 0)} />
           </div>
-          <HeatGauge risk={risk} n={o.n} tr={po.id} label={plan === currentLoad ? "observed plan cohort share" : `observed share at ${plan} cr/term`} />
+          <HeatGauge
+            risk={risk}
+            n={o.n}
+            tr={live && srv?.plan ? srv.plan.risk.tool_result_id : po.id}
+            label={live ? (plan === currentLoad ? "model risk if this pace holds" : `model risk at ${plan} cr/term`) : plan === currentLoad ? "observed plan cohort share" : `observed share at ${plan} cr/term`}
+          />
           <div className="flex flex-col items-start gap-3 lg:items-end">
             <div className="text-right">
               <div className="label">projected finish</div>
-              <div className="num mt-1 text-3xl font-semibold" style={{ color: proj.years > 5 ? "#ff2e4d" : proj.years > 4 ? "#ffb020" : "#2dd4bf" }}>
-                {proj.years.toFixed(1)}
+              <div className="num mt-1 text-3xl font-semibold" style={{ color: (projYears ?? proj.years) > 5 ? "#ff2e4d" : (projYears ?? proj.years) > 4 ? "#ffb020" : "#2dd4bf" }}>
+                {(projYears ?? proj.years).toFixed(1)}
                 <span className="text-base text-muted"> yrs</span>
               </div>
               <div className="num text-[11px] text-dim">
@@ -251,12 +389,32 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
 
         {/* tiles */}
         <div className="grid gap-4 md:grid-cols-3">
-          <RangeTile label="Matched delay" lo={o.delay[0]} mid={o.delay[1]} hi={o.delay[2]} max={5} fmt={(x) => `+${x.toFixed(1)}y`} hint="beyond 4 years · p25–p75" tr={po.id} n={o.n} color={riskColor(risk)} />
-          <RangeTile label="Still-seeking share" lo={o.seeking.ci95[0]} mid={o.seeking.rate} hi={o.seeking.ci95[1]} max={0.4} fmt={(x) => `${Math.round(x * 100)}%`} hint="reported destinations · 95% interval" tr={po.id} n={o.seeking.n} color="#ffb020" />
+          <RangeTile
+            label={live ? "Expected delay" : "Matched delay"}
+            lo={o.delay[0]}
+            mid={o.delay[1]}
+            hi={o.delay[2]}
+            max={5}
+            fmt={(x) => `+${x.toFixed(1)}y`}
+            hint={live ? "beyond 4 years · model p25–p75" : "beyond 4 years · p25–p75"}
+            tr={live && srv ? srv.delay.tool_result_id : po.id}
+            n={live && srv ? srv.delay.support : o.n}
+            color={riskColor(risk)}
+          />
+          {live && srv?.twins.refused ? (
+            <div className="panel col-span-2 flex items-center gap-3 p-4 text-sm text-muted md:col-span-2">
+              <span className="rounded-full bg-white/[0.05] px-2 py-0.5 text-[11px]">refused</span>
+              Not enough balanced twins for outcome tiles ({srv.twins.reason}). COOKED doesn&apos;t guess below 30.
+            </div>
+          ) : (
+          <>
+          <RangeTile label="Still-seeking share" lo={o.seeking.ci95[0]} mid={o.seeking.rate} hi={o.seeking.ci95[1]} max={0.4} fmt={(x) => `${Math.round(x * 100)}%`} hint={live ? "matched twins · 90% interval" : "reported destinations · 95% interval"} tr={live && srv?.still_seeking_risk ? srv.still_seeking_risk.tool_result_id : po.id} n={o.seeking.n} color="#ffb020" />
           {o.burden ? (
             <RangeTile label="Degree burden" lo={o.burden[0]} mid={o.burden[1]} hi={o.burden[2]} max={1.2} fmt={(x) => x.toFixed(2)} hint="net cost ÷ first salary" tr={po.id} n={o.burdenN} color="#a78bfa" />
           ) : (
             <div className="panel flex items-center p-4 text-sm text-muted">Degree burden: not enough salaried twins</div>
+          )}
+          </>
           )}
         </div>
 
@@ -284,13 +442,20 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
                   <AlarmStage
                     st={st}
                     gs={gs}
-                    tw={tw}
+                    tw={twV}
                     base={base}
-                    alarm={alarm}
+                    alarm={alarmV}
+                    liveSegs={live ? narr[`alarm|${work}`] ?? null : null}
                     onGood={onGood}
                     muted={muted}
                     onDrill={goDrill}
-                    onFeedback={(u) => push([{ agent: "memory", call: `store_feedback(useful=${u})`, result: "noted in this demo session · persistence pending" }])}
+                    onFeedback={(u) => {
+                      if (live && srvAlarm?.id) {
+                        api<{ saved: boolean; memory: string }>(`/alarms/${srvAlarm.id}/feedback`, { useful: u, reason: u ? "useful" : "not useful" })
+                          .then((c) => push([{ agent: "memory", call: `POST /alarms/${srvAlarm.id}/feedback`, result: `saved to app.feedback · memory: ${c.data.memory}`, ms: c.ms, ok: true }], 0))
+                          .catch(() => undefined);
+                      } else push([{ agent: "memory", call: `store_feedback(useful=${u})`, result: "noted in this demo session · persistence pending" }]);
+                    }}
                   />
                 )}
                 {phase === "drill" && (
@@ -308,9 +473,10 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
                     muted={muted}
                     onRepair={goRepair}
                     runKey={drillRun}
+                    liveSegs={live ? narr[`drill|${drillLoad}|${work}`] ?? null : null}
                   />
                 )}
-                {phase === "repair" && <RepairStage rep={rep} applied={applied} onApply={apply} muted={muted} status={statusOf(base.risk, tw.data.refused)} />}
+                {phase === "repair" && <RepairStage rep={repV} applied={applied} onApply={apply} muted={muted} status={status} liveSegs={live ? narr[`repair|${work}`] ?? null : null} />}
               </motion.div>
             </AnimatePresence>
           </section>
@@ -322,10 +488,8 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
                 <Slider label="Credits per term from now" value={plan} min={6} max={18} onChange={setPlan} fill={fillPct(plan, 6, 18)} fmt={(v) => `${v} cr`} />
                 <div className="flex items-center justify-between rounded-xl bg-white/[0.03] px-4 py-3">
                   <div>
-                    <div className="text-[11px] text-muted">Observed share on this plan</div>
-                    <div className="num text-[11px] text-dim">
-                      n={o.n} · {po.data.pool}
-                    </div>
+                    <div className="text-[11px] text-muted">{live ? "Model risk on this plan" : "Observed share on this plan"}</div>
+                    <div className="num text-[11px] text-dim">{live ? `after two terms at ${plan} cr · ${health?.version}` : `n=${o.n} · ${po.data.pool}`}</div>
                   </div>
                   <div className="num text-2xl font-semibold" style={{ color: riskColor(risk) }}>
                     {pct(risk)}
@@ -345,7 +509,7 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
                 )}
               </div>
             </Panel>
-            <Panel title="Agents" className="flex h-[440px] flex-col" right={<span className="num text-[10px] text-dim">local engine · offline-safe</span>}>
+            <Panel title="Agents" className="flex h-[440px] flex-col" right={<span className={`num text-[10px] ${live ? "text-cool" : "text-dim"}`}>{live ? `FastAPI · ${health?.demo ? "demo replay" : "live"}` : "local engine · offline-safe"}</span>}>
               <div className="min-h-0 flex-1">
                 <AgentConsole log={log} onAsk={onAsk} busy={busy} />
               </div>
@@ -355,7 +519,7 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
 
         {/* where you sit + cliff */}
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-          <Panel title="Where you sit · 3,200 alumni, credits earned by term" right={<span className="num text-[10px] text-dim">bright = your {tw.data.n} matched twins</span>}>
+          <Panel title="Where you sit · 3,200 alumni, credits earned by term" right={<span className="num text-[10px] text-dim">bright = your {live && srv ? srv.twins.n : tw.data.n} matched twins</span>}>
             <div className="p-5">
               <TrajectoryField alumni={ds.alumni} height={340} highlight={twinIds} focus={{ terms: student.terms, planLoad: plan, color: riskColor(risk) }} intro={false} />
             </div>
@@ -372,7 +536,7 @@ function CockpitInner({ ds, student }: { ds: Dataset; student: Student }) {
 
         <Panel title={`Prerequisite map · ${student.major}`} right={<span className="text-[10px] text-dim">hover a course to trace its chain</span>}>
           <div className="p-5">
-            <PrereqMap catalog={ds.catalog} major={student.major} done={student.done} ip={student.ip} picks={phase === "repair" ? rep.data.feasibility?.data.picks.map((c) => c.id) : []} />
+            <PrereqMap catalog={ds.catalog} major={student.major} done={student.done} ip={student.ip} picks={phase === "repair" ? repV.data.feasibility?.data.picks.map((c) => c.id) : []} />
           </div>
         </Panel>
 

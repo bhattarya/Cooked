@@ -271,6 +271,9 @@ export interface ShockStep {
   tr: string;
 }
 export interface Drill {
+  /** "years" = local arithmetic projection; "risk" = trained model probability (API) */
+  unit?: "years" | "risk";
+  baselineRisk?: number;
   baseline: ReturnType<typeof project>;
   path: ShockStep[];
   shocksToCooked: number | null;

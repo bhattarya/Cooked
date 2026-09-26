@@ -140,9 +140,9 @@ async def audit(file: Annotated[UploadFile, File()]):
 
 
 @router.get("/institution/queue", response_model=Envelope[Data])
-def queue(staff: bool = False):
+def queue(staff: bool = False, limit: Annotated[int, Query(ge=1, le=2000)] = 200):
     """Aggregated by pattern by default; per-student rows only behind the staff toggle."""
-    return wrap(get_engine().queue(staff))
+    return wrap(get_engine().queue(staff, limit))
 
 
 @router.get("/myths", response_model=Envelope[Data])

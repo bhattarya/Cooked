@@ -142,7 +142,7 @@ class Engine:
                 "tool_result_id": tr_ttd,
             },
             "twins": {
-                "n": tw.n, "k": tw.k, "refused": tw.refused, "reason": tw.reason,
+                "n": tw.n, "k": tw.k, "refused": tw.refused, "reason": tw.reason, "ids": tw.ids,
                 "max_distance": tw.max_distance, "smd": tw.smd, "tool_result_id": tr_twins,
             },
             "still_seeking_risk": None,

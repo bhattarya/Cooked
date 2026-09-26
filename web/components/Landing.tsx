@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useInView } from "motion/react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { auditLines, auditPdf, readAudit } from "@/lib/audit";
 import { useDataset } from "@/lib/data";
+import { api, useApiHealth, type ServerState } from "@/lib/live";
 import { avgLoad, findTwins, outcomesOf, stateFrom, statusOf, type Status } from "@/lib/engine";
 import type { Dataset, Student } from "@/lib/types";
 import { CrowdSection } from "./CrowdSection";
@@ -44,9 +45,42 @@ function pickDemos(ds: Dataset): Pick[] {
   return out;
 }
 
+// Live mode: verify demo picks against the trained model so the landing never shows a profile
+// the API would refuse. One cooked, the highest-risk watch student (the alarm fires), one fine.
+async function pickLiveDemos(ds: Dataset): Promise<Pick[]> {
+  const ids = [...ds.meta.demo.grind, ...ds.meta.demo.spiral, ...ds.meta.demo.smooth];
+  const states = (
+    await Promise.all(ids.map((id) => api<ServerState>(`/students/${id}/state`).then((c) => c.data).catch(() => null)))
+  ).filter((x): x is ServerState => !!x && !x.twins.refused);
+  const mk = (x: ServerState | undefined, kind: string, blurb: string): Pick | null => {
+    const s = x && ds.current.find((c) => c.id === x.campus_id);
+    return s && x ? { kind, blurb, s, risk: x.risk.value, n: x.twins.n, status: statusOf(x.risk.value) } : null;
+  };
+  const cooked = states.filter((x) => x.risk.value >= 0.5 && ds.meta.demo.grind.includes(x.campus_id))[0];
+  const watch = states.filter((x) => x.risk.value >= 0.2 && x.risk.value < 0.5).sort((a, b) => b.risk.value - a.risk.value)[0];
+  const fine = states.filter((x) => x.risk.value < 0.2 && ds.meta.demo.smooth.includes(x.campus_id))[0];
+  return [
+    mk(cooked, "grind", "Works 20+ hours, carries a light load. Looks fine on paper."),
+    mk(watch, "watch", "Also working 20+ hours at a light load. The alarm fires early, while the fix is still small."),
+    mk(fine, "smooth", "Full loads, light job. What on-track looks like."),
+  ].filter((x): x is Pick => !!x);
+}
+
 export function Landing() {
   const ds = useDataset();
-  const demos = useMemo(() => (ds ? pickDemos(ds) : []), [ds]);
+  const health = useApiHealth();
+  const localDemos = useMemo(() => (ds ? pickDemos(ds) : []), [ds]);
+  const [liveDemos, setLiveDemos] = useState<Pick[] | null>(null);
+  useEffect(() => {
+    if (!ds || !health?.live) return;
+    let on = true;
+    pickLiveDemos(ds).then((d) => on && d.length === 3 && setLiveDemos(d)).catch(() => undefined);
+    return () => {
+      on = false;
+    };
+  }, [ds, health]);
+  // skeletons until we know which engine is answering; never flash one set of picks for another
+  const demos = health === null ? [] : health.live ? (liveDemos ?? []) : localDemos;
   return (
     <div className="relative min-h-screen overflow-x-hidden">
       <Nav />

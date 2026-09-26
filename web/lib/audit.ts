@@ -81,8 +81,8 @@ export async function readAudit(file: File): Promise<{ id: string | null; via: "
       fd.append("file", file);
       const r = await fetch(`${API}/audit/parse`, { method: "POST", body: fd });
       if (r.ok) {
-        const j = (await r.json()) as { campus_id?: string };
-        if (j.campus_id) return { id: j.campus_id, via: "gemini" };
+        const j = (await r.json()) as { data?: { campus_id?: string | null; source?: string } };
+        if (j.data?.campus_id) return { id: j.data.campus_id, via: j.data.source === "gemini" ? "gemini" : "local" };
       }
     } catch {
       /* fall through to local */

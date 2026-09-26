@@ -26,14 +26,14 @@ npm run dev    # http://localhost:3000
 - `lib/voice.ts` posts to `${NEXT_PUBLIC_API_URL}/voice` and plays `/audio/{hash}` (ElevenLabs, cached). With no backend it falls back to browser speech so the demo still talks.
 - `lib/audit.ts` builds sample degree-audit PDFs from synthetic students and reads uploads: it uses `POST /audit/parse` (Gemini) when the backend is up and pulls the campus ID from the raw bytes otherwise.
 
-## Backend plug points
+## Live mode (trained models)
 
-Set `NEXT_PUBLIC_API_URL` to the FastAPI base URL. The front end currently calls:
-
-- `POST /voice {text, voice}` → `{hash}`, then `GET /audio/{hash}`
-- `POST /audit/parse` (multipart `file`) → `{campus_id}`
-
-Everything else still runs in `lib/engine.ts`. To move a tool server-side, keep its return shape and swap the call in `components/Cockpit.tsx`.
+With `NEXT_PUBLIC_API_URL` pointing at the FastAPI service and `/healthz` reporting `mode: "models"`,
+the app switches to the trained, checksummed models (`lib/live.ts`): the cockpit, queue, drills,
+repair, narration (Gemini or template, provenance-checked), voice (ElevenLabs clips cached in
+Postgres) and memory (Backboard or `app.memory_note`) all come from the API, and the agent console
+logs the real calls. The badge reads "live model · <version>". If the API is down, every screen
+falls back to the browser-side engine in `lib/engine.ts` over the same dataset.
 
 ## Honest limits of the local engine
 
