@@ -35,7 +35,12 @@ app = FastAPI(
     lifespan=lifespan,
     openapi_url="/openapi.json",
     root_path=os.getenv("API_ROOT_PATH", ""),
-    responses={422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    # Explicit descriptions: Python 3.13 renamed HTTP 422's phrase ("Unprocessable Entity" ->
+    # "Unprocessable Content"), which would make the exported contract depend on the interpreter.
+    responses={
+        422: {"model": ErrorResponse, "description": "Invalid request"},
+        503: {"model": ErrorResponse, "description": "Service unavailable"},
+    },
 )
 app.add_middleware(
     CORSMiddleware,
