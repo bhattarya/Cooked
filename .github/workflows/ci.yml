@@ -1,0 +1,95 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Database and API
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: timescale/timescaledb:2.18.2-pg17
+        env:
+          POSTGRES_USER: owner
+          POSTGRES_PASSWORD: ci_owner_only
+          POSTGRES_DB: cooked
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U owner -d cooked"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      # Ephemeral CI-only credentials, never used outside this service container.
+      DATABASE_URL: postgresql://owner:ci_owner_only@localhost:5432/cooked?sslmode=disable
+      DATABASE_URL_APP: postgresql://app_rw:ci_app_only@localhost:5432/cooked?sslmode=disable
+      DATABASE_URL_AGENT: postgresql://agent_ro:ci_agent_only@localhost:5432/cooked?sslmode=disable
+      REQUIRE_DB_TESTS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -c requirements.lock -e '.[dev]'
+      - run: ruff check .
+      - run: python -m scripts.migrate
+      - run: python -m scripts.load
+      - run: python -m scripts.check_integrity
+      - run: pytest -ra
+      - run: python -m scripts.smoke_tiger
+      - run: python -m scripts.export_openapi --check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openapi
+          path: docs/openapi.json
+  web:
+    name: Web build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm --prefix web ci
+      - run: npm --prefix web run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -c requirements.lock pre-commit
+      - run: pre-commit run --all-files
+      - run: pre-commit run gitleaks-history --hook-stage manual --all-files
+  deploy:
+    name: Deploy tested main
+    needs: [test, web, secrets]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DO_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: demo
+    concurrency:
+      group: cooked-demo-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -c requirements.lock -e .
+      - run: python -m scripts.deploy
+        env:
+          DO_TOKEN: ${{ secrets.DO_TOKEN }}
+          DO_APP_ID: ${{ vars.DO_APP_ID }}
+          GITHUB_TOKEN: ${{ github.token }}

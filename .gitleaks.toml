@@ -1,0 +1,5 @@
+title = "COOKED gitleaks configuration"
+
+[[allowlists]]
+description = "The committed env template intentionally contains placeholder values only."
+paths = ['''\.env\.example$''']
