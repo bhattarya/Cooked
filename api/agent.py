@@ -24,7 +24,12 @@ TOOLS = [
         "description": "Change weekly work hours and/or credits per term from now on; see how risk and finish time move.",
         "parameters": {
             "type": "OBJECT",
-            "properties": {"work_hours": {"type": "INTEGER"}, "credits_per_term": {"type": "INTEGER"}},
+            "properties": {
+                "work_hours": {"type": "INTEGER", "description": "New absolute weekly hours"},
+                "credits_per_term": {"type": "INTEGER", "description": "New absolute credits per term"},
+                "work_delta": {"type": "INTEGER", "description": "Change in weekly hours, e.g. -5"},
+                "credits_delta": {"type": "INTEGER", "description": "Change in credits per term, e.g. 3"},
+            },
         },
     },
     {
@@ -57,24 +62,29 @@ TOOLS = [
     },
 ]
 
+# (with a name, without one)
 LINES = {
-    "greeting": "Hey {name}. I'm COOKED. Drop your degree audit and I'll show you where you're headed.",
-    "thanks": "Alright, thanks {name} for uploading. Give me a second while the agents take a look.",
-    "ask_work": "One thing an audit can't tell me: about how many hours a week do you work?",
-    "ready": "Okay {name}, here's what I found.",
-    "listening": "I'm listening.",
+    "greeting": ("Hey {name}. I'm COOKED. Drop your degree audit and I'll show you where you're headed.",
+                 "Hey. I'm COOKED. Drop your degree audit and I'll show you where you're headed."),
+    "thanks": ("Alright, thanks {name} for uploading. Give me a second while the agents take a look.",
+               "Alright, thanks for uploading. Give me a second while the agents take a look."),
+    "ask_work": ("One thing an audit can't tell me: about how many hours a week do you work?",) * 2,
+    "ready": ("Okay {name}, here's what I found.", "Okay, here's what I found."),
+    "listening": ("I'm listening.",) * 2,
 }
 
 
-def _name(name: str | None) -> str:
+def _name(name: str | None) -> str | None:
     clean = re.sub(r"[^A-Za-z\- ']", "", name or "").strip().split(" ")[0][:30]
-    return clean or "there"
+    return clean or None
 
 
 def say(engine: Engine, line: str, name: str | None) -> dict:
     if line not in LINES:
         raise NotFound(line)
-    return engine._finish([{"text": LINES[line].format(name=_name(name))}], "template", "say")
+    n = _name(name)
+    text = LINES[line][0].format(name=n) if n else LINES[line][1]
+    return engine._finish([{"text": text}], "template", "say")
 
 
 # ---------- intake ----------
@@ -155,6 +165,11 @@ def local_route(q: str) -> tuple[str, dict]:
     n = re.search(r"(\d+(?:\.\d+)?)", s)
     if re.search(r"stress|drill|shock|break|what could go wrong", s):
         return "stress_test", ({"credits_per_term": int(float(n.group(1)))} if n else {})
+    rel = re.search(r"(\d+)\s*(more|extra|additional|fewer|less)\b", s)
+    if rel:
+        delta = int(rel.group(1)) * (-1 if rel.group(2) in ("fewer", "less") else 1)
+        key = "work_delta" if re.search(r"hour|hrs|work|job", s) else "credits_delta"
+        return "what_if", {key: delta}
     if n and re.search(r"hour|hrs|\bh\b|work|job", s):
         return "what_if", {"work_hours": int(float(n.group(1)))}
     if n and re.search(r"credit|cr\b|load|class|course", s):
@@ -193,8 +208,9 @@ def _current_load(engine: Engine, sid: str) -> int:
 def _what_if(engine, sid, args, work, plan):
     w0 = work if work is not None else float(engine.people.static.at[sid, "work_hours"] or 0)
     l0 = plan if plan is not None else _current_load(engine, sid)
-    w1 = float(args.get("work_hours", w0))
-    l1 = float(args.get("credits_per_term", l0))
+    w1 = float(args.get("work_hours", w0 + float(args.get("work_delta", 0))))
+    l1 = float(args.get("credits_per_term", l0 + float(args.get("credits_delta", 0))))
+    w1, l1 = max(0.0, min(60.0, w1)), max(3.0, min(21.0, l1))
     before = engine.state(sid, w0, l0)
     after = engine.state(sid, w1, l1)
     r0, r1 = before["plan"]["risk"]["value"], after["plan"]["risk"]["value"]
@@ -249,7 +265,12 @@ def _course_plan(engine, sid, args, work, plan):
             segs += [{"text": ", including "}, _tok(len(a["gates_required"]), tr), {"text": " required for your major"}]
         segs += [{"text": ". "}]
     if b and b["known"]:
-        if a["missing_prereqs"] and not b["missing_prereqs"]:
+        if a["missing_prereqs"] and b["missing_prereqs"]:
+            segs += [{"text": "Neither is open to you yet; "}, _tok(instead, tr), {"text": " also needs "}]
+            for i, m in enumerate(b["missing_prereqs"]):
+                segs += ([{"text": " and "}] if i else []) + [_tok(m, tr)]
+            segs += [{"text": ". Finish that first and both open up. "}]
+        elif a["missing_prereqs"] and not b["missing_prereqs"]:
             segs += [{"text": "Keep "}, _tok(instead, tr), {"text": " for now: it's open to you and "},
                      _tok(take, tr), {"text": " isn't yet. "}]
         elif b["required_for_major"] and not a["required_for_major"]:

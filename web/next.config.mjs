@@ -6,4 +6,6 @@ import { fileURLToPath } from "node:url";
 const root = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: process.env.COOKED_ENV_FILE || path.join(root, "../.env") });
 
-export default { poweredByHeader: false };
+const nextConfig = { poweredByHeader: false };
+
+export default nextConfig;

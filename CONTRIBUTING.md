@@ -51,7 +51,9 @@ Never push straight to `main`. Deploys run from `main` only after CI passes.
 | `models/` | Frozen artifact plus checksummed manifest (metrics and gate results) |
 | `api/` | FastAPI app: `engine.py` (tools), `routes/product.py`, `provenance.py`, `providers/` (Gemini, ElevenLabs, Backboard) |
 | `worker/` | Watchtower: scores every current student and manages alarms |
-| `web/` | Next.js app. `lib/live.ts` talks to the API; `lib/engine.ts` is the offline fallback |
+| `web/` | Next.js app: `app/page.tsx` landing, `app/app/` agent workspace + advisor view, `app/api/auth/` Google OAuth + guest sessions, `proxy.ts` guards `/app` |
+| `web/components/agent/` | Workspace state machine, voice orb, agent pipeline, dashboard, answer cards, sponsor chips |
+| `api/agent.py` | Audit intake, spoken lines, question routing (Gemini function calling, local fallback) to tools |
 | `tests/` | pytest suite (runs against a migrated, loaded database) |
 
 ## Gotchas we've hit

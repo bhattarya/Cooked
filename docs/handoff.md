@@ -7,7 +7,8 @@ State as of the merge of #3: models, API, Watchtower and frontend are on `main`,
 - **Models** (`models/manifest.json`): risk per stage (AUC 0.834 at enrollment, 0.940 after one term, on held-out 2023–2026 graduates), time-to-degree quantiles, autopsy clusters, twin matching with refusal. All six §7.5 gates pass.
 - **API**: every §12 route plus `/narrate`, `/voice`, `/students/{id}/memory` and `/audit/parse`. Every number carries a `tool_result_id`. `DEMO_MODE=1` blocks all outbound calls.
 - **Worker**: the Watchtower scores all current students into `app.risk_snapshot` and opens and resolves alarms with hysteresis.
-- **Frontend**: landing, cockpit (alarm → drill → repair), queue and myths. It uses the API when `/healthz` reports `mode: "models"` and falls back to the browser engine otherwise.
+- **Frontend**: a minimal crowd landing page with Google sign-in (guest fallback), and the voice-agent workspace at `/app`: audit upload → seven sponsor-tagged agents → dashboard → spoken and typed follow-ups with visuals. The advisor queue is at `/app/advisor`.
+- **Agent API**: `/audit/parse` (Gemini reads real PDFs; samples map to synthetic students), `/students/{id}/ask` (routes to what-if, course plan, stress test, fix, explain), `/say`. Uploaded audits become `USR-` profiles that every tool accepts.
 - **Checks**: `make test` (41 tests), `make e2e` (11-step browser walkthrough) and `make check`.
 
 ## What's left, and who
@@ -15,7 +16,8 @@ State as of the merge of #3: models, API, Watchtower and frontend are on `main`,
 | Task | Owner | Notes |
 | --- | --- | --- |
 | Tiger Cloud service; URLs in `.env` and DigitalOcean; `make migrate load` against it | Dhruv | Record the version and limits in `SETUP_STATUS.md` |
-| Gemini, ElevenLabs and Backboard keys; run `scripts/smoke_*` | Dhruv | Until then: templates, browser voice, local memory |
+| Gemini, ElevenLabs and Backboard keys; run `scripts/smoke_*` | Dhruv | Until then: samples only (no real audits), local question router, browser voice, local memory |
+| Google OAuth client (`docs/accounts.md` step 8) | Dhruv | Until then the landing page offers "Continue as guest" |
 | DigitalOcean deploy from `.do/app.yaml`; verify on a phone | Dhruv | Set `DO_DEPLOY_ENABLED=true` when ready |
 | Render and cache the demo narration audio once keys exist | Backend | Hit `/narrate` then `/voice` for the three demo students so the demo replays offline |
 | Evidence notebook reproducing §3 numbers | ML | `notebooks/evidence_log.ipynb` is still a placeholder; myths marked "team evidence notebook" depend on it |

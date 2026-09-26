@@ -1,5 +1,5 @@
 import { Queue } from "@/components/Queue";
 
-export default function QueuePage() {
+export default function AdvisorPage() {
   return <Queue />;
 }

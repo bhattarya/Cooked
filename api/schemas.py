@@ -32,6 +32,7 @@ class HealthResponse(StrictModel):
     model_version: str | None = None
     demo_mode: bool = False
     providers: dict[str, bool] = Field(default_factory=dict)
+    database_kind: Literal["tiger-cloud", "timescaledb-local", "unknown"] = "unknown"
     checks: HealthChecks
 
 

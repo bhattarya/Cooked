@@ -14,6 +14,7 @@ export interface Health {
   version?: string;
   demo?: boolean;
   providers?: Record<string, boolean>;
+  database_kind?: string;
 }
 
 let healthPromise: Promise<Health> | null = null;
@@ -24,7 +25,7 @@ export function apiHealth(): Promise<Health> {
       ? Promise.resolve({ live: false })
       : fetch(`${API}/healthz`, { cache: "no-store", signal: AbortSignal.timeout(6000) })
           .then((r) => r.json())
-          .then((h) => ({ live: h.mode === "models" && h.status === "ok", version: h.model_version, demo: h.demo_mode, providers: h.providers }))
+          .then((h) => ({ live: h.mode === "models" && h.status === "ok", version: h.model_version, demo: h.demo_mode, providers: h.providers, database_kind: h.database_kind }))
           .catch(() => ({ live: false }));
   }
   return healthPromise;

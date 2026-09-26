@@ -1,0 +1,59 @@
+"use client";
+
+import type { Health } from "@/lib/live";
+
+// Which sponsor powers each agent, and whether it's live right now (honest fallbacks).
+export type SponsorKey = "gemini" | "elevenlabs" | "backboard" | "tiger" | "digitalocean" | "model";
+
+export const SPONSORS: Record<SponsorKey, { label: string; color: string; role: string }> = {
+  gemini: { label: "Gemini", color: "#8ab4f8", role: "reads audits, routes questions" },
+  elevenlabs: { label: "ElevenLabs", color: "#f4f1ea", role: "speaks every answer" },
+  backboard: { label: "Backboard", color: "#c4b5fd", role: "remembers your decisions" },
+  tiger: { label: "Tiger Data", color: "#fbbf24", role: "3,200 alumni + drill simulations" },
+  digitalocean: { label: "DigitalOcean", color: "#3b82f6", role: "hosts the agents" },
+  model: { label: "COOKED model", color: "#ff5a1f", role: "trained risk + time-to-degree" },
+};
+
+export interface SponsorLive {
+  gemini: boolean;
+  elevenlabs: boolean;
+  backboard: boolean;
+  tiger: boolean;
+  digitalocean: boolean;
+  model: boolean;
+}
+
+export function sponsorLive(h: Health & { database_kind?: string } | null): SponsorLive {
+  return {
+    gemini: !!h?.providers?.gemini,
+    elevenlabs: !!h?.providers?.elevenlabs,
+    backboard: !!h?.providers?.backboard,
+    tiger: h?.database_kind === "tiger-cloud",
+    digitalocean: typeof window !== "undefined" && window.location.hostname.endsWith("ondigitalocean.app"),
+    model: !!h?.live,
+  };
+}
+
+export const FALLBACK: Record<SponsorKey, string> = {
+  gemini: "local parser + router",
+  elevenlabs: "browser voice",
+  backboard: "stored in Postgres",
+  tiger: "TimescaleDB (local)",
+  digitalocean: "running locally",
+  model: "browser engine",
+};
+
+export function SponsorChip({ k, live, compact = false }: { k: SponsorKey; live: boolean; compact?: boolean }) {
+  const s = SPONSORS[k];
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10.5px]"
+      style={{ borderColor: live ? `${s.color}66` : "rgba(255,255,255,0.1)", color: live ? s.color : "var(--muted)" }}
+      title={live ? `${s.label}: ${s.role}` : `${s.label} not configured: ${FALLBACK[k]}`}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: live ? s.color : "var(--dim)" }} />
+      {s.label}
+      {!compact && !live && <span className="text-dim">· {FALLBACK[k]}</span>}
+    </span>
+  );
+}

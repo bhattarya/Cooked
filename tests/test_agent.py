@@ -18,6 +18,8 @@ from ml.twins import SMD_MAX, TwinIndex
         ("what if I work 10 hours a week", "what_if", {"work_hours": 10}),
         ("what if I take 15 credits", "what_if", {"credits_per_term": 15}),
         ("stress test my plan at 15 credits", "stress_test", {"credits_per_term": 15}),
+        ("what if I take 3 more credits a term?", "what_if", {"credits_delta": 3}),
+        ("what if I work 5 fewer hours", "what_if", {"work_delta": -5}),
         ("how do I get un-cooked", "find_fix", {}),
         ("am I cooked?", "explain_risk", {}),
     ],
