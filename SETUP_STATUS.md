@@ -1,6 +1,8 @@
 # COOKED setup status
 
-## Phase 2 (models, API, worker, frontend): implemented and verified locally
+## Phase 2 (models, API, worker, frontend): merged to `main` (#2, #3), CI green
+
+New teammates: `make bootstrap && make dev` (see README and CONTRIBUTING.md). Remaining owner tasks are in `docs/handoff.md`.
 
 - `make train`: all six §7.5 gates pass; held-out AUC 0.834 (enrollment only) / 0.940 (one term); artifacts frozen with SHA-256 manifest.
 - `pytest`: **40 passed, 0 skipped** against local TimescaleDB 2.18.2 (the eight handoff skips are now real tests, plus golden drills).

@@ -2,37 +2,27 @@
 
 Know you are cooked before it is too late — and get un-cooked.
 
-Phase 1 foundation for HackUMBC 2026, Career Pathways & Degree ROI. **All data is synthetic, CC0.** No records describe real UMBC students, employers, courses, or outcomes. Do not upload real student data. This is a demo, not academic or financial advice.
+Built for HackUMBC 2026, Career Pathways & Degree ROI. **All data is synthetic, CC0.** No records describe real UMBC students, employers, courses, or outcomes. Do not upload real student data. This is a demo, not academic or financial advice.
 
 The build plan PDF is the design reference. Dhruv owns infrastructure and then frontend; one teammate owns backend/ML/agents, and one owns frontend. The trained models, real API routes, Watchtower worker and frontend are implemented (see [Models, API and frontend](#models-api-and-frontend)). Gemini, ElevenLabs and Backboard calls are wired but only activate once their keys are configured.
 
 ## Getting started
 
-Install Python 3.12, Node.js 22+, Git, and a running Docker engine with Compose. On this Mac, Colima and standalone `docker-compose` are installed; run `colima start` from your terminal and use `make db-up COMPOSE=docker-compose` if the `docker compose` plugin is unavailable.
+You need **Python 3.11+**, **Node.js 22+**, **Git**, and a running **Docker** engine (Docker Desktop, or Colima; use `make ... COMPOSE=docker-compose` if you only have standalone `docker-compose`).
 
 ```sh
 git clone https://github.com/bhattarya/Cooked.git
 cd Cooked
-# Until the foundation PR is merged:
-git checkout feat/phase1-foundation
-cp .env.example .env
+make bootstrap   # venv + deps, .env with generated DB passwords, local TimescaleDB, migrate, load data
+make test        # 40+ tests against the real database
+make dev         # API http://localhost:8000 (docs at /docs) + web http://localhost:3000
 ```
 
-Edit `.env` locally. Never paste credentials into chat, screenshots, issues, or commits. For local development set `POSTGRES_PASSWORD` to a generated password and make `DATABASE_URL` use `owner` with that same password. Use `localhost:5432/cooked?sslmode=disable` for all three URLs, with separate passwords for `app_rw` and `agent_ro`. URL-encode password punctuation, or use generated hex passwords. For Tiger use its actual hostname, port, database and service administrator URL with `sslmode=require`; all three URLs must point at the same service/database.
+`make bootstrap` is safe to re-run. It never overwrites an existing `.env`, and it picks another port if 5432 is taken. The trained models are committed in `models/`, so you don't need to train anything to run the app. Run `make help` for every command, and read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
 
-```sh
-make setup
-make db-up                    # skip when using Tiger Cloud
-make migrate
-make load
-make test
-make dev-api                  # terminal 1: http://localhost:8000
-make dev-web                  # terminal 2: http://localhost:3000
-```
+Provider keys (Gemini, ElevenLabs, Backboard) are optional. Without them narration uses deterministic templates, voice falls back to the browser, and memory is stored in `app.memory_note`. Add keys to your `.env` to switch those on. Never paste credentials into chat, screenshots, issues or commits.
 
-Python and Next.js both read the repository's root `.env`; shell environment values take precedence. `NEXT_PUBLIC_API_URL=http://localhost:8000` and `CORS_ORIGINS=http://localhost:3000` connect the browser to the local API. Only `NEXT_PUBLIC_` values are bundled into browser JavaScript. Changing them on DigitalOcean requires rebuilding the web component.
-
-`make setup` installs the pre-commit gitleaks hook. Run `.venv/bin/pre-commit run --all-files` before committing. API keys are optional for the scaffold; database credentials are required for a healthy `/healthz`. A missing DB/cache returns HTTP 503. Missing ML artifacts are explicitly reported as `artifact_checksum: not_configured`; HTTP 200 means infrastructure readiness only.
+**Tiger Cloud instead of local Docker:** put the service's three URLs in `.env` (`sslmode=require`, all pointing at the same database), skip `make db-up`, and run `make migrate load`.
 
 ## Database
 
@@ -48,9 +38,9 @@ Expected raw counts: alumni 3,200; current 1,800; transcripts 140,458; employmen
 
 Local/CI image: TimescaleDB 2.18.2 on PostgreSQL 17. SQL requires TimescaleDB >=2.18 and uses columnstore syntax; the exact Tiger version must still be recorded at service creation. See [database compatibility](docs/database.md) for changes from the PDF.
 
-## API and frontend handoff
+## API contract
 
-Open [docs/openapi.json](docs/openapi.json), or local [Swagger UI](http://localhost:8000/docs). `make openapi` regenerates the committed contract; CI rejects stale exports and publishes it as an Actions artifact. Every §12 route exists. These are **draft mock contracts for teammate review**, not completed backend behavior. See [handoff notes](docs/handoff.md) and share interface changes in the group chat before implementation.
+Open [docs/openapi.json](docs/openapi.json), or local [Swagger UI](http://localhost:8000/docs). Every §12 route is implemented over the frozen models. `make openapi` regenerates the committed contract; CI rejects stale exports and publishes it as an Actions artifact. See [docs/handoff.md](docs/handoff.md) for who owns what and what is left.
 
 ## Models, API and frontend
 
