@@ -501,7 +501,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -511,7 +511,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Alarms",
@@ -564,7 +564,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -574,7 +574,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Feedback",
@@ -613,7 +613,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -623,7 +623,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Audio",
@@ -665,7 +665,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -675,7 +675,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Audit",
@@ -717,7 +717,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -727,7 +727,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Drill",
@@ -771,7 +771,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -781,7 +781,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Survival",
@@ -812,7 +812,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -878,7 +878,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -888,7 +888,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Queue",
@@ -919,7 +919,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -929,7 +929,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Myths",
@@ -971,7 +971,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -981,7 +981,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Narrate",
@@ -1022,7 +1022,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -1032,7 +1032,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Repair",
@@ -1076,7 +1076,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -1086,7 +1086,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Alarm Check",
@@ -1129,7 +1129,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -1139,7 +1139,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Recall",
@@ -1190,7 +1190,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -1200,7 +1200,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Remember",
@@ -1280,7 +1280,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -1290,7 +1290,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "State",
@@ -1332,7 +1332,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "503": {
             "content": {
@@ -1342,7 +1342,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Service unavailable"
           }
         },
         "summary": "Voice",
