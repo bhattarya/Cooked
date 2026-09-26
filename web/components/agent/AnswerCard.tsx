@@ -95,7 +95,7 @@ function Explain({ v }: { v: Extract<Visual, { type: "explain" }> }) {
       </div>
       <div className="space-y-3 rounded-xl border border-line bg-white/[0.02] p-4">
         <Bar label="your credits / term" value={st.avg_credits.value} max={18} color="#ff5a1f" fmt={String(st.avg_credits.value)} />
-        {v.reference_load != null && <Bar label="on-time twins at this point" value={v.reference_load} max={18} color="#2dd4bf" fmt={String(v.reference_load)} delay={0.15} />}
+        {v.reference_load != null && <Bar label="on-time twins, afterwards" value={v.reference_load} max={18} color="#2dd4bf" fmt={String(v.reference_load)} delay={0.15} />}
       </div>
     </div>
   );

@@ -102,7 +102,7 @@ def repair(body: RepairRequest):
 @router.post("/narrate", response_model=Envelope[Data])
 def narrate(body: NarrateRequest):
     """Script as segments; numbers are tokens tied to tool results (Gemini, cache or template)."""
-    return wrap(get_engine().narrate(body.kind, body.campus_id, body.plan_load, body.work_hours))
+    return wrap(get_engine().narrate(body.kind, body.campus_id, body.plan_load, body.work_hours, body.wait))
 
 
 @router.post("/voice", response_model=Envelope[Data])

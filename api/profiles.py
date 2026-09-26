@@ -40,9 +40,14 @@ class AuditCourse(BaseModel):
 
 
 class AuditTerm(BaseModel):
+    """A term either lists its courses or, on some audits, only credit totals."""
+
     model_config = ConfigDict(extra="ignore")
-    label: Annotated[str, Field(max_length=20)]
-    courses: Annotated[list[AuditCourse], Field(max_length=12)]
+    label: Annotated[str, Field(max_length=30)]
+    courses: Annotated[list[AuditCourse], Field(max_length=12)] = Field(default_factory=list)
+    credits_attempted: Annotated[float, Field(ge=0, le=30)] | None = None
+    credits_earned: Annotated[float, Field(ge=0, le=30)] | None = None
+    withdrawals: Annotated[int, Field(ge=0, le=8)] | None = None
 
 
 class AuditProfile(BaseModel):
@@ -60,6 +65,12 @@ class AuditProfile(BaseModel):
     internships: Annotated[int, Field(ge=0, le=10)] = 0
     terms: Annotated[list[AuditTerm], Field(max_length=16)] = Field(default_factory=list)
     in_progress: Annotated[list[AuditCourse], Field(max_length=12)] = Field(default_factory=list)
+    completed_courses: Annotated[list[str], Field(max_length=80)] = Field(default_factory=list)
+
+    @field_validator("completed_courses")
+    @classmethod
+    def _norm_done(cls, v: list[str]) -> list[str]:
+        return [norm_course(c) for c in v if c]
 
     @field_validator("first_name")
     @classmethod
@@ -71,16 +82,23 @@ class AuditProfile(BaseModel):
 
 
 def term_rows(p: AuditProfile) -> tuple[np.ndarray, set[str]]:
-    """Regular terms in time order -> [attempted, earned, W, F, repeats]; plus passed courses."""
-    dated = []
-    for t in p.terms:
-        m = TERM.match(t.label.strip().title())
-        if m:  # Summer/Winter sessions are excluded, like feat.person_term
-            dated.append((int(m.group(2)) * 2 + (m.group(1) == "Fall"), t))
+    """Regular terms in time order -> [attempted, earned, W, F, repeats]; plus passed courses.
+    Named Fall/Spring terms are sorted by date; unnamed ones ("Term 1") keep the audit's order;
+    Summer and Winter sessions are excluded, like feat.person_term."""
+    regular = [t for t in p.terms if not re.search(r"summer|winter", t.label, re.IGNORECASE)]
+    dated = [(TERM.match(t.label.strip().title()), i, t) for i, t in enumerate(regular)]
+    if all(m for m, _, _ in dated):
+        ordered = [t for _, _, t in sorted(dated, key=lambda x: int(x[0].group(2)) * 2 + (x[0].group(1) == "Fall"))]
+    else:
+        ordered = regular
     seen: set[str] = set()
-    passed: set[str] = set()
+    passed: set[str] = set(p.completed_courses)
     rows = []
-    for _, t in sorted(dated, key=lambda x: x[0]):
+    for t in ordered:
+        if not t.courses:  # totals-only term
+            att = float(t.credits_attempted or t.credits_earned or 0)
+            rows.append([att, float(t.credits_earned if t.credits_earned is not None else att), float(t.withdrawals or 0), 0.0, 0.0])
+            continue
         att = earned = w = f = rep = 0.0
         for c in t.courses:
             g = c.grade.upper()

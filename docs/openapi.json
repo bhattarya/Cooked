@@ -388,6 +388,11 @@
             ],
             "title": "Plan Load"
           },
+          "wait": {
+            "default": true,
+            "title": "Wait",
+            "type": "boolean"
+          },
           "work_hours": {
             "anyOf": [
               {

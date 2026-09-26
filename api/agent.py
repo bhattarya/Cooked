@@ -326,15 +326,16 @@ def _explain(engine, sid, args, work, plan):
         }
     k = st["terms_done"]["value"]
     twins = [t for t in st["twins"]["ids"] if not engine.people.static.at[t, "cooked"]]
-    on_time = [float(engine.people.terms_of(t)[: max(k, 1), 0].mean()) for t in twins if len(engine.people.terms_of(t))]
+    # twins are matched on load so far, so compare with what the on-time ones did next
+    on_time = [float(engine.people.terms_of(t)[k:, 0].mean()) for t in twins if len(engine.people.terms_of(t)) > k]
     ref = round(sum(on_time) / len(on_time), 1) if on_time else None
     tr = engine.rec("explain_risk", {"id": sid, "k": k})
     risk = st["risk"]["value"]
     segs: list[dict] = [{"text": "Your risk is "}, _tok(round(risk * 100), st["risk"]["tool_result_id"]), {"text": " percent. "}]
     if ref is not None:
         segs += [{"text": "You're averaging "}, _tok(st["avg_credits"]["value"], st["avg_credits"]["tool_result_id"]),
-                 {"text": " credits a term; matched students who finished on time averaged "}, _tok(ref, tr),
-                 {"text": " at this point. "}]
+                 {"text": " credits a term. Matched students who finished on time went on to average "}, _tok(ref, tr),
+                 {"text": " a term after this point. "}]
     segs += [{"text": "That's based on "}, _tok(st["twins"]["n"], st["twins"]["tool_result_id"]),
              {"text": " alumni who looked like you. Load and work hours move it most; individual courses barely do."}]
     return segs, {"type": "explain", "state": st, "reference_load": ref, "tool_result_id": tr}

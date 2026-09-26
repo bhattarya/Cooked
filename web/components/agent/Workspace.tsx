@@ -175,11 +175,18 @@ export function Workspace({ user }: { user: SessionUser }) {
           tr: rp.data.tool_result_id ?? undefined,
         });
         patch("voice", { status: "running" });
-        const n = await narrate("alarm", d.id, hours);
-        patch("voice", { status: "done", result: `${n.data.provenance.tokens} numbers, every one traced · ${live.elevenlabs ? "ElevenLabs voice" : "browser voice"}` });
+        const n = await narrate("alarm", d.id, hours, false);
+        patch("voice", {
+          status: "done",
+          live: n.data.source !== "template" && live.gemini,
+          result: `${n.data.source === "cache" ? "Gemini script (cached)" : n.data.source.startsWith("template (gemini") ? "template now · Gemini writing its version" : "template"} · ${n.data.provenance.tokens} numbers, every one traced · ${live.elevenlabs ? "ElevenLabs voice" : "browser voice"}`,
+          ms: n.ms,
+        });
+        // memory can take a few seconds (Backboard); don't hold the dashboard for it
         patch("memory", { status: "running" });
-        const mem = await remember(d.id, `Uploaded an audit and saw the COOKED dashboard (${sd.pattern ?? "no pattern"}).`).catch(() => null);
-        patch("memory", { status: "done", live: mem?.data.stored === "backboard", result: mem?.data.stored === "backboard" ? "remembered in Backboard" : "saved to app.memory_note" });
+        remember(d.id, `Uploaded an audit and saw the COOKED dashboard (${sd.pattern ?? "no pattern"}).`)
+          .then((mem) => patch("memory", { status: "done", live: mem.data.stored === "backboard", result: mem.data.stored === "backboard" ? "remembered in Backboard" : "saved to app.memory_note", ms: mem.ms }))
+          .catch(() => patch("memory", { status: "warn", result: "memory unavailable" }));
 
         setBusy(false);
         await new Promise((r) => setTimeout(r, 700));

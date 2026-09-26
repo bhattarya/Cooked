@@ -31,7 +31,9 @@ from ml.watchtower import OPEN_AT, hysteresis, score_all
 from scripts.common import ROOT, connect
 
 log = logging.getLogger("cooked.api")  # log exception types only: messages can hold DSNs
-TEMPLATE_VERSION = "t1"
+TEMPLATE_VERSION = "t2"  # bump when prompts change so cached scripts are regenerated
+# Associational, not causal (§3.4, §7.7): LLM scripts that promise outcomes are rejected.
+PROMISE = re.compile(r"\b(will (help|make|get|let|ensure)|can help you|guarantee|ensures?|you will graduate)\b", re.IGNORECASE)
 CID = re.compile(r"CID-\d{6}")
 
 
@@ -374,7 +376,9 @@ class Engine:
         return out
 
     # ---------- narration (Gemini with template fallback, provenance-checked) ----------
-    def narrate(self, kind: str, cid: str, plan_load: float | None = None, work: float | None = None) -> dict:
+    def narrate(
+        self, kind: str, cid: str, plan_load: float | None = None, work: float | None = None, wait: bool = True
+    ) -> dict:
         slots: dict[str, tuple[str, str]] = {}
         if kind == "alarm":
             st = self.state(cid, work)
@@ -450,25 +454,45 @@ class Engine:
         try:
             with db() as conn:
                 row = conn.execute("SELECT response FROM app.llm_cache WHERE hash=%s", (key,)).fetchone()
-                if row:
-                    segs = provenance.fill(row[0]["script"], slots, required)
-                    source = "cache" if segs else source
-                if segs is None and net.enabled() and gemini.configured():
-                    text = gemini.write(kind, facts, descs)
-                    if text is None or provenance.fill(text, slots, required) is None:
-                        text = gemini.write(kind, facts, descs)  # regenerate once (§8.3)
-                    if text and provenance.fill(text, slots, required):
-                        segs, source = provenance.fill(text, slots, required), "gemini"
-                        conn.execute(
-                            "INSERT INTO app.llm_cache(hash, kind, model, response) VALUES (%s,%s,%s,%s) "
-                            "ON CONFLICT (hash) DO NOTHING",
-                            (key, kind, gemini.model_name(), json.dumps({"script": text})),
-                        )
-        except Exception:  # noqa: BLE001 -- narration never blocks on the cache or provider
+            if row and not PROMISE.search(row[0]["script"]):
+                segs = provenance.fill(row[0]["script"], slots, required)
+                source = "cache" if segs else source
+            if segs is None and net.enabled() and gemini.configured():
+                if wait:
+                    segs = self._gemini_script(kind, facts, descs, slots, required, key)
+                    source = "gemini" if segs else source
+                else:
+                    # answer now with the traced template; let Gemini write and cache in the
+                    # background so the next request (and demo replay) gets its version
+                    threading.Thread(
+                        target=self._gemini_script, args=(kind, facts, descs, slots, required, key), daemon=True
+                    ).start()
+                    source = "template (gemini writing)"
+        except Exception as exc:  # noqa: BLE001 -- narration never blocks on the cache or provider
+            log.warning("narration cache/provider failed: %s", type(exc).__name__)
             segs = None
         if segs is None:
-            segs, source = provenance.fill(template, slots, required), "template"
+            segs = provenance.fill(template, slots, required)
+            source = source if source.startswith("template") else "template"
         return self._finish(segs, source, kind)
+
+    def _gemini_script(self, kind, facts, descs, slots, required, key) -> list[dict] | None:
+        """Gemini writes around the slots; rejected unless every number is a traced token and it
+        makes no promises. Accepted scripts are cached in app.llm_cache for offline replay."""
+        text = gemini.write(kind, facts, descs)
+        if text is None or provenance.fill(text, slots, required) is None or PROMISE.search(text):
+            text = gemini.write(kind, facts, descs)  # regenerate once (§8.3)
+        if not text or PROMISE.search(text):
+            return None
+        segs = provenance.fill(text, slots, required)
+        if segs:
+            with db() as conn:
+                conn.execute(
+                    "INSERT INTO app.llm_cache(hash, kind, model, response) VALUES (%s,%s,%s,%s) "
+                    "ON CONFLICT (hash) DO NOTHING",
+                    (key, kind, gemini.model_name(), json.dumps({"script": text})),
+                )
+        return segs
 
     def _finish(self, segs: list[dict], source: str, kind: str) -> dict:
         check = provenance.check(segs)

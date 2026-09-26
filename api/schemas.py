@@ -131,6 +131,7 @@ class NarrateRequest(StrictModel):
     campus_id: CampusID
     plan_load: Annotated[float, Field(ge=3, le=21)] | None = None
     work_hours: Annotated[int, Field(ge=0, le=60)] | None = None
+    wait: bool = True  # false: answer now with the template while Gemini writes in the background
 
 
 class VoiceRequest(StrictModel):

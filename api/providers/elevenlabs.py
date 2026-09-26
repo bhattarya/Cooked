@@ -8,6 +8,11 @@ from urllib.parse import quote
 from api.providers import net
 
 VOICES = {"narrator": "VOICE_ID_NARRATOR", "coach": "VOICE_ID_COACH"}
+_denied = False  # set when ElevenLabs rejects the key, so health and the UI stop claiming voice
+
+
+def denied() -> bool:
+    return _denied
 
 
 def voice_id(voice: str) -> str | None:
@@ -15,10 +20,11 @@ def voice_id(voice: str) -> str | None:
 
 
 def configured(voice: str) -> bool:
-    return bool(net.key("ELEVENLABS_API_KEY") and voice_id(voice) and os.getenv("ELEVENLABS_MODEL"))
+    return not _denied and bool(net.key("ELEVENLABS_API_KEY") and voice_id(voice) and os.getenv("ELEVENLABS_MODEL"))
 
 
 def render(text: str, voice: str) -> bytes | None:
+    global _denied
     if not configured(voice):
         return None
     try:
@@ -30,6 +36,9 @@ def render(text: str, voice: str) -> bytes | None:
             json={"text": text, "model_id": os.getenv("ELEVENLABS_MODEL")},
             timeout=90,
         )
+        if r.status_code in (401, 403):
+            _denied = True  # e.g. a restricted key without text-to-speech permission
+            return None
         r.raise_for_status()
         return r.content if "audio" in r.headers.get("content-type", "") else None
     except Exception:  # noqa: BLE001

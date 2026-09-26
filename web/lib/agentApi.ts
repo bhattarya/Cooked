@@ -77,7 +77,8 @@ export const getState = (id: string, work?: number, plan?: number) =>
   );
 export const runDrill = (id: string, load?: number, work?: number) => api<ServerDrill>("/drill", { campus_id: id, plan_load: load, work_hours: work });
 export const findRepair = (id: string, work?: number) => api<ServerRepair>("/repair", { campus_id: id, work_hours: work });
-export const narrate = (kind: "alarm" | "drill" | "repair", id: string, work?: number) => api<ServerNarration>("/narrate", { kind, campus_id: id, work_hours: work });
+export const narrate = (kind: "alarm" | "drill" | "repair", id: string, work?: number, wait = true) =>
+  api<ServerNarration>("/narrate", { kind, campus_id: id, work_hours: work, wait });
 export const alarmCheck = (id: string) => api<{ id: number | null; fires: boolean; decision: string; tool_result_id: string }>(`/students/${id}/alarm/check`, {});
 export const remember = (id: string, note: string) => api<{ stored: "backboard" | "local" }>(`/students/${id}/memory`, { kind: "decision", note });
 export const getMyths = () => api<Myths>("/myths");
