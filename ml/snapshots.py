@@ -77,7 +77,9 @@ class People:
 
     @property
     def current_ids(self) -> list[str]:
-        return self.static.index[self.static.population == "current"].tolist()
+        """Dataset students only; profiles built from uploaded audits (USR-...) never count."""
+        cur = self.static.index[self.static.population == "current"]
+        return [c for c in cur if c.startswith("CID-")]
 
     def terms_of(self, cid: str) -> np.ndarray:
         return self.terms.get(cid, np.zeros((0, 5)))

@@ -5,7 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-CampusID = Annotated[str, Field(pattern=r"^CID-[0-9]{6}$")]
+# dataset students (CID-) or profiles built from an uploaded audit (USR-)
+CampusID = Annotated[str, Field(pattern=r"^(CID-[0-9]{6}|USR-[0-9a-f]{10})$")]
 T = TypeVar("T")
 
 
@@ -139,6 +140,21 @@ class VoiceRequest(StrictModel):
 class MemoryRequest(StrictModel):
     kind: Literal["decision", "constraint", "outcome"] = "decision"
     note: Annotated[str, Field(min_length=1, max_length=280)]
+
+
+class AskRequest(StrictModel):
+    question: Annotated[str, Field(min_length=1, max_length=500)]
+    work_hours: Annotated[int, Field(ge=0, le=60)] | None = None
+    plan_load: Annotated[float, Field(ge=3, le=21)] | None = None
+
+
+class SayRequest(StrictModel):
+    line: Literal["greeting", "thanks", "ask_work", "ready", "listening"]
+    name: Annotated[str, Field(max_length=60)] | None = None
+
+
+class WorkRequest(StrictModel):
+    work_hours: Annotated[int, Field(ge=0, le=60)]
 
 
 class Envelope(StrictModel, Generic[T]):

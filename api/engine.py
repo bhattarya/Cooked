@@ -82,6 +82,11 @@ class Engine:
 
     # ---------- people ----------
     def current(self, cid: str) -> pd.Series:
+        if cid.startswith("USR-") and cid not in self.people.static.index:
+            from api import profiles
+
+            with db() as conn:
+                profiles.restore(self.people, conn, cid)
         if cid not in self.people.static.index or self.people.static.at[cid, "population"] != "current":
             raise NotFound(cid)
         return self.people.static.loc[cid]
@@ -540,17 +545,6 @@ class Engine:
             )
         mem = self.remember(row[0], "feedback", f"Alarm {'useful' if useful else 'not useful'}: {reason}"[:280])
         return {"saved": True, "memory": mem["stored"]}
-
-    # ---------- audit ----------
-    def read_audit(self, data: bytes, mime: str) -> dict:
-        cid = gemini.read_audit(data, mime) if net.enabled() else None
-        via = "gemini" if cid else "local"
-        if not cid:
-            m = CID.search(data.decode("latin-1"))
-            cid = m.group(0) if m else None
-        if cid and cid not in self.people.static.index:
-            cid = None
-        return {"campus_id": cid, "source": via}
 
     # ---------- myths (computed where the data allows) ----------
     def myths(self) -> dict:

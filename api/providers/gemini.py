@@ -65,41 +65,119 @@ def write(kind: str, facts: str, slots: dict[str, str]) -> str | None:
         return None
 
 
-def read_audit(pdf: bytes, mime: str) -> str | None:
-    """Extract a synthetic campus ID from an uploaded audit. Returns None when unsure."""
-    if not configured():
-        return None
-    import base64
-
+def _call(body: dict) -> dict | None:
     try:
         r = net.request(
             "POST",
             "https://generativelanguage.googleapis.com/v1beta/models/"
             f"{quote(model_name(), safe='')}:generateContent",
             headers={"x-goog-api-key": net.key("GEMINI_API_KEY")},
-            json={
-                "contents": [
-                    {
-                        "parts": [
-                            {"inline_data": {"mime_type": mime, "data": base64.b64encode(pdf).decode()}},
-                            {"text": "Return the student's campus ID (format CID-000000) from this synthetic degree audit."},
-                        ]
-                    }
-                ],
-                "generationConfig": {
-                    "temperature": 0,
-                    "responseMimeType": "application/json",
-                    "responseSchema": {
-                        "type": "OBJECT",
-                        "properties": {"campus_id": {"type": "STRING"}},
-                        "required": ["campus_id"],
-                    },
-                },
-            },
+            json=body,
+            timeout=90,
         )
         r.raise_for_status()
-        parts = r.json()["candidates"][0]["content"]["parts"]
-        cid = json.loads("".join(p.get("text", "") for p in parts))["campus_id"]
-        return cid if re.fullmatch(r"CID-\d{6}", cid) else None
+        return r.json()["candidates"][0]["content"]
+    except Exception:  # noqa: BLE001 -- provider failures fall back to local paths
+        return None
+
+
+_COURSE = {
+    "type": "OBJECT",
+    "properties": {
+        "course_id": {"type": "STRING", "description": "Subject + number, e.g. CMSC 201"},
+        "credits": {"type": "NUMBER"},
+        "grade": {"type": "STRING", "description": "Letter grade, W, F, or empty if in progress"},
+    },
+    "required": ["course_id", "credits"],
+}
+AUDIT_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "first_name": {"type": "STRING", "nullable": True},
+        "major": {"type": "STRING", "enum": ["Computer Science", "Information Systems"]},
+        "track": {"type": "STRING", "nullable": True},
+        "entry_type": {"type": "STRING", "enum": ["First-Time Freshman", "Transfer"]},
+        "residency": {"type": "STRING", "enum": ["In-State", "Out-of-State"]},
+        "credits_earned": {"type": "INTEGER", "nullable": True},
+        "credits_required": {"type": "INTEGER"},
+        "terms": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "label": {"type": "STRING", "description": "e.g. Fall 2024"},
+                    "courses": {"type": "ARRAY", "items": _COURSE},
+                },
+                "required": ["label", "courses"],
+            },
+        },
+        "in_progress": {"type": "ARRAY", "items": _COURSE},
+    },
+    "required": ["major", "entry_type", "terms", "in_progress", "credits_required"],
+}
+
+
+def parse_audit(data: bytes, mime: str) -> dict | None:
+    """Degree audit (PDF or image) -> AuditProfile-shaped dict. Never asked for ids or addresses."""
+    if not configured():
+        return None
+    import base64
+
+    content = _call(
+        {
+            "contents": [
+                {
+                    "parts": [
+                        {"inline_data": {"mime_type": mime, "data": base64.b64encode(data).decode()}},
+                        {
+                            "text": "Extract this university degree audit. Give only the student's first "
+                            "name (no id numbers, emails or addresses), major, track or concentration, "
+                            "whether they entered as a transfer student, residency if stated, total "
+                            "credits earned and required, every completed Fall or Spring term with its "
+                            "courses (course id like 'CMSC 201', credits, grade), and courses in progress."
+                        },
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0,
+                "responseMimeType": "application/json",
+                "responseSchema": AUDIT_SCHEMA,
+            },
+        }
+    )
+    if not content:
+        return None
+    try:
+        return json.loads("".join(p.get("text", "") for p in content["parts"] if not p.get("thought")))
     except Exception:  # noqa: BLE001
         return None
+
+
+def route(question: str, context: str, tools: list[dict]) -> tuple[str, dict] | None:
+    """Pick one agent tool for a student's question (function calling). None if unsure/unset."""
+    if not configured():
+        return None
+    content = _call(
+        {
+            "systemInstruction": {
+                "parts": [
+                    {
+                        "text": "You route a student's question about their degree plan to exactly one "
+                        "tool. Never answer yourself. Course ids look like CMSC341. " + context
+                    }
+                ]
+            },
+            "contents": [{"role": "user", "parts": [{"text": question[:500]}]}],
+            "tools": [{"functionDeclarations": tools}],
+            "toolConfig": {"functionCallingConfig": {"mode": "ANY"}},
+            "generationConfig": {"temperature": 0},
+        }
+    )
+    if not content:
+        return None
+    for part in content.get("parts", []):
+        call = part.get("functionCall")
+        if call and call.get("name") in {t["name"] for t in tools}:
+            return call["name"], dict(call.get("args") or {})
+    return None

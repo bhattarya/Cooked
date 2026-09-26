@@ -1,6 +1,48 @@
 {
   "components": {
     "schemas": {
+      "AskRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "plan_load": {
+            "anyOf": [
+              {
+                "maximum": 21.0,
+                "minimum": 3.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Load"
+          },
+          "question": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "work_hours": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Hours"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "AskRequest",
+        "type": "object"
+      },
       "Body_audit_audit_parse_post": {
         "properties": {
           "file": {
@@ -21,7 +63,7 @@
           "campus_id": {
             "anyOf": [
               {
-                "pattern": "^CID-[0-9]{6}$",
+                "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
                 "type": "string"
               },
               {
@@ -310,7 +352,7 @@
         "additionalProperties": false,
         "properties": {
           "campus_id": {
-            "pattern": "^CID-[0-9]{6}$",
+            "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
             "title": "Campus Id",
             "type": "string"
           },
@@ -402,7 +444,7 @@
         "additionalProperties": false,
         "properties": {
           "campus_id": {
-            "pattern": "^CID-[0-9]{6}$",
+            "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
             "title": "Campus Id",
             "type": "string"
           },
@@ -424,6 +466,39 @@
           "campus_id"
         ],
         "title": "RepairRequest",
+        "type": "object"
+      },
+      "SayRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "line": {
+            "enum": [
+              "greeting",
+              "thanks",
+              "ask_work",
+              "ready",
+              "listening"
+            ],
+            "title": "Line",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "required": [
+          "line"
+        ],
+        "title": "SayRequest",
         "type": "object"
       },
       "VoiceRequest": {
@@ -449,6 +524,22 @@
           "text"
         ],
         "title": "VoiceRequest",
+        "type": "object"
+      },
+      "WorkRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "work_hours": {
+            "maximum": 60.0,
+            "minimum": 0.0,
+            "title": "Work Hours",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "work_hours"
+        ],
+        "title": "WorkRequest",
         "type": "object"
       }
     }
@@ -634,7 +725,7 @@
     },
     "/audit/parse": {
       "post": {
-        "description": "Synthetic degree audits only. Gemini reads the PDF when configured; otherwise a local ID scan.",
+        "description": "Sample audits map to their synthetic student; real PDFs are read by Gemini into a profile.\nThe file is never stored; only parsed courses and terms are kept.",
         "operationId": "audit_audit_parse_post",
         "requestBody": {
           "content": {
@@ -990,6 +1081,69 @@
         ]
       }
     },
+    "/profiles/{id}/work": {
+      "post": {
+        "operationId": "work_profiles__id__work_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service unavailable"
+          }
+        },
+        "summary": "Work",
+        "tags": [
+          "product"
+        ]
+      }
+    },
     "/repair": {
       "post": {
         "operationId": "repair_repair_post",
@@ -1041,6 +1195,58 @@
         ]
       }
     },
+    "/say": {
+      "post": {
+        "description": "Fixed spoken lines (greeting, thanks for uploading...) registered so /voice can render them.",
+        "operationId": "say_say_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SayRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service unavailable"
+          }
+        },
+        "summary": "Say",
+        "tags": [
+          "product"
+        ]
+      }
+    },
     "/students/{id}/alarm/check": {
       "post": {
         "description": "Run the Watchtower for one student now (idempotent under hysteresis).",
@@ -1051,7 +1257,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^CID-[0-9]{6}$",
+              "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
               "title": "Id",
               "type": "string"
             }
@@ -1095,6 +1301,70 @@
         ]
       }
     },
+    "/students/{id}/ask": {
+      "post": {
+        "description": "Voice/text question -> one tool (Gemini function calling or local router) -> spoken\nanswer segments (provenance-checked) + a visual spec.",
+        "operationId": "ask_students__id__ask_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service unavailable"
+          }
+        },
+        "summary": "Ask",
+        "tags": [
+          "product"
+        ]
+      }
+    },
     "/students/{id}/memory": {
       "get": {
         "operationId": "recall_students__id__memory_get",
@@ -1104,7 +1374,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^CID-[0-9]{6}$",
+              "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
               "title": "Id",
               "type": "string"
             }
@@ -1155,7 +1425,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^CID-[0-9]{6}$",
+              "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
               "title": "Id",
               "type": "string"
             }
@@ -1219,7 +1489,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^CID-[0-9]{6}$",
+              "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
               "title": "Id",
               "type": "string"
             }
