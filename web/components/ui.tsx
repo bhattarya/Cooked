@@ -6,6 +6,7 @@ import { animate, motion, useMotionValue, useTransform } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import type { Status } from "@/lib/engine";
 import type { PatternName } from "@/lib/types";
+import { UserMenu } from "./UserMenu";
 
 export const PATTERN_COLOR: Record<PatternName, string> = {
   smooth: "#5b6b8c",
@@ -72,10 +73,13 @@ export function Nav() {
             );
           })}
         </nav>
-        <span className="hidden items-center gap-2 rounded-full border border-line px-2.5 py-1 text-[11px] text-muted sm:inline-flex">
-          <ApiStatus />
-          Synthetic data · not real students
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="hidden items-center gap-2 rounded-full border border-line px-2.5 py-1 text-[11px] text-muted lg:inline-flex">
+            <ApiStatus />
+            Synthetic data · not real students
+          </span>
+          <UserMenu />
+        </div>
       </div>
     </header>
   );

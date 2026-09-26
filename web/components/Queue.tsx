@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { useDataset } from "@/lib/data";
 import { institutionQueue, statusOf, type QueueRow } from "@/lib/engine";
+import { useAuth } from "@/lib/auth";
 import { api, useApiHealth } from "@/lib/live";
 import type { PatternName } from "@/lib/types";
 import { Counter, Loading, Nav, PATTERN_COLOR, PatternChip, StatusBadge, riskColor } from "./ui";
@@ -15,17 +17,26 @@ const PATTERNS: PatternName[] = ["part-time grind", "withdrawal spiral", "rough 
 export function Queue() {
   const ds = useDataset();
   const [rows, setRows] = useState<QueueRow[] | null>(null);
-  const [staff, setStaff] = useState(false);
+  const [staffWanted, setStaff] = useState(false);
   const [cls, setCls] = useState("All");
   const [pat, setPat] = useState<PatternName | "All">("All");
   const [show, setShow] = useState(40);
 
   const health = useApiHealth();
   const live = !!health?.live;
+  const router = useRouter();
+  const auth = useAuth();
+  // Per-student rows are for signed-in advisors (the API enforces the same rule).
+  const canSeeRows = !auth.enabled || !!auth.user;
+  const staff = staffWanted && canSeeRows; // signing out hides rows without extra state
+  const toggleStaff = () => {
+    if (!staff && !canSeeRows) return router.push("/login?next=/queue");
+    setStaff(!staff);
+  };
 
   useEffect(() => {
-    if (!ds || health === null) return;
-    if (!live) {
+    if (!ds || health === null || auth.loading) return;
+    if (!live || !canSeeRows) {
       const id = setTimeout(() => setRows(institutionQueue(ds)), 50);
       return () => clearTimeout(id);
     }
@@ -53,7 +64,7 @@ export function Queue() {
     return () => {
       on = false;
     };
-  }, [ds, health, live]);
+  }, [ds, health, live, canSeeRows, auth.loading]);
 
   const filtered = useMemo(
     () => (rows ?? []).filter((r) => (cls === "All" || r.student.cls === cls) && (pat === "All" || r.student.pattern === pat) && r.status !== "fine"),
@@ -84,8 +95,8 @@ export function Queue() {
               {rows.length.toLocaleString()} current students with 2+ completed terms, {live ? `scored by the trained model (${health?.version})` : "scored against matched alumni"}. It prompts advisors; it never acts on its own.
             </p>
           </div>
-          <button onClick={() => setStaff((s) => !s)} className={`rounded-full border px-4 py-2 text-sm transition ${staff ? "border-heat/60 bg-heat/10 text-text" : "border-line text-muted"}`}>
-            {staff ? "Staff view · per-student rows" : "Public view · counts only"}
+          <button onClick={toggleStaff} className={`rounded-full border px-4 py-2 text-sm transition ${staff ? "border-heat/60 bg-heat/10 text-text" : "border-line text-muted"}`}>
+            {staff ? "Staff view · per-student rows" : canSeeRows ? "Public view · counts only" : "Public view · sign in for rows"}
           </button>
         </div>
 

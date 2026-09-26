@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { project, type Drill, type Feasibility, type Lever, type Outcomes, type Repair, type Seg, type ShockStep, type State, type SurvivalPoint, type ToolResult } from "./engine";
 import type { Course } from "./types";
+import { authHeaders } from "./auth";
 
 const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
@@ -52,7 +53,7 @@ export async function api<T>(path: string, body?: unknown): Promise<Call<T>> {
   const t0 = performance.now();
   const r = await fetch(`${API}${path}`, {
     method: body === undefined ? "GET" : "POST",
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers: { ...(await authHeaders()), ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });
