@@ -1,0 +1,1409 @@
+{
+  "components": {
+    "schemas": {
+      "Alarm": {
+        "additionalProperties": false,
+        "properties": {
+          "campus_id": {
+            "anyOf": [
+              {
+                "pattern": "^CID-[0-9]{6}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campus Id"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern"
+          },
+          "risk": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceNumber"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "open",
+                  "acknowledged",
+                  "resolved",
+                  "dismissed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "Alarm",
+        "type": "object"
+      },
+      "AlarmList": {
+        "additionalProperties": false,
+        "properties": {
+          "aggregated": {
+            "const": true,
+            "default": true,
+            "title": "Aggregated",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Alarm"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "AlarmList",
+        "type": "object"
+      },
+      "AudioPlaceholder": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "const": false,
+            "default": false,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "hash": {
+            "title": "Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "hash"
+        ],
+        "title": "AudioPlaceholder",
+        "type": "object"
+      },
+      "DrillReport": {
+        "additionalProperties": false,
+        "properties": {
+          "drill_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drill Id"
+          },
+          "shocks_to_cooked": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceNumber"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "single_point_of_failure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Single Point Of Failure"
+          }
+        },
+        "title": "DrillReport",
+        "type": "object"
+      },
+      "DrillRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "campus_id": {
+            "anyOf": [
+              {
+                "pattern": "^CID-[0-9]{6}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campus Id"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Profile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "DrillRequest",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "needs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Needs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "EvidenceNumber": {
+        "additionalProperties": false,
+        "properties": {
+          "tool_result_id": {
+            "title": "Tool Result Id",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value",
+          "tool_result_id"
+        ],
+        "title": "EvidenceNumber",
+        "type": "object"
+      },
+      "EvidenceRange": {
+        "additionalProperties": false,
+        "properties": {
+          "high": {
+            "title": "High",
+            "type": "number"
+          },
+          "low": {
+            "title": "Low",
+            "type": "number"
+          },
+          "support": {
+            "title": "Support",
+            "type": "integer"
+          },
+          "tool_result_id": {
+            "title": "Tool Result Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "low",
+          "high",
+          "support",
+          "tool_result_id"
+        ],
+        "title": "EvidenceRange",
+        "type": "object"
+      },
+      "FeedbackRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Reason",
+            "type": "string"
+          },
+          "useful": {
+            "title": "Useful",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "useful"
+        ],
+        "title": "FeedbackRequest",
+        "type": "object"
+      },
+      "FeedbackResult": {
+        "additionalProperties": false,
+        "properties": {
+          "saved": {
+            "const": false,
+            "default": false,
+            "title": "Saved",
+            "type": "boolean"
+          }
+        },
+        "title": "FeedbackResult",
+        "type": "object"
+      },
+      "HealthChecks": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_checksum": {
+            "const": "not_configured",
+            "default": "not_configured",
+            "title": "Artifact Checksum",
+            "type": "string"
+          },
+          "cache": {
+            "enum": [
+              "ok",
+              "unavailable"
+            ],
+            "title": "Cache",
+            "type": "string"
+          },
+          "database": {
+            "enum": [
+              "ok",
+              "unavailable"
+            ],
+            "title": "Database",
+            "type": "string"
+          }
+        },
+        "required": [
+          "database",
+          "cache"
+        ],
+        "title": "HealthChecks",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "$ref": "#/components/schemas/HealthChecks"
+          },
+          "mode": {
+            "const": "scaffold",
+            "default": "scaffold",
+            "title": "Mode",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "MockResponse_AlarmList_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AlarmList"
+          },
+          "message": {
+            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
+            "title": "Message",
+            "type": "string"
+          },
+          "mock": {
+            "const": true,
+            "default": true,
+            "title": "Mock",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "MockResponse[AlarmList]",
+        "type": "object"
+      },
+      "MockResponse_Alarm_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Alarm"
+          },
+          "message": {
+            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
+            "title": "Message",
+            "type": "string"
+          },
+          "mock": {
+            "const": true,
+            "default": true,
+            "title": "Mock",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "MockResponse[Alarm]",
+        "type": "object"
+      },
+      "MockResponse_AudioPlaceholder_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AudioPlaceholder"
+          },
+          "message": {
+            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
+            "title": "Message",
+            "type": "string"
+          },
+          "mock": {
+            "const": true,
+            "default": true,
+            "title": "Mock",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "MockResponse[AudioPlaceholder]",
+        "type": "object"
+      },
+      "MockResponse_DrillReport_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DrillReport"
+          },
+          "message": {
+            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
+            "title": "Message",
+            "type": "string"
+          },
+          "mock": {
+            "const": true,
+            "default": true,
+            "title": "Mock",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "MockResponse[DrillReport]",
+        "type": "object"
+      },
+      "MockResponse_FeedbackResult_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FeedbackResult"
+          },
+          "message": {
+            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
+            "title": "Message",
+            "type": "string"
+          },
+          "mock": {
+            "const": true,
+            "default": true,
+            "title": "Mock",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "MockResponse[FeedbackResult]",
+        "type": "object"
+      },
+      "MockResponse_MythsReport_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MythsReport"
+          },
+          "message": {
+            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
+            "title": "Message",
+            "type": "string"
+          },
+          "mock": {
+            "const": true,
+            "default": true,
+            "title": "Mock",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "MockResponse[MythsReport]",
+        "type": "object"
+      },
+      "MockResponse_QueueReport_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/QueueReport"
+          },
+          "message": {
+            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
+            "title": "Message",
+            "type": "string"
+          },
+          "mock": {
+            "const": true,
+            "default": true,
+            "title": "Mock",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "MockResponse[QueueReport]",
+        "type": "object"
+      },
+      "MockResponse_RepairReport_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RepairReport"
+          },
+          "message": {
+            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
+            "title": "Message",
+            "type": "string"
+          },
+          "mock": {
+            "const": true,
+            "default": true,
+            "title": "Mock",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "MockResponse[RepairReport]",
+        "type": "object"
+      },
+      "MockResponse_StudentState_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StudentState"
+          },
+          "message": {
+            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
+            "title": "Message",
+            "type": "string"
+          },
+          "mock": {
+            "const": true,
+            "default": true,
+            "title": "Mock",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "MockResponse[StudentState]",
+        "type": "object"
+      },
+      "MockResponse_SurvivalReport_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SurvivalReport"
+          },
+          "message": {
+            "default": "Phase 1 placeholder; no prediction, provider call, or database write performed.",
+            "title": "Message",
+            "type": "string"
+          },
+          "mock": {
+            "const": true,
+            "default": true,
+            "title": "Mock",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "MockResponse[SurvivalReport]",
+        "type": "object"
+      },
+      "Myth": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "title": "Evidence",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "tool_result_id": {
+            "title": "Tool Result Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "evidence",
+          "tool_result_id"
+        ],
+        "title": "Myth",
+        "type": "object"
+      },
+      "MythsReport": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Myth"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "MythsReport",
+        "type": "object"
+      },
+      "Profile": {
+        "additionalProperties": false,
+        "properties": {
+          "credits_per_term": {
+            "maximum": 24.0,
+            "minimum": 0.0,
+            "title": "Credits Per Term",
+            "type": "integer"
+          },
+          "entry_type": {
+            "enum": [
+              "Transfer",
+              "First-Time Freshman"
+            ],
+            "title": "Entry Type",
+            "type": "string"
+          },
+          "residency": {
+            "enum": [
+              "In-State",
+              "Out-of-State"
+            ],
+            "title": "Residency",
+            "type": "string"
+          },
+          "work_hours": {
+            "maximum": 80.0,
+            "minimum": 0.0,
+            "title": "Work Hours",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "work_hours",
+          "credits_per_term",
+          "entry_type",
+          "residency"
+        ],
+        "title": "Profile",
+        "type": "object"
+      },
+      "QueueReport": {
+        "additionalProperties": false,
+        "properties": {
+          "aggregated": {
+            "const": true,
+            "default": true,
+            "title": "Aggregated",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Alarm"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "QueueReport",
+        "type": "object"
+      },
+      "RepairChange": {
+        "additionalProperties": false,
+        "properties": {
+          "effect": {
+            "$ref": "#/components/schemas/EvidenceRange"
+          },
+          "lever": {
+            "title": "Lever",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lever",
+          "effect"
+        ],
+        "title": "RepairChange",
+        "type": "object"
+      },
+      "RepairReport": {
+        "additionalProperties": false,
+        "properties": {
+          "fallback": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RepairChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "primary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RepairChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "RepairReport",
+        "type": "object"
+      },
+      "RepairRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "campus_id": {
+            "pattern": "^CID-[0-9]{6}$",
+            "title": "Campus Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "campus_id"
+        ],
+        "title": "RepairRequest",
+        "type": "object"
+      },
+      "StudentState": {
+        "additionalProperties": false,
+        "properties": {
+          "campus_id": {
+            "pattern": "^CID-[0-9]{6}$",
+            "title": "Campus Id",
+            "type": "string"
+          },
+          "degree_burden": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delay": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "still_seeking_risk": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "campus_id"
+        ],
+        "title": "StudentState",
+        "type": "object"
+      },
+      "SurvivalPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "survival": {
+            "title": "Survival",
+            "type": "number"
+          },
+          "term_k": {
+            "title": "Term K",
+            "type": "integer"
+          },
+          "tool_result_id": {
+            "title": "Tool Result Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "term_k",
+          "survival",
+          "tool_result_id"
+        ],
+        "title": "SurvivalPoint",
+        "type": "object"
+      },
+      "SurvivalReport": {
+        "additionalProperties": false,
+        "properties": {
+          "drill_id": {
+            "format": "uuid",
+            "title": "Drill Id",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/SurvivalPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "drill_id"
+        ],
+        "title": "SurvivalReport",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Draft interface for teammate review. All product endpoints return mock JSON.",
+    "title": "COOKED Phase 1 \u2014 Synthetic Data Only",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/alarms": {
+      "get": {
+        "operationId": "alarms_alarms_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "open",
+              "enum": [
+                "open",
+                "acknowledged",
+                "resolved",
+                "dismissed"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MockResponse_AlarmList_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Alarms",
+        "tags": [
+          "mock \u2014 backend handoff"
+        ]
+      }
+    },
+    "/alarms/{id}/feedback": {
+      "post": {
+        "operationId": "feedback_alarms__id__feedback_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MockResponse_FeedbackResult_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Feedback",
+        "tags": [
+          "mock \u2014 backend handoff"
+        ]
+      }
+    },
+    "/audio/{hash}": {
+      "get": {
+        "description": "Scaffold returns JSON only. Backend must add the PDF's audio/mpeg response.",
+        "operationId": "audio_audio__hash__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hash",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Hash",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MockResponse_AudioPlaceholder_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Audio",
+        "tags": [
+          "mock \u2014 backend handoff"
+        ]
+      }
+    },
+    "/drill": {
+      "post": {
+        "operationId": "drill_drill_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DrillRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MockResponse_DrillReport_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Drill",
+        "tags": [
+          "mock \u2014 backend handoff"
+        ]
+      }
+    },
+    "/drill/{id}/survival": {
+      "get": {
+        "operationId": "survival_drill__id__survival_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MockResponse_SurvivalReport_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Survival",
+        "tags": [
+          "mock \u2014 backend handoff"
+        ]
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Healthz",
+        "tags": [
+          "infrastructure"
+        ]
+      }
+    },
+    "/institution/queue": {
+      "get": {
+        "operationId": "queue_institution_queue_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MockResponse_QueueReport_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Queue",
+        "tags": [
+          "mock \u2014 backend handoff"
+        ]
+      }
+    },
+    "/myths": {
+      "get": {
+        "operationId": "myths_myths_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MockResponse_MythsReport_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Myths",
+        "tags": [
+          "mock \u2014 backend handoff"
+        ]
+      }
+    },
+    "/repair": {
+      "post": {
+        "operationId": "repair_repair_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepairRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MockResponse_RepairReport_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Repair",
+        "tags": [
+          "mock \u2014 backend handoff"
+        ]
+      }
+    },
+    "/students/{id}/alarm/check": {
+      "post": {
+        "operationId": "alarm_check_students__id__alarm_check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^CID-[0-9]{6}$",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MockResponse_Alarm_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Alarm Check",
+        "tags": [
+          "mock \u2014 backend handoff"
+        ]
+      }
+    },
+    "/students/{id}/state": {
+      "get": {
+        "operationId": "state_students__id__state_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^CID-[0-9]{6}$",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MockResponse_StudentState_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "State",
+        "tags": [
+          "mock \u2014 backend handoff"
+        ]
+      }
+    }
+  }
+}

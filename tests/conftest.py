@@ -1,0 +1,17 @@
+import os
+
+import pytest
+
+from scripts.common import connect
+
+
+@pytest.fixture
+def db():
+    if not os.getenv("DATABASE_URL") or "CHANGE_ME" in os.getenv("DATABASE_URL", ""):
+        if os.getenv("CI") or os.getenv("REQUIRE_DB_TESTS") == "1":
+            pytest.fail("Database integration tests are required but DATABASE_URL is missing")
+        pytest.skip("Configure a migrated, loaded DATABASE_URL to run database tests")
+    conn = connect()
+    yield conn
+    conn.rollback()
+    conn.close()

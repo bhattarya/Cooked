@@ -141,3 +141,19 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Python, local data, generated audio and credentials
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+data/raw/
+data/smoke/
+models/*.joblib
+models/*.pkl
+.DS_Store
+.env.local-test
+web/AGENTS.md
+web/CLAUDE.md

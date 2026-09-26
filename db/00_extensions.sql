@@ -1,0 +1,23 @@
+-- Run once using the Tiger service administrator (DATABASE_URL).
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'owner') THEN
+    CREATE ROLE owner NOLOGIN;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_rw') THEN
+    CREATE ROLE app_rw LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'agent_ro') THEN
+    CREATE ROLE agent_ro LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+  END IF;
+  IF session_user <> 'owner' THEN
+    EXECUTE format('GRANT owner TO %I', session_user);
+  END IF;
+  EXECUTE format('GRANT CONNECT, CREATE ON DATABASE %I TO owner', current_database());
+END $$;
+SET ROLE owner;
+CREATE SCHEMA raw AUTHORIZATION owner;
+CREATE SCHEMA feat AUTHORIZATION owner;
+CREATE SCHEMA app AUTHORIZATION owner;
+CREATE SCHEMA v AUTHORIZATION owner;

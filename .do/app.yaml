@@ -1,0 +1,114 @@
+# Import once, then populate encrypted secrets in the DO dashboard before deploying.
+# CI triggers deployments only after tests pass; direct push auto-deploy is disabled.
+name: cooked
+region: nyc
+ingress:
+  rules:
+    - match:
+        path:
+          prefix: /api
+      component:
+        name: api
+    - match:
+        path:
+          prefix: /
+      component:
+        name: web
+services:
+  - name: api
+    github:
+      repo: bhattarya/Cooked
+      branch: main
+      deploy_on_push: false
+    source_dir: /
+    dockerfile_path: api/Dockerfile
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    health_check:
+      http_path: /healthz
+      initial_delay_seconds: 15
+      timeout_seconds: 5
+    envs:
+      - key: DATABASE_URL_APP
+        type: SECRET
+        scope: RUN_TIME
+        value: ""
+      - key: DATABASE_URL_AGENT
+        type: SECRET
+        scope: RUN_TIME
+        value: ""
+      - key: GEMINI_API_KEY
+        type: SECRET
+        scope: RUN_TIME
+        value: ""
+      - key: GEMINI_MODEL
+        scope: RUN_TIME
+        value: ""
+      - key: BACKBOARD_API_KEY
+        type: SECRET
+        scope: RUN_TIME
+        value: ""
+      - key: BACKBOARD_BASE_URL
+        scope: RUN_TIME
+        value: https://app.backboard.io/api
+      - key: ELEVENLABS_API_KEY
+        type: SECRET
+        scope: RUN_TIME
+        value: ""
+      - key: ELEVENLABS_MODEL
+        scope: RUN_TIME
+        value: ""
+      - key: VOICE_ID_NARRATOR
+        scope: RUN_TIME
+        value: ""
+      - key: VOICE_ID_COACH
+        scope: RUN_TIME
+        value: ""
+      - key: CORS_ORIGINS
+        scope: RUN_TIME
+        value: ${APP_URL}
+      - key: API_ROOT_PATH
+        scope: RUN_TIME
+        value: /api
+      - key: MODEL_ARTIFACT_DIR
+        scope: RUN_TIME
+        value: models/
+      - key: DEMO_MODE
+        scope: RUN_TIME
+        value: "0"
+  - name: web
+    github:
+      repo: bhattarya/Cooked
+      branch: main
+      deploy_on_push: false
+    source_dir: web
+    environment_slug: node-js
+    build_command: npm ci && npm run build
+    run_command: npm start -- --port 8080
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb
+    health_check:
+      http_path: /
+    envs:
+      - key: NEXT_PUBLIC_API_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${APP_URL}/api
+workers:
+  - name: worker
+    github:
+      repo: bhattarya/Cooked
+      branch: main
+      deploy_on_push: false
+    source_dir: /
+    dockerfile_path: api/Dockerfile
+    run_command: python -m worker.watchtower
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    envs:
+      - key: DATABASE_URL_APP
+        type: SECRET
+        scope: RUN_TIME
+        value: ""
+# Owner credentials intentionally stay off API/web/worker; migrations run separately.

@@ -1,0 +1,147 @@
+{
+  "repository": "https://github.com/jasonpaluck/hackumbc-2026",
+  "commit": "41398972ce9ce8c6756159207b00386a75ed5be5",
+  "files": {
+    "alumni": {
+      "rows": 3200,
+      "sha256": "35e4ce483c04c64cad3a21c9cd406b2902c130852e2484ca26165a6827e9cc53",
+      "columns": [
+        "campus_id",
+        "major",
+        "degree_level",
+        "track",
+        "graduation_term",
+        "graduation_year",
+        "entry_type",
+        "time_to_degree_years",
+        "total_credits_earned",
+        "final_gpa",
+        "major_gpa",
+        "residency",
+        "holds_prior_umbc_bachelors",
+        "work_hours_per_week_while_enrolled",
+        "internship_count",
+        "credential_count",
+        "engagement_activity_count",
+        "net_cost_usd",
+        "total_loans_usd",
+        "first_destination",
+        "months_to_first_job",
+        "first_job_title",
+        "first_job_family",
+        "first_employer",
+        "first_employer_industry",
+        "first_job_region",
+        "first_job_annual_salary_usd",
+        "first_job_is_remote",
+        "first_job_found_via"
+      ]
+    },
+    "students_current": {
+      "rows": 1800,
+      "sha256": "e7b5366d2637c176c8fb65bd6d5b215cfb979323cbe6ee99be244eeef898442f",
+      "columns": [
+        "campus_id",
+        "entry_term",
+        "entry_type",
+        "major",
+        "track",
+        "second_major",
+        "minor",
+        "class_level",
+        "residency",
+        "enrollment_intensity",
+        "is_first_generation",
+        "work_hours_per_week",
+        "credits_earned",
+        "credits_required",
+        "cumulative_gpa",
+        "major_gpa",
+        "academic_standing",
+        "expected_graduation_term",
+        "internship_count",
+        "credential_count",
+        "engagement_activity_count",
+        "tuition_paid_to_date_usd"
+      ]
+    },
+    "transcripts": {
+      "rows": 140458,
+      "sha256": "972e3eb851aa122230db2e136b860dbac814787e89e74e934dab7896c6d9eb3e",
+      "columns": [
+        "campus_id",
+        "term",
+        "course_id",
+        "course_title",
+        "subject",
+        "credits_attempted",
+        "credits_earned",
+        "grade",
+        "grade_points",
+        "is_repeat",
+        "requirement_category"
+      ]
+    },
+    "employment_history": {
+      "rows": 6028,
+      "sha256": "66ab3f1fde5dd7b115480241ca433f0c1b99cd71479a0fb955a4259f862950a4",
+      "columns": [
+        "job_id",
+        "campus_id",
+        "employer",
+        "employer_industry",
+        "employer_size",
+        "job_title",
+        "job_family",
+        "seniority_level",
+        "region",
+        "cost_of_living_index",
+        "is_remote",
+        "start_date",
+        "end_date",
+        "is_current",
+        "tenure_months",
+        "annual_salary_usd",
+        "change_type",
+        "requires_clearance",
+        "role_skill_tags"
+      ]
+    },
+    "student_experience": {
+      "rows": 20059,
+      "sha256": "7b0db6ced145c03b50ffb921b1c8869532c09fec47900dc9eaa823535d28f892",
+      "columns": [
+        "record_id",
+        "campus_id",
+        "experience_type",
+        "experience_name",
+        "organization",
+        "industry",
+        "term",
+        "duration_terms",
+        "hours_per_week",
+        "is_paid",
+        "role_level",
+        "outcome"
+      ]
+    },
+    "course_catalog": {
+      "rows": 72,
+      "sha256": "cedf4b79b17681bc9fc867222b9bb4058185039365ff18fe1887f59a45bd5339",
+      "columns": [
+        "course_id",
+        "subject",
+        "catalog_number",
+        "course_title",
+        "credits",
+        "course_level",
+        "course_type",
+        "required_for_majors",
+        "prerequisite_ids",
+        "skill_tags",
+        "difficulty_index",
+        "typical_terms_offered"
+      ]
+    }
+  }
+}
