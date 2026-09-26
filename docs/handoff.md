@@ -1,29 +1,29 @@
-# Teammate handoff
+# Team handoff
 
-Share this draft in the group chat before replacing mock contracts. No chat message has been sent by the coding assistant. Keep table names and route paths from the PDF; proposed changes belong in the PR and group discussion first.
+State as of the merge of #3: models, API, Watchtower and frontend are on `main`, and CI is green. Follow [CONTRIBUTING.md](../CONTRIBUTING.md) for the workflow.
 
-## Backend / ML / agents teammate
+## What works now
 
-- Replace `api/routes/mock.py` route bodies only after reviewing `api/schemas.py` and `docs/openapi.json`. Current envelopes are `{mock: true, message, data}`; nulls/empty arrays are deliberate, not computed zero values. Feedback is not saved; no drill IDs are fabricated. Numeric outputs use evidence objects carrying `tool_result_id`.
-- Resolve the PDF's JSON-only convention versus `/audio/{hash}` returning `audio/mpeg`. Phase 1 returns a marked JSON placeholder. Add the binary response and agreed error behavior together with frontend changes.
-- Custom-profile input is a minimal draft (work hours, credits/term, entry type, residency), not the full prediction state. Extend after group agreement. Feedback text is capped at 120 characters, extra fields rejected; this does not constitute detection of real personal data.
-- No endpoints call providers or execute product queries. `GET /healthz` alone checks DB/cache-table access through `app_rw`. It reports model checksum `not_configured`; implement startup enforcement and replace the skipped checksum test when frozen artifacts exist.
-- Implement snapshots, leakage quarantine, temporal split, alumni-only training, cluster modes, risk/twins/shocks, repair feasibility, hysteresis, provenance and actual cache replay in the reserved modules. `DEMO_MODE=1` explicitly rejects product routes until replay exists.
-- Use `feat` typed views and `feat.person_term`; current labels stay NULL. `mode` is always NULL until you assign it. Loader reruns reset derived features/modes; coordinate loads. Existing app event/cache tables survive.
-- `owner` owns schema/migrations, `app_rw` reads features and writes application data, `agent_ro` only reads explicitly granted `v` views. Do not expose raw SQL strings from clients. New agent views need an explicit grant and permission tests.
-- `app.drill_run`, a general LLM response cache, and memory fallback storage have no complete schema in §6.3. Agree their migrations rather than inferring data contracts. Feedback references alarm IDs without a hypertable FK as directed by the PDF; backend must enforce existence.
-- Worker is a no-op. Replace its body when Watchtower is ready. Add only the provider secrets the worker actually needs in DigitalOcean.
-- Replace all eight skipped `handoff` tests with real assertions. DB/infrastructure tests already execute real behavior. Notebook is empty and makes no reproduction claim.
+- **Models** (`models/manifest.json`): risk per stage (AUC 0.834 at enrollment, 0.940 after one term, on held-out 2023–2026 graduates), time-to-degree quantiles, autopsy clusters, twin matching with refusal. All six §7.5 gates pass.
+- **API**: every §12 route plus `/narrate`, `/voice`, `/students/{id}/memory` and `/audit/parse`. Every number carries a `tool_result_id`. `DEMO_MODE=1` blocks all outbound calls.
+- **Worker**: the Watchtower scores all current students into `app.risk_snapshot` and opens and resolves alarms with hysteresis.
+- **Frontend**: landing, cockpit (alarm → drill → repair), queue and myths. It uses the API when `/healthz` reports `mode: "models"` and falls back to the browser engine otherwise.
+- **Checks**: `make test` (41 tests), `make e2e` (11-step browser walkthrough) and `make check`.
 
-## Frontend teammate and Dhruv
+## What's left, and who
 
-- Run the README commands and use `NEXT_PUBLIC_API_URL` as the API base. Do not place secrets in any `NEXT_PUBLIC_` variable.
-- Use the checked-in OpenAPI file while backend is developing. Do not display mock nulls as risk values or interpret empty queues as a measured absence of alarms.
-- `/healthz` HTTP 200 in `mode=scaffold` means the DB and voice-cache table are reachable; it does not mean models are ready.
-- Preserve synthetic-data disclosure; add “Voice by ElevenLabs” before enabling audio. No real student inputs.
-- Keep the app minimal until backend contract review. The existing page demonstrates a browser request, loading/error states, and retry.
-- Regenerate `make openapi` for agreed schema changes. CI checks the generated file.
+| Task | Owner | Notes |
+| --- | --- | --- |
+| Tiger Cloud service; URLs in `.env` and DigitalOcean; `make migrate load` against it | Dhruv | Record the version and limits in `SETUP_STATUS.md` |
+| Gemini, ElevenLabs and Backboard keys; run `scripts/smoke_*` | Dhruv | Until then: templates, browser voice, local memory |
+| DigitalOcean deploy from `.do/app.yaml`; verify on a phone | Dhruv | Set `DO_DEPLOY_ENABLED=true` when ready |
+| Render and cache the demo narration audio once keys exist | Backend | Hit `/narrate` then `/voice` for the three demo students so the demo replays offline |
+| Evidence notebook reproducing §3 numbers | ML | `notebooks/evidence_log.ipynb` is still a placeholder; myths marked "team evidence notebook" depend on it |
+| Custom-profile drills | Backend | On the cut list; `/drill` currently needs a `campus_id` |
+| Demo script and backup video | Pitch | Suggested order in the build plan §15.1 |
 
-## Dhruv infrastructure tasks still requiring accounts
+## Notes for whoever touches it next
 
-Create/configure Tiger and DigitalOcean; record actual versions/limits, run smoke tests with real keys, protect `main`, set CI deploy secrets/variables, and open deployed HTTPS URLs from a phone on cellular data. Record evidence in `SETUP_STATUS.md`. Never record credentials there.
+- Response envelopes are `{mock: false, model_version, data}`. Frontend adapters live in `web/lib/live.ts`.
+- About 40% of current students get "not enough evidence" (fewer than 30 balanced twins). That's the refusal rule working. Pick demo students with `/students/{id}/state` where `twins.refused` is false.
+- Calibration uses Platt scaling, not isotonic, because isotonic failed the slope gate on about 300 rows. See `ml/risk_model.py`.
