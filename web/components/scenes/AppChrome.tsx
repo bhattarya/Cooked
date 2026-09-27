@@ -9,8 +9,8 @@ import { Wordmark } from "../brand";
 
 export type AppSection = "home" | "explore";
 const NAV: { key: AppSection; href: string; label: string }[] = [
-  { key: "home", href: "/app", label: "Voice Workspace" },
-  { key: "explore", href: "/app/explore", label: "Cohort Intelligence" },
+  { key: "home", href: "/app", label: "My plan" },
+  { key: "explore", href: "/app/explore", label: "Ask the cohort" },
 ];
 
 /** Bottom space kept free for the floating voice dock (web/components/voice). */

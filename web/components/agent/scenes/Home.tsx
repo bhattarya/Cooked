@@ -158,35 +158,12 @@ export function Home({
           </div>
 
           <h1 className="display mt-4 text-4xl font-extrabold tracking-tight text-cream sm:text-5xl lg:text-6xl">
-            Voice-Agentic <span className="text-gold-grad italic font-serif">Degree Intelligence.</span>
+            Know where your <span className="text-gold-grad">degree</span> stands.
           </h1>
 
           <p className="mt-4 max-w-xl text-base leading-relaxed text-muted">
-            Instant degree audit analysis powered by predictive models and real alumni trajectories. Drop your audit, pick a preset, or ask COOKED by voice.
+            Drop your audit, pick a sample student, or just ask COOKED. Every answer is read from trained models and real alumni records, not a guess.
           </p>
-
-          {/* Voice Prompt Shortcuts */}
-          <div className="mt-6">
-            <p className="label !text-gold/80 mb-2.5">Try voice prompt shortcuts</p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                "How's my Fall schedule timing?",
-                "Am I on track for graduation?",
-                "Compare me with UMBC alumni",
-                "Explain how ML got 79%",
-              ].map((shortcut) => (
-                <span
-                  key={shortcut}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-line-2 bg-panel/60 px-3 py-1.5 text-xs text-muted transition hover:border-gold/50 hover:text-text cursor-default"
-                >
-                  <svg className="size-3.5 text-gold shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                  {shortcut}
-                </span>
-              ))}
-            </div>
-          </div>
 
           {hasJourney && (
             <div className="mt-8 flex items-center gap-4">
