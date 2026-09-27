@@ -234,7 +234,8 @@ function Journey({ user }: { user: SessionUser }) {
       return { ok: r.ok, message: r.message, data: r.data };
     },
     showScene: async ({ scene }) => {
-      if (scene === "advisor" || scene === "models") { router.push("/app"); return "Opening your plan."; }
+      if (scene === "advisor") { router.push("/app/advisor"); return "Opening the Watchtower."; }
+      if (scene === "models") { router.push("/app"); return "Opening your plan."; }
       if (scene === "audit") { jr.backHome(); return "Your audit workspace is open. Choose a file to upload, or reopen your results."; }
       if (scene === "explore") {
         router.push("/app/explore");

@@ -5,7 +5,8 @@ import { sceneInfo, type SceneId } from "@/lib/commands";
  * The journey scenes live on /app (the `scene` query is a hint the audit workspace may use to open the right one).
  */
 export function routeToScene(scene: SceneId, push: (href: string) => void): string {
-  if (scene === "advisor" || scene === "models") { push("/app"); return "Opening your plan."; }
+  if (scene === "advisor") { push("/app/advisor"); return "Opening the Watchtower."; }
+  if (scene === "models") { push("/app"); return "Opening your plan."; }
   if (scene === "audit") { push("/app"); return "Opening your audit workspace."; }
   const label = sceneInfo(scene)?.label ?? scene;
   if (scene === "explore") {

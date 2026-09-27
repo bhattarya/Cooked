@@ -7,10 +7,11 @@ import { signOutOfGoogle } from "@/lib/auth";
 import type { SessionUser } from "@/lib/session";
 import { Wordmark } from "../brand";
 
-export type AppSection = "home" | "explore";
+export type AppSection = "home" | "explore" | "advisor";
 const NAV: { key: AppSection; href: string; label: string }[] = [
   { key: "home", href: "/app", label: "My plan" },
   { key: "explore", href: "/app/explore", label: "Ask the cohort" },
+  { key: "advisor", href: "/app/advisor", label: "Watchtower" },
 ];
 
 /** Bottom space kept free for the floating voice dock (web/components/voice). */

@@ -49,7 +49,7 @@ export function WatchtowerPlayground() {
   return (
     <AppChrome
       user={{ name: "Dev", firstName: "Dev", guest: !signedIn }}
-      active="home"
+      active="advisor"
       heat={0.3}
       right={
         <div className="flex items-center gap-2 text-[11px]">

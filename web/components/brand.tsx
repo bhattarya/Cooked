@@ -10,7 +10,7 @@ export function Emblem({ width = 420, className = "", priority = false }: { widt
       src="/brand/cooked-emblem.webp"
       alt="COOKED — Student Data Bottle Neck Analyzer"
       width={width}
-      height={Math.round((width * 1167) / 1100)}
+      height={Math.round((width * 1296) / 1100)}
       priority={priority}
       className={`select-none ${className}`}
       draggable={false}
