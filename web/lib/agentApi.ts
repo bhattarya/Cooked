@@ -41,14 +41,40 @@ export interface CourseStatus {
   gates_required?: string[];
   term?: string;
 }
+export interface CohortVisualRow {
+  label: string;
+  n: number;
+  value: number | null;
+  unknown?: number;
+  tool_result_id: string;
+}
 export type Visual =
   | { type: "whatif"; before: { work: number; load: number; risk: number; years: number }; after: { work: number; load: number; risk: number; years: number }; tool_result_id: string }
   | { type: "course"; courses: CourseStatus[]; highlight?: string[]; tool_result_id: string }
   | { type: "drill"; drill: ServerDrill }
   | { type: "repair"; repair: ServerRepair }
-  | { type: "explain"; state: ServerState; reference_load?: number | null; tool_result_id?: string };
+  | { type: "explain"; state: ServerState; reference_load?: number | null; tool_result_id?: string }
+  | {
+      type: "cohort";
+      question: string;
+      topic: "load" | "work" | "internships" | "destinations" | "majors" | "cost";
+      router: "gemini" | "local";
+      title: string;
+      detail: string;
+      measure: string;
+      dimension: string;
+      unit: "years" | "%" | "ratio" | "people";
+      rows: CohortVisualRow[];
+      source: string;
+      tool_result_id: string;
+      disclaimer: string;
+      narration: { text: string; source?: string; provenance?: { ok?: boolean } };
+    };
 export interface Answer extends ServerNarration {
-  tool: "audit_summary" | "what_if" | "course_plan" | "stress_test" | "find_fix" | "explain_risk";
+  // The backend may also return "cohort_pattern" (a cohort/alumni-pattern question answered inline);
+  // kept out of this literal union so TOOL_LABEL's exhaustive Record elsewhere doesn't need a new key,
+  // and read as a plain string wherever it's used untyped.
+  tool: "audit_summary" | "what_if" | "course_plan" | "stress_test" | "find_fix" | "explain_risk" | (string & {});
   args: Record<string, unknown>;
   router: "gemini" | "local";
   visual: Visual;

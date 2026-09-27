@@ -34,11 +34,11 @@ export function AnswerScene({ answer: a, idea, onIdea, narration }: { answer: Co
       <Chip tone="dim" title={a.source}>
         {a.source.split("·")[0].trim()}
       </Chip>
-      <Chip tone="dim" title="one of six fixed aggregate queries; the model only picks which, Tiger Data computes the numbers">
+      <Chip tone="dim" title="one of six fixed aggregate queries; the model only picks which, the database computes the numbers">
         query · {a.topic}
       </Chip>
-      <Chip tone={a.router === "gemini" ? "gold" : "dim"} title={a.router === "gemini" ? "Gemini picked the query" : "Gemini did not route this question, so the keyword router did"}>
-        {a.router === "gemini" ? "routed by Gemini" : "keyword-routed"}
+      <Chip tone={a.router === "gemini" ? "gold" : "dim"} title={a.router === "gemini" ? "the AI router picked the query" : "the AI router did not route this question, so the keyword router did"}>
+        {a.router === "gemini" ? "AI-routed" : "keyword-routed"}
       </Chip>
       {caveats(a).map((c) => (
         <Chip key={c} tone="dim">

@@ -5,13 +5,15 @@ import type { Health } from "@/lib/live";
 // Which sponsor powers each agent, and whether it's live right now (honest fallbacks).
 export type SponsorKey = "gemini" | "claude" | "elevenlabs" | "backboard" | "tiger" | "digitalocean" | "model";
 
+// Labels name what each piece DOES, never which vendor it is: keep every claim honest without
+// naming a sponsor on screen.
 export const SPONSORS: Record<SponsorKey, { label: string; color: string; role: string }> = {
-  gemini: { label: "Gemini", color: "#8ab4f8", role: "reads audits, routes questions" },
-  claude: { label: "Claude", color: "#d97757", role: "reads audits" },
+  gemini: { label: "Reader", color: "#8ab4f8", role: "reads audits, routes questions" },
+  claude: { label: "Reader", color: "#d97757", role: "reads audits" },
   elevenlabs: { label: "Voice", color: "#f4f1ea", role: "speaks every answer" },
-  backboard: { label: "Backboard", color: "#c4b5fd", role: "remembers your decisions" },
-  tiger: { label: "Tiger Data", color: "#fbbf24", role: "3,200 alumni + drill simulations" },
-  digitalocean: { label: "DigitalOcean", color: "#3b82f6", role: "hosts the agents" },
+  backboard: { label: "Memory", color: "#c4b5fd", role: "remembers your decisions" },
+  tiger: { label: "Database", color: "#fbbf24", role: "3,200 alumni + drill simulations" },
+  digitalocean: { label: "Host", color: "#3b82f6", role: "hosts the agents" },
   model: { label: "COOKED model", color: "#f6b41a", role: "trained risk + time-to-degree" },
 };
 

@@ -72,7 +72,7 @@ export async function analyse(id: string, hours: number | undefined, patch: Patc
   patch("voice", {
     status: "done",
     live: n.data.source !== "template" && live.gemini,
-    result: `${n.data.source === "cache" ? "Gemini script (cached)" : n.data.source.startsWith("template (gemini") ? "template now · Gemini writing its version" : "template"} · ${n.data.provenance.tokens} numbers, every one traced · ${live.elevenlabs ? "ElevenLabs voice" : "browser voice"}`,
+    result: `${n.data.source === "cache" ? "script (cached)" : n.data.source.startsWith("template (gemini") ? "template now · writing its version" : "template"} · ${n.data.provenance.tokens} numbers, every one traced · ${live.elevenlabs ? "voice" : "browser voice"}`,
     ms: n.ms,
   });
 

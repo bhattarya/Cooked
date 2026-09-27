@@ -98,7 +98,10 @@ export function parseIntent(text: string, ctx: IntentContext): Intent | null {
   if (words < 2 && !/cooked/.test(t)) return null;
   const auditQuestion = /audit|credits? (left|remaining|earned|required|completed)|how many credits|degree progress/.test(t);
   const personal = auditQuestion || /\b(am i|i m|i ve|i d|i ll|i|my|me|mine|myself)\b/.test(t) && !/\b(students?|people|graduates?|alumni|cohort)\b/.test(t);
-  const order: CommandName[] = personal ? ["askStudent", "exploreCohort"] : ["exploreCohort", "askStudent"];
+  // A loaded student stays the answerer for any question asked while on their page: askStudent
+  // already forwards cohort-shaped questions correctly (see api/agent.py's cohort_pattern tool),
+  // whereas exploreCohort navigates to /app/explore and drops the loaded audit session.
+  const order: CommandName[] = personal || ctx.hasStudent ? ["askStudent", "exploreCohort"] : ["exploreCohort", "askStudent"];
   const pick = order.find((c) => can(c));
   return pick ? { command: pick, args: { question: text.trim() } } : null;
 }

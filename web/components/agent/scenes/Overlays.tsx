@@ -113,7 +113,7 @@ export function RunErrorPanel({ message, onBack }: { message: string; onBack: ()
       <p role="alert" className="mt-3 text-[15px] leading-relaxed text-muted">
         {message}
       </p>
-      <p className="mt-2 text-xs text-dim">Nothing was stored. The samples work without Gemini.</p>
+      <p className="mt-2 text-xs text-dim">Nothing was stored. The samples work without the AI reader.</p>
       <button ref={btn} type="button" onClick={onBack} className="mt-6 rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-bg transition hover:bg-gold-hi">
         Back to the start
       </button>

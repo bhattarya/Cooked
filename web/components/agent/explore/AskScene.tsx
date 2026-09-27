@@ -57,7 +57,7 @@ export function AskScene(p: AskSceneProps) {
           </h1>
         </div>
 
-        <p className="serif max-w-xl text-[17px] leading-snug text-muted sm:text-xl">Six fixed comparisons, computed live in Tiger Data. The model only routes your question; it never writes a number.</p>
+        <p className="serif max-w-xl text-[17px] leading-snug text-muted sm:text-xl">Six fixed comparisons, computed live from the database. The model only routes your question; it never writes a number.</p>
 
         <div className="w-full max-w-3xl">
           <Prompt value={p.value} onChange={p.onChange} onSubmit={p.onSubmit} busy={p.busy} inputRef={p.inputRef} mic={p.mic} onEdge={p.onEdge} placeholder={p.orb.state === "listening" ? "Listening…" : "Work hours, course load, internships, first jobs, majors, cost…"} />

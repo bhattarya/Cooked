@@ -12,6 +12,7 @@ import re
 
 from pydantic import ValidationError
 
+from api import explore as explore_mod
 from api import profiles
 from api.engine import Engine, NotFound, db
 from api.providers import claude, gemini, net
@@ -66,6 +67,14 @@ TOOLS = [
     {
         "name": "explain_risk",
         "description": "Explain why the student's risk is what it is, or answer 'am I cooked'.",
+        "parameters": {"type": "OBJECT", "properties": {}},
+    },
+    {
+        "name": "cohort_pattern",
+        "description": "A question about the wider alumni cohort or population pattern, not this student's own plan: "
+        "grads/graduates/alumni, internships and first jobs, destinations after graduating, comparing majors, "
+        "work-hour bands, or degree cost. Use for 'how many/what percent/how long did other students/grads...' "
+        "style questions, not 'what if I...' questions about this student.",
         "parameters": {"type": "OBJECT", "properties": {}},
     },
 ]
@@ -208,6 +217,8 @@ def local_route(q: str) -> tuple[str, dict]:
             else:
                 args["instead_of"] = courses[1]
         return "course_plan", args
+    if re.search(r"\b(grads?|graduates?|alumni|other students?|students like|people (?:who|like)|classmates|cohort)\b", s):
+        return "cohort_pattern", {}
     if re.search(r"audit|credits? (?:left|remaining|earned|required|completed)|how many credits|degree progress|courses? (?:completed|in progress)|what have i (?:taken|completed)", s):
         return "audit_summary", {}
     n = re.search(r"(\d+(?:\.\d+)?)", s)
@@ -239,8 +250,9 @@ def ask(engine: Engine, sid: str, question: str, work: float | None, plan: float
         "stress_test": _stress_test,
         "find_fix": _find_fix,
         "explain_risk": _explain,
+        "cohort_pattern": _cohort_pattern,
     }[tool]
-    segs, visual = handler(engine, sid, args, work, plan)
+    segs, visual = handler(engine, sid, args, work, plan, question)
     out = engine._finish(segs, "template", "ask")
     return {**out, "tool": tool, "args": args, "router": source, "visual": visual, "question": question}
 
@@ -249,7 +261,7 @@ def _tok(value, tr: str) -> dict:
     return {"value": str(value), "tool_result_id": tr}
 
 
-def _audit_summary(engine, sid, args, work, plan):
+def _audit_summary(engine, sid, args, work, plan, question=None):
     state = engine.state(sid, work, plan)
     tr = state["terms_done"]["tool_result_id"]
     earned, required = state["credits_earned"], state["credits_required"]
@@ -277,7 +289,7 @@ def _current_load(engine: Engine, sid: str) -> int:
     return round(float(t[:, 0].mean())) if len(t) else 15
 
 
-def _what_if(engine, sid, args, work, plan):
+def _what_if(engine, sid, args, work, plan, question=None):
     w0 = work if work is not None else float(engine.people.static.at[sid, "work_hours"] or 0)
     l0 = plan if plan is not None else _current_load(engine, sid)
     w1 = float(args.get("work_hours", w0 + float(args.get("work_delta", 0))))
@@ -308,7 +320,7 @@ def _what_if(engine, sid, args, work, plan):
     return segs, visual
 
 
-def _course_plan(engine, sid, args, work, plan):
+def _course_plan(engine, sid, args, work, plan, question=None):
     major = engine.people.static.at[sid, "major"]
     take = profiles.norm_course(str(args.get("take", "")))
     instead = profiles.norm_course(str(args["instead_of"])) if args.get("instead_of") else None
@@ -360,7 +372,7 @@ def _course_plan(engine, sid, args, work, plan):
     return segs, {"type": "course", "courses": [a] + ([b] if b else []), "highlight": highlight, "tool_result_id": tr}
 
 
-def _stress_test(engine, sid, args, work, plan):
+def _stress_test(engine, sid, args, work, plan, question=None):
     load = args.get("credits_per_term") or plan
     d = engine.drill(sid, load, work)
     tr = d["tool_result_id"]
@@ -376,7 +388,7 @@ def _stress_test(engine, sid, args, work, plan):
     return segs, {"type": "drill", "drill": d}
 
 
-def _find_fix(engine, sid, args, work, plan):
+def _find_fix(engine, sid, args, work, plan, question=None):
     r = engine.repair(sid, work)
     p = r["primary"]
     if not p:
@@ -390,7 +402,7 @@ def _find_fix(engine, sid, args, work, plan):
     return segs, {"type": "repair", "repair": r}
 
 
-def _explain(engine, sid, args, work, plan):
+def _explain(engine, sid, args, work, plan, question=None):
     st = engine.state(sid, work)
     if st["twins"]["refused"]:
         return [{"text": f"Not enough matched students to explain this reliably ({st['twins']['reason']})."}], {
@@ -411,6 +423,42 @@ def _explain(engine, sid, args, work, plan):
     segs += [{"text": "That's based on "}, _tok(st["twins"]["n"], st["twins"]["tool_result_id"]),
              {"text": " alumni who looked like you. Load and work hours move it most; individual courses barely do."}]
     return segs, {"type": "explain", "state": st, "reference_load": ref, "tool_result_id": tr}
+
+
+_GAP_RX = re.compile(r"month|how long|weeks?|\bdays?\b", re.IGNORECASE)
+
+
+def _cohort_pattern(engine, sid, args, work, plan, question=None):
+    """A question about the wider alumni cohort, asked from inside the audit conversation.
+
+    Reuses api/explore.py's six SQL-grounded queries verbatim -- never a new invented number.
+    When the exact thing asked (e.g. months-to-internship) isn't one of the six, this says so
+    honestly and still hands back the closest real comparison, with its own chart.
+    """
+    q = question or ""
+    result = explore_mod.explore(engine, q)
+    tr = result["tool_result_id"]
+    segs: list[dict] = []
+    if _GAP_RX.search(q):
+        segs.append({"text": "I don't have that exact number in this dataset, but here's the closest real comparison I can ground: "})
+    segs += result["narration"]["segments"]
+    visual = {
+        "type": "cohort",
+        "question": q,
+        "topic": result["topic"],
+        "router": result["router"],
+        "title": result["title"],
+        "detail": result["detail"],
+        "measure": result["measure"],
+        "dimension": result["dimension"],
+        "unit": result["unit"],
+        "rows": result["rows"],
+        "source": result["source"],
+        "tool_result_id": tr,
+        "disclaimer": result["disclaimer"],
+        "narration": result["narration"],
+    }
+    return segs, visual
 
 
 __all__ = ["TOOLS", "ask", "intake", "local_route", "say", "set_work", "stage_features"]

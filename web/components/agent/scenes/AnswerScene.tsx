@@ -2,13 +2,15 @@
 
 import { motion } from "motion/react";
 import { Chip } from "@/components/scenes";
-import type { Answer } from "@/lib/agentApi";
+import type { Answer, Visual } from "@/lib/agentApi";
 import type { Dataset } from "@/lib/types";
 import { AnswerVisual, TOOL_LABEL } from "../AnswerCard";
+import { AnswerChart } from "../explore/AnswerChart";
+import { read, type CohortAnswer } from "../explore/model";
 import { SponsorChip, type SponsorLive } from "../Sponsors";
 import { answerTitle } from "./copy";
 import { DrillStage } from "./DrillScene";
-import { Action, AnswerText, Stage, rise } from "./kit";
+import { Action, AnswerText, Stage, rise, type Box } from "./kit";
 import type { DeckScene, DrillFull, Journey, RepairFull } from "./model";
 import { RepairStage } from "./RepairScene";
 
@@ -16,6 +18,26 @@ const HOME: Partial<Record<Answer["tool"], { scene: DeckScene; label: string }>>
   stress_test: { scene: "drill", label: "Open the fire drill" },
   find_fix: { scene: "repair", label: "Open the repair" },
 };
+
+// A cohort_pattern answer reuses the cohort explorer's own chart engine (same shape the
+// /explore endpoint returns), so a "how do other students..." question never needs a tab
+// switch away from the audit conversation.
+function CohortStage({ v, box }: { v: Extract<Visual, { type: "cohort" }>; box: Box }) {
+  const a = v as unknown as CohortAnswer;
+  const r = read(a);
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="label !text-cream">{v.measure}</span>
+        <span className="label text-dim">by {v.dimension}</span>
+      </div>
+      <div className="min-h-0 flex-1">
+        <AnswerChart a={a} r={r} height={Math.max(200, box.h - 44)} />
+      </div>
+      <p className="text-[11px] leading-snug text-dim">{v.disclaimer}</p>
+    </div>
+  );
+}
 
 /**
  * Scene 7: the answer to the latest question, with its history one tap away. Answers run long, so
@@ -46,7 +68,7 @@ export function AnswerScene({ answers, index, onSelect, j, ds, live, onAsk, onGo
           <Chip tone={a.provenance.ok ? "gold" : "hot"} title="every number in this answer must trace back to a tool result">
             {a.provenance.ok ? `✓ ${a.provenance.tokens} numbers traced` : "blocked: an untraced number"}
           </Chip>
-          <Chip>{TOOL_LABEL[a.tool]}</Chip>
+          <Chip>{TOOL_LABEL[a.tool] ?? "Cohort explorer"}</Chip>
           <SponsorChip k="gemini" live={a.router === "gemini" && live.gemini} compact />
           {(a.tool === "stress_test" || a.tool === "explain_risk") && <SponsorChip k="tiger" live={live.tiger} compact />}
           <SponsorChip k="model" live={live.model} compact />
@@ -63,7 +85,17 @@ export function AnswerScene({ answers, index, onSelect, j, ds, live, onAsk, onGo
         <div className="flex h-full min-h-0 flex-col gap-3">
           <div className="min-h-0 flex-1">
             <Stage>
-              {(box) => (v.type === "drill" ? <DrillStage d={v.drill as DrillFull} box={box} /> : v.type === "repair" ? <RepairStage j={{ ...j, repair: v.repair as RepairFull }} r={v.repair as RepairFull} box={box} onAskAbout={onAskAbout} /> : <AnswerVisual a={a} j={j} ds={ds} />)}
+              {(box) =>
+                v.type === "drill" ? (
+                  <DrillStage d={v.drill as DrillFull} box={box} />
+                ) : v.type === "repair" ? (
+                  <RepairStage j={{ ...j, repair: v.repair as RepairFull }} r={v.repair as RepairFull} box={box} onAskAbout={onAskAbout} />
+                ) : v.type === "cohort" ? (
+                  <CohortStage v={v} box={box} />
+                ) : (
+                  <AnswerVisual a={a} j={j} ds={ds} />
+                )
+              }
             </Stage>
           </div>
           {answers.length > 1 && (

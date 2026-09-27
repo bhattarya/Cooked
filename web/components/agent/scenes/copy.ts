@@ -234,6 +234,12 @@ export function answerTitle(a: Answer): { title: string; accent: string; kicker:
   if (v.type === "course") return { kicker: "course check", title: "Course", accent: `${v.courses.map((c) => c.course_id).slice(0, 2).join(" vs ")}?` };
   if (v.type === "explain") return { kicker: "why", title: "Why", accent: `${pct(v.state.risk.value)}` };
   if (v.type === "drill") return { kicker: "stress test", title: "Fire", accent: "drill" };
+  if (v.type === "cohort") {
+    const words = v.title.trim().split(/\s+/);
+    const accent = words.length > 1 ? words.slice(-1).join(" ") : v.title;
+    const title = words.length > 1 ? words.slice(0, -1).join(" ") : "Cohort";
+    return { kicker: "the cohort", title, accent };
+  }
   return { kicker: "the fix", title: "The", accent: "fix" };
 }
 

@@ -152,7 +152,7 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
         patch("read", {
           status: "done",
           live: d.source === "sample" ? false : d.source === "claude" ? lv.claude : lv.gemini,
-          result: `${d.source === "sample" ? "sample audit · synthetic student" : `read by ${d.source === "claude" ? "Claude" : "Gemini"}`} · ${s.terms} terms · ${s.courses_done} courses done · ${s.in_progress} in progress · ${s.credits_earned}/${s.credits_required} credits`,
+          result: `${d.source === "sample" ? "sample audit · synthetic student" : "read directly"} · ${s.terms} terms · ${s.courses_done} courses done · ${s.in_progress} in progress · ${s.credits_earned}/${s.credits_required} credits`,
           tr: s.tool_result_id,
           ms: intake.ms,
         });

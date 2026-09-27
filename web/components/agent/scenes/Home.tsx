@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "motion/react";
 import { useRef, useState, type DragEvent } from "react";
 import type { Dataset } from "@/lib/types";
@@ -34,21 +33,19 @@ export function Home({ ds: _ds, live: _live, name: _name, error, hasJourney, onF
           <p className="home-lede mt-6 max-w-xl">Upload the audit you already have. COOKED turns the fine print into a clear path, a little less panic, and one very opinionated next move.</p>
           <div className="mt-8 flex flex-wrap gap-3"><div className="home-stat"><strong>01</strong><span>audit in</span></div><div className="home-stat"><strong>∞</strong><span>questions out</span></div><div className="home-stat"><strong>24/7</strong><span>voice ready</span></div></div>
           {hasJourney && <button onClick={onResume} className="home-resume mt-9">Continue your active plan <span>↗</span></button>}
-          <div className="home-links mt-12"><Link href="/app/explore">Cohort patterns <span>↗</span></Link><Link href="/app/lab">Model lab <span>↗</span></Link><Link href="/app/advisor">Advisor <span>↗</span></Link></div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 30, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .75, delay: .12, ease: [.22, 1, .36, 1] }} className="relative">
-          <div className="home-float-chip home-float-chip-top"><span className="home-live-dot" /> Claude reader online</div>
+          <div className="home-float-chip home-float-chip-top"><span className="home-live-dot" /> Reader online</div>
           <div className={`upload-card ${over ? "upload-card-over" : ""}`} onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={drop}>
             <div className="upload-card-head"><span>Start here</span><b>01 / 03</b></div>
             <div className="upload-icon-wrap" aria-hidden><div className="upload-icon">↑</div></div>
             <h2>{loadingFile ? "Reading the fine print…" : over ? "Release to upload" : "Bring your audit."}</h2>
             <p>PDF, PNG, JPEG, or WebP. We’ll find completed credits, requirements, and courses in progress.</p>
             <input ref={input} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="sr-only" aria-label="Upload degree audit" onChange={(e) => { choose(e.target.files?.[0]); e.target.value = ""; }} />
-            <button type="button" disabled={loadingFile} onClick={() => input.current?.click()} className="upload-button"><span>{loadingFile ? "Claude is reading" : "Choose degree audit"}</span><span aria-hidden>↗</span></button>
+            <button type="button" disabled={loadingFile} onClick={() => input.current?.click()} className="upload-button"><span>{loadingFile ? "Reading your audit…" : "Choose degree audit"}</span><span aria-hidden>↗</span></button>
             <div className="upload-foot"><span>Private by default</span><span>Up to 8 MB</span><span>PDFs welcome</span></div>
           </div>
-          <div className="home-float-chip home-float-chip-bottom"><span className="spark">✦</span> Your plan gets a personality</div>
         </motion.div>
 
         {error && <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="home-error lg:col-start-2"><span className="home-error-mark">!</span><div><strong>That upload needs another look.</strong><p>{error}</p><button onClick={() => onSample(SAMPLES[0].id)}>Try Alex Chen’s sample plan →</button></div></motion.div>}

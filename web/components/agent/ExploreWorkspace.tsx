@@ -146,7 +146,7 @@ export function ExploreWorkspace({ user }: { user: SessionUser }) {
       exiting: false,
       steps: [
         { key: "route", agent: "Orchestrator", task: "picking one of the six fixed cohort queries", sponsor: "gemini", live: geminiOn, status: "running" },
-        { key: "query", agent: "Evidence", task: "computing the groups in Tiger Data, no model-written SQL", sponsor: "tiger", live: tigerOn, status: "pending" },
+        { key: "query", agent: "Evidence", task: "computing the groups in the database, no model-written SQL", sponsor: "tiger", live: tigerOn, status: "pending" },
         { key: "chart", agent: "Visualizer", task: "choosing the chart and the one-line takeaway", sponsor: "model", live: true, status: "pending" },
       ],
     });
@@ -160,7 +160,7 @@ export function ExploreWorkspace({ user }: { user: SessionUser }) {
       patch("route", {
         status: routed || geminiOff ? "done" : "warn",
         live: routed,
-        result: routed ? `Gemini chose the “${a.topic}” query` : geminiOff ? `keyword router chose “${a.topic}” (Gemini isn't configured)` : `Gemini returned no route, so the keyword fallback chose “${a.topic}”`,
+        result: routed ? `the router chose the “${a.topic}” query` : geminiOff ? `keyword router chose “${a.topic}” (the AI router isn't configured)` : `the router returned no answer, so the keyword fallback chose “${a.topic}”`,
       });
       await pace(360);
       patch("query", { status: "running" });
@@ -310,7 +310,7 @@ export function ExploreWorkspace({ user }: { user: SessionUser }) {
           groups: groupsText(current.answer),
           small_samples: smallNote(current.answer) ?? "none",
           evidence_id: current.answer.tool_result_id,
-          routed_by: current.answer.router === "gemini" ? "Gemini" : "keyword router",
+          routed_by: current.answer.router === "gemini" ? "AI router" : "keyword router",
           answers_in_strip: entries.length,
         }
       : { answers_in_strip: entries.length },

@@ -38,7 +38,7 @@ export interface Entry {
 /** The same floor the twin refusal uses: a group of fewer than 30 people is never read as a pattern. */
 export const MIN_N = 30;
 
-/** The six fixed queries in api/explore.py, each phrased so both Gemini and the keyword fallback route it correctly. */
+/** The six fixed queries in api/explore.py, each phrased so both the AI router and the keyword fallback route it correctly. */
 export const SUGGESTIONS: { q: string; kind: "bars" | "shares" | "trend"; topic: Topic }[] = [
   { q: "Does a lighter course load change the timeline?", kind: "bars", topic: "load" },
   { q: "How do work hours relate to time to degree?", kind: "bars", topic: "work" },
@@ -171,7 +171,7 @@ export function spokenAnswer(a: CohortAnswer): { message: string; data: Record<s
       question: a.question,
       title: a.title,
       query: a.topic,
-      routed_by: a.router === "gemini" ? "Gemini" : "keyword router",
+      routed_by: a.router === "gemini" ? "AI router" : "keyword router",
       measure: a.measure,
       dimension: a.dimension,
       unit: a.unit,
