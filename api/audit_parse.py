@@ -268,12 +268,11 @@ def parse_text(pages: list[str]) -> TextParse:
                 info.setdefault("entry", "transfer")
             if "res" not in info and (m := re.search(r"\b(out[- ]of[- ]state|in[- ]state)\b", line, re.IGNORECASE)):
                 info["res"] = m.group(1)
-        if not line.lower().startswith("term ") or TERM_NUM.match(line):
-            if m := EARNED_TOTAL.search(line):
-                if "earned" not in info and not re.match(r"\s*term\b", line, re.IGNORECASE):
-                    info["earned"] = float(m.group(1) or m.group(2))
-            if m := REQUIRED_TOTAL.search(line):
-                info.setdefault("required", int(next(g for g in m.groups() if g)))
+        term_line_ok = not line.lower().startswith("term ") or TERM_NUM.match(line)
+        if term_line_ok and (m := EARNED_TOTAL.search(line)) and "earned" not in info and not re.match(r"\s*term\b", line, re.IGNORECASE):
+            info["earned"] = float(m.group(1) or m.group(2))
+        if term_line_ok and (m := REQUIRED_TOTAL.search(line)):
+            info.setdefault("required", int(next(g for g in m.groups() if g)))
         if re.match(r"\s*term\b.*attempted", line, re.IGNORECASE) or (cur and "attempted" in line.lower() and not CRS.search(line)):
             a = re.search(r"attempted\s*[:\-]?\s*(\d+(?:\.\d+)?)", line, re.IGNORECASE)
             e = re.search(r"earned\s*[:\-]?\s*(\d+(?:\.\d+)?)", line, re.IGNORECASE)

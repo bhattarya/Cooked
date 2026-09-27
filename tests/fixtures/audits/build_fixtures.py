@@ -217,7 +217,7 @@ def render(s: dict) -> str:
         body.append("<h3>Degree Requirements</h3>" + "".join(
             f"<div>&#10004; {c['id']} {c['title']} - Complete</div>" for t in s["terms"] for c in t["courses"][:2] if c["grade"] not in ("W", "F")))
         if s.get("pages"):  # pad the first page so the page break lands inside a term
-            body.insert(1, "<div style='height:%dpx'></div>" % s["pad"])
+            body.insert(1, f"<div style='height:{s['pad']}px'></div>")
     elif lay == "flat":
         body.append("<h1>Academic Progress Report</h1>" + header(s, "div") + "<table><tr><th>Term</th><th>Course</th><th>Title</th><th>Credits</th><th>Grade</th></tr>")
         for t in s["terms"]:
