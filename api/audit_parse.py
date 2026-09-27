@@ -473,8 +473,8 @@ def extract_text(data: bytes) -> tuple[list[str], str | None]:
             text = data.decode("utf-8", errors="replace")
             if text.strip():
                 return [text], None
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as e:  # noqa: BLE001
+            log.warning("fallback extract_text exception: %s", e)
         return [], "corrupt"
     from pypdf import PdfReader
     from pypdf.errors import PyPdfError
@@ -649,7 +649,7 @@ def _parse_oracle_audit(pages: list[str]) -> TextParse | None:
     # never let a hollow parse produce a confident "0 terms, 0 credits" verdict. Check the SAME
     # row-building term_rows() the model features come from, not just whether `earned` is nonzero
     # (a name-only match with every course misclassified as ungraded would otherwise slip through).
-    counted_rows, _passed = term_rows(profile)
+    counted_rows, _passed = profiles.term_rows(profile)
     if len(counted_rows) == 0 and earned <= 0:
         out.warnings = [*warnings, "The credit table didn't match a readable pattern closely enough to trust; nothing here would be counted."]
         return out

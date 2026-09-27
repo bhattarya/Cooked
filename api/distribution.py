@@ -6,12 +6,11 @@ Provides real dataset insights over the 3,200 UMBC alumni, 1,800 current student
 
 from __future__ import annotations
 
-import json
 from functools import lru_cache
-import pandas as pd
-import numpy as np
 
-from api.engine import Engine, db, model_dir
+import pandas as pd
+
+from api.engine import Engine
 from scripts.common import ROOT
 
 
@@ -238,7 +237,6 @@ def get_fall_schedule(engine: Engine, cid: str) -> dict:
     major = st.get("major", "Computer Science")
 
     # Fall courses tailored by major
-    cat_dict = {r["course_id"]: r for _, r in catalog.iterrows()}
     major_courses = catalog[catalog["required_for_majors"].str.contains(major, case=False, na=False)]
 
     # Pick 4 representative Fall courses for student

@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-from api.audit_parse import read_audit, ingest
 from api.agent import _build_ml_evidence
+from api.audit_parse import read_audit
 
 
 def test_preset_sample_students_return_rich_profiles():
@@ -36,16 +35,16 @@ def test_preset_sample_students_return_rich_profiles():
 
 def test_plain_text_and_markdown_audit_parsing():
     text_audit = (
-        "Student: Sam Smith\n"
-        "Major: Computer Science\n"
-        "Fall 2022\n"
-        "CMSC 201 4.0 A\n"
-        "MATH 151 4.0 B\n"
-        "Spring 2023\n"
-        "CMSC 202 4.0 A\n"
-        "In Progress:\n"
-        "CMSC 203 3.0 IP\n"
-    ).encode("utf-8")
+        b"Student: Sam Smith\n"
+        b"Major: Computer Science\n"
+        b"Fall 2022\n"
+        b"CMSC 201 4.0 A\n"
+        b"MATH 151 4.0 B\n"
+        b"Spring 2023\n"
+        b"CMSC 202 4.0 A\n"
+        b"In Progress:\n"
+        b"CMSC 203 3.0 IP\n"
+    )
 
     res = read_audit(text_audit)
     assert res.profile is not None
@@ -57,11 +56,11 @@ def test_plain_text_and_markdown_audit_parsing():
 
 def test_non_standard_fallback_regex_matching():
     non_standard = (
-        "Major: Information Systems\n"
-        "Course IS-147 Grade A 3.0 credits\n"
-        "Course MGMT-210 Grade B 3.0 hrs\n"
-        "Currently Registered: IS-300 3.0\n"
-    ).encode("utf-8")
+        b"Major: Information Systems\n"
+        b"Course IS-147 Grade A 3.0 credits\n"
+        b"Course MGMT-210 Grade B 3.0 hrs\n"
+        b"Currently Registered: IS-300 3.0\n"
+    )
 
     res = read_audit(non_standard)
     assert res.profile is not None
@@ -96,7 +95,7 @@ def test_voice_and_say_integration(monkeypatch):
 
     class MockPeople:
         static = type("S", (), {"at": lambda *a: 0})()
-        current_ids = ["CID-123456"]
+        current_ids = ("CID-123456",)
 
     class MockEngine(Engine):
         def __init__(self):
