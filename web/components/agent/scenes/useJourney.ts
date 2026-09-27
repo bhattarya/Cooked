@@ -264,7 +264,8 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
           setOverrides((o) => ({ ...o, repair: a }));
           scene = "repair";
         }
-        void narrator.say(a.text, a.tool === "find_fix" ? "coach" : "narrator");
+        // One consistent voice everywhere -- COOKED is a single guide, not two different voice actors.
+        void narrator.say(a.text);
         const ids = [...new Set(a.segments.flatMap((s) => ("tool_result_id" in s ? [s.tool_result_id] : [])))];
         return { ok: true, message: a.text, answer: a, scene, data: { question: q, tool: a.tool, numbers_traced: a.provenance.tokens, evidence: ids.slice(0, 6), scene } };
       } catch {
