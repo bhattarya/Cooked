@@ -62,8 +62,8 @@ export function Landing({ method, signedIn, error }: { method: SignInMethod; sig
       <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-12 px-6 py-12 sm:px-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-20">
         <section>
           <p className="label !text-gold">A student guide grounded in data</p>
-          <h1 className="display mt-5 max-w-[12ch] text-5xl font-bold leading-[1.05] text-cream sm:text-7xl">
-            Bring your audit. Understand your path.
+          <h1 className="display mt-5 max-w-[16ch] text-5xl font-bold leading-[1.05] text-cream sm:text-7xl">
+            Know you are cooked before it&rsquo;s too late — and get uncooked.
           </h1>
           <p className="mt-7 max-w-[55ch] text-base leading-relaxed text-muted sm:text-lg">
             Ask whether your fall schedule fits your degree plan. COOKED reads the courses and credits in your audit, then explains what trained models and comparable records can actually tell you.
