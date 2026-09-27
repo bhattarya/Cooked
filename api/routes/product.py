@@ -8,9 +8,10 @@ from uuid import UUID
 from fastapi import APIRouter, File, Path, Query, UploadFile
 from fastapi.responses import Response
 
-from api import agent, explore, model_lab
+from api import agent, audit_parse, explore, model_lab
 from api.auth import CurrentUser, require_signed_in
 from api.engine import NotFound, db, get_engine
+from api.profiles import AuditCourse, AuditProfile, AuditTerm
 from api.schemas import (
     AskRequest,
     CampusID,
@@ -20,9 +21,12 @@ from api.schemas import (
     ExploreRequest,
     FeedbackRequest,
     FeedbackResult,
+    FromStudentRequest,
+    ManualAuditRequest,
     MemoryRequest,
     ModelLabRequest,
     NarrateRequest,
+    Receipt,
     RepairRequest,
     SayRequest,
     VoiceRequest,
@@ -154,12 +158,41 @@ def recall(id: CampusID):
 
 @router.post("/audit/parse", response_model=Envelope[Data])
 async def audit(file: Annotated[UploadFile, File()]):
-    """Sample audits map to their synthetic student; real PDFs are read by Gemini into a profile.
-    The file is never stored; only parsed courses and terms are kept."""
-    data = await file.read(8_000_001)
-    if len(data) > 8_000_000:
-        raise NotFound("audit too large")
-    return wrap(agent.intake(get_engine(), data, file.content_type or "application/pdf"))
+    """Sample audits map to their synthetic student. Real audits are read directly by a
+    deterministic text parser first (fast, exact); Gemini vision is only a fallback for scans
+    or low-confidence reads; the file is never stored, only parsed courses and terms."""
+    data = await file.read(audit_parse.MAX_BYTES + 1)
+    return wrap(audit_parse.ingest(get_engine(), data))
+
+
+@router.post("/audit/manual", response_model=Envelope[Data])
+def audit_manual(body: ManualAuditRequest):
+    """Last-resort path when neither the parser nor the image reader could read the audit."""
+    warnings: list[str] = []
+    terms = []
+    for t in body.terms:
+        if len(t.courses) > 12:
+            warnings.append(f"{t.label}: only the first 12 courses were kept.")
+        terms.append(
+            AuditTerm(
+                label=t.label,
+                courses=[AuditCourse(course_id=c.id, credits=c.credits, grade=c.grade) for c in t.courses[:12]],
+                credits_attempted=t.credits_attempted,
+                credits_earned=t.credits_earned,
+                withdrawals=t.withdrawals,
+            )
+        )
+    profile = AuditProfile(
+        first_name=body.first_name,
+        major=body.major,
+        track=body.track,
+        entry_type=body.entry_type,
+        residency=body.residency,
+        credits_required=body.credits_required,
+        terms=terms,
+        in_progress=[AuditCourse(course_id=c, credits=3) for c in body.in_progress[:12]],
+    )
+    return wrap(audit_parse.manual(get_engine(), profile, warnings))
 
 
 @router.post("/profiles/{id}/work", response_model=Envelope[Data])
@@ -199,3 +232,19 @@ def queue(
 @router.get("/myths", response_model=Envelope[Data])
 def myths():
     return wrap(get_engine().myths())
+
+# ---------- mltruth: audit-truth endpoints (added, additive) ----------
+@router.get("/profiles/{id}/receipt", response_model=Envelope[Receipt])
+def profile_receipt(id: CampusID):
+    """What the models actually read from this profile's audit: terms, totals, labelled
+    features and the tool_result_id tying them to one scoring run."""
+    return wrap(get_engine().receipt(id))
+
+
+@router.post("/model-lab/from-student", response_model=Envelope[Data])
+def model_lab_from_student(body: FromStudentRequest):
+    """A lab scenario derived server-side from a real profile (sample or uploaded audit); only
+    `overrides` change it. Response is `/model-lab/simulate`'s shape plus `derived_from` and
+    `baseline` (the student's own unmodified prediction)."""
+    return wrap(model_lab.from_student(get_engine(), body))
+

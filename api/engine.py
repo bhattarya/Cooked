@@ -25,7 +25,7 @@ from api.providers import backboard, elevenlabs, gemini, net
 from ml.fire_drill import monte_carlo, run_drill
 from ml.model_interface import ArtifactError, Models
 from ml.repair import run_repair
-from ml.snapshots import FEATURES, K_MAX, People, load_people, stage_features
+from ml.snapshots import FEATURE_LABELS, FEATURES, K_MAX, People, load_people, stage_features
 from ml.twins import MIN_SUPPORT, TwinIndex
 from ml.watchtower import OPEN_AT, hysteresis, score_all
 from scripts.common import ROOT, connect
@@ -115,7 +115,7 @@ class Engine:
         tr_state = self.rec("get_state", {"campus_id": cid}, {"k": k, "avg": avg})
         tr_risk = self.rec("risk_model", {"campus_id": cid, "k": k, "work": work}, {"risk": risk})
         tr_ttd = self.rec("ttd_model", {"campus_id": cid, "k": k, "work": work}, {"q": q.tolist()})
-        tw = self.index.find(stage_features(s, terms, k), k)
+        tw = self.index.find(self.index.features(s, terms), k)
         tr_twins = self.rec("find_twins", {"campus_id": cid, "k": k, "work": work}, {"n": tw.n})
 
         out = {
@@ -193,6 +193,42 @@ class Engine:
                 },
             }
         return out
+
+    # ---------- receipt: what the models read (mltruth) ----------
+    def receipt(self, cid: str) -> dict:
+        from api import profiles
+
+        s = self.current(cid)
+        terms = self.people.terms_of(cid)
+        k = min(len(terms), K_MAX)
+        with db() as conn:
+            prof = profiles.load_profile(conn, self.people, cid)
+        tr = self.rec("receipt", {"campus_id": cid, "k": k})
+        rows = profiles.receipt_terms(prof) if prof else []
+        feats = stage_features(s, terms, k)
+        extra = self.people.current_extra.loc[cid]
+        return {
+            "campus_id": cid,
+            "terms": [{**r, "tool_result_id": tr} for r in rows],
+            "totals": {
+                "credits_earned": int(extra["credits_earned"]),
+                "credits_in_progress": profiles.credits_in_progress(prof) if prof else 0,
+                "credits_required": int(extra["credits_required"]),
+                "terms_completed": len(terms),
+                "withdrawals": int(terms[:, 2].sum()) if len(terms) else 0,
+                "repeats": int(terms[:, 4].sum()) if len(terms) else 0,
+                "tool_result_id": tr,
+            },
+            "features": [
+                {
+                    "name": name, "label": FEATURE_LABELS.get(name, name), "value": feats[name],
+                    "unit": profiles.FEATURE_UNITS.get(name, ("", ""))[0], "note": profiles.FEATURE_UNITS.get(name, ("", ""))[1],
+                    "tool_result_id": tr,
+                }
+                for name in FEATURES
+            ],
+            "tool_result_id": tr,
+        }
 
     # ---------- alarm_check (Watchtower for one student) ----------
     def alarm_check(self, cid: str) -> dict:
@@ -313,7 +349,7 @@ class Engine:
         terms = self.people.terms_of(cid)
         k = len(terms)
         work = float(s["work_hours"] or 0)
-        tw = self.index.find(stage_features(s, terms, k), k)
+        tw = self.index.find(self.index.features(s, terms), k)
         if tw.refused:
             return {"primary": None, "fallback": None, "refusal": f"Not enough evidence: {tw.reason}.", "tool_result_id": None}
         rep = run_repair(self.people, self.models, self.index, cid, tw.ids, work)
