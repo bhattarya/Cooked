@@ -40,6 +40,7 @@ export interface Journey {
   name: string | null;
   source: "sample" | "gemini" | "claude";
   label: string;
+  auditWarnings: string[];
   st: FullState;
   /** Weekly work hours the user gave (an audit cannot say); undefined lets the server use the profile. */
   work: number | undefined;

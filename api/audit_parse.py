@@ -224,7 +224,94 @@ def _sort_key(label: str) -> int | None:
     return int(m.group(2)) * 4 + ["Winter", "Spring", "Summer", "Fall"].index(m.group(1))
 
 
+def _parse_oracle_audit(pages: list[str]) -> TextParse | None:
+    """Read the primary credit table in UMBC's Oracle Analytics degree audit.
+
+    Later requirement tables repeat the same courses, so only the 120 Academic Credits
+    table can supply a non-duplicated term history. Its `used` total includes enrolled
+    courses and must not be reported as earned credits.
+    """
+    text = _clean("\n".join(pages))
+    if "Oracle" not in text and not ("Report Prepared On:" in text and "120 Academic Credits" in text):
+        return None
+    out = TextParse(pages=len(pages), chars=len(text))
+    start = re.search(r"120 Academic Credits\s*\[RQ\s+\d+\]", text)
+    if not start:
+        return out
+    total = re.search(r"Units:\s*(\d+(?:\.\d+)?)\s+required,\s*(\d+(?:\.\d+)?)\s+used", text[start.end():start.end() + 250])
+    if not total:
+        return out
+    required, used = map(float, total.groups())
+    end = text.find("Status Requirement Courses Used Towards Requirement", start.end())
+    block = text[start.end():end if end > 0 else len(text)]
+    row = re.compile(r"^(Fall|Spring|Summer|Winter)\s+(\d{2,4})\s+([A-Z]{2,4})\s+(\d{3}[A-Z]?|[A-Z][A-Z_0-9]*)\s+(.+?)\s+(?:(A[+-]?T[+-]?|B[+-]?T[+-]?|C[+-]?T[+-]?|[A-D][+-]?|F|W|P|I|IP)\s+)?(\d+(?:\.\d+)?)\s*$", re.IGNORECASE)
+    groups: dict[str, list[AuditCourse]] = {}
+    transfer: list[AuditCourse] = []
+    ip: list[AuditCourse] = []
+    pending_season: str | None = None
+    block_lines = block.splitlines()
+    for index, raw in enumerate(block_lines):
+        line = raw.strip()
+        if line in {"Summer", "Winter"}:
+            pending_season = line
+            continue
+        if pending_season and re.match(r"^\d{2,4}\s+[A-Z]{2,4}\s+", line):
+            line = f"{pending_season} {line}"
+        pending_season = None
+        if re.match(r"^(?:Fall|Spring|Summer|Winter)\s+\d{2,4}\s+[A-Z]{2,4}\s+\d{3}[A-Z]?\s+", line, re.IGNORECASE) and not re.search(r"\d+(?:\.\d+)?\s*$", line):
+            continuation = block_lines[index + 1].strip() if index + 1 < len(block_lines) else ""
+            if re.search(r"\d+(?:\.\d+)?\s*$", continuation):
+                line = f"{line} {continuation}"
+        match = row.match(line)
+        if not match:
+            continue
+        season, year, subject, number, _title, grade, credits_raw = match.groups()
+        credits = float(credits_raw)
+        if credits > 8:
+            continue
+        label = f"{season.title()} {year if len(year) == 4 else '20' + year}"
+        course = AuditCourse(course_id=f"{subject} {number}", credits=credits, grade="T" if grade and re.fullmatch(r"[A-D][+-]?T[+-]?", grade.upper()) else (grade or ""))
+        if not grade or grade.upper() in {"I", "IP"}:
+            ip.append(AuditCourse(course_id=course.course_id, credits=credits))
+        elif course.grade == "T":
+            transfer.append(course)
+        else:
+            groups.setdefault(label, []).append(course)
+    if not groups and not transfer:
+        return out
+    terms = [AuditTerm(label=label, courses=courses) for label, courses in groups.items()]
+    if transfer:
+        # Transfers satisfy degree credits and prerequisites, but do not become
+        # enrolled terms or affect the trained model's term pace.
+        for offset in range(0, len(transfer), 12):
+            terms.append(AuditTerm(label=f"Transfer credits {offset // 12 + 1}", courses=transfer[offset:offset + 12]))
+    earned = sum(c.credits for courses in groups.values() for c in courses if c.grade not in FAILING | WITHDRAWN)
+    earned += sum(c.credits for c in transfer)
+    enrolled = sum(c.credits for c in ip)
+    warnings = ["The audit's used-credit total includes enrolled courses; earned credits are counted from graded rows."]
+    if transfer:
+        warnings.append("The audit does not explicitly state entry type; Transfer is assumed from transfer-coded credits. Verify this model input.")
+    if abs(used - earned - enrolled) > 0.01:
+        warnings.append(f"The audit reports {used:g} credits used, while its graded and enrolled rows sum to {earned + enrolled:g}; verify the degree total.")
+    major = "Information Systems" if re.search(r"Information Systems\s*-\s*B", text[:1500], re.IGNORECASE) else "Computer Science"
+    name = re.search(r"Student's Name:\s*([^\n]+)", text)
+    try:
+        out.profile = AuditProfile(first_name=_first_name(name.group(1) if name else None), major=major,
+                                   entry_type="Transfer" if transfer else "First-Time Freshman",
+                                   credits_earned=earned, credits_required=required,
+                                   terms=terms, in_progress=ip[:12])
+    except ValidationError:
+        return out
+    out.courses = sum(len(t.courses) for t in terms) + len(ip)
+    out.confidence = 0.95 if abs(used - earned - enrolled) < 0.01 else 0.65
+    out.warnings = warnings
+    return out
+
+
 def parse_text(pages: list[str]) -> TextParse:
+    oracle = _parse_oracle_audit(pages)
+    if oracle is not None:
+        return oracle
     out = TextParse(pages=len(pages))
     lines = []
     for page in pages:

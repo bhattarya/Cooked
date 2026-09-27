@@ -1,92 +1,46 @@
 "use client";
 
-import { motion } from "motion/react";
-import { RiskMeter, Stat, patternColor, riskTone } from "@/components/viz";
+import { Bars, type BarItem } from "@/components/viz";
 import { Chip, Provenance } from "@/components/scenes";
 import type { SponsorLive } from "../Sponsors";
 import { riskTakeaway } from "./copy";
-import { Action, Sponsors, Stage, rise } from "./kit";
-import { verdictOf, type Journey } from "./model";
+import { Action, Sponsors } from "./kit";
+import { pct, verdictOf, type Journey } from "./model";
 
-/** Scene 1: the verdict. A giant ring sweeps to the model's risk; the word says what it means. */
-export function RiskScene({ j, live, canHear, onHear, onAsk, onNext }: { j: Journey; live: SponsorLive; canHear: boolean; onHear: () => void; onAsk: () => void; onNext: () => void }) {
+/** The trained risk score, with the decision line used by the actual verdict. */
+export function RiskScene({ j, live, canHear, onHear, onAsk, onAskAbout, onNext }: { j: Journey; live: SponsorLive; canHear: boolean; onHear: () => void; onAsk: () => void; onAskAbout: (question: string) => void; onNext: () => void }) {
   const { st } = j;
   const risk = st.risk.value;
-  const verdict = verdictOf(risk);
-  const tone = riskTone(risk);
-  const share = st.twin_cooked_share?.value ?? null;
-  const pattern = st.pattern;
-
+  const data: BarItem[] = [{ label: "Your model score", value: risk }];
   return (
-    <section className="grid h-full min-h-0 grid-cols-1 content-start gap-6 overflow-y-auto px-5 pb-6 pt-4 sm:px-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:content-center lg:items-center lg:gap-10 lg:overflow-hidden lg:px-10 xl:gap-14 xl:px-14">
+    <section className="grid h-full min-h-0 grid-cols-1 content-start gap-8 overflow-y-auto px-5 pb-8 pt-6 sm:px-8 lg:grid-cols-2 lg:content-center lg:items-center lg:gap-14 lg:px-12">
       <header className="min-w-0">
-        <motion.div {...rise(0)} className="label !text-gold">
-          {st.major} · {st.track} · {st.entry_type === "Transfer" ? "transfer" : "first-time"}
-        </motion.div>
-        <motion.div {...rise(1)} className="display mt-3 text-[1.7rem] font-bold text-muted xl:text-[2.1rem]">
-          {j.name ? `${j.name}, you're` : "You're"}
-        </motion.div>
-        <motion.h2 initial={{ opacity: 0, y: 24, filter: "blur(10px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.3, duration: 0.9, ease: [0.16, 1, 0.3, 1] }} className="display whitespace-nowrap text-[3.4rem] font-black leading-[0.86] sm:text-[4.6rem] xl:text-[5.25rem]" style={{ color: tone, textShadow: `0 0 46px color-mix(in srgb, ${tone} 45%, transparent)` }}>
-          {verdict}.
-        </motion.h2>
-        {pattern && (
-          <motion.div {...rise(3)} className="mt-3 inline-flex items-center gap-2 rounded-full border border-line-2 px-3 py-1 text-[12px] text-muted">
-            <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: patternColor(pattern) }} />
-            trajectory: <span className="text-text">{pattern}</span>
-          </motion.div>
-        )}
-        <motion.p {...rise(4)} className="serif mt-4 max-w-md text-[1.1rem] leading-snug text-muted lg:text-[1.28rem]">
-          {riskTakeaway(j)}
-        </motion.p>
-        <motion.div {...rise(5)} className="mt-5 flex flex-wrap gap-1.5">
+        <div className="label text-gold">{st.major} · {st.track} · {st.entry_type === "Transfer" ? "transfer" : "first-time"}</div>
+        <h2 className="display mt-5 text-[clamp(3.5rem,7vw,7rem)] font-bold leading-none text-text">{pct(risk)}</h2>
+        <p className="mt-3 text-lg text-gold">{verdictOf(risk)} · trained risk model</p>
+        <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">{riskTakeaway(j)}</p>
+        <p className="mt-4 max-w-xl text-sm leading-relaxed text-text">Your audit records {st.credits_earned} of {st.credits_required} required credits earned and {st.courses_in_progress.length} courses in progress. In-progress credits are not counted as earned.</p>
+        {j.auditWarnings.some(note => note.includes("entry type")) && <p className="mt-3 max-w-xl border-l-2 border-gold pl-3 text-xs leading-relaxed text-muted">{j.auditWarnings.find(note => note.includes("entry type"))}</p>}
+        {j.auditWarnings.length > 0 && <details className="mt-4 text-xs text-muted"><summary className="cursor-pointer text-gold">Audit reading notes</summary><ul className="mt-2 list-disc space-y-1 pl-5">{j.auditWarnings.map(note => <li key={note}>{note}</li>)}</ul></details>}
+        {st.terms_done.value === 0 && <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted">No completed regular terms were found in this audit. This score uses the model’s starting-stage inputs; it does not measure a term-by-term record yet.</p>}
+        <div className="mt-5 flex flex-wrap gap-2">
           <Provenance n={st.time_to_degree.support} tr={st.risk.tool_result_id} />
-          <Chip tone={st.twins.refused ? "hot" : "dim"} title="alumni matched to you on work hours and credit load">
-            {st.twins.refused ? "twins refused" : `${st.twins.n} twins`}
-          </Chip>
-          {j.alarm?.fires && (
-            <Chip tone="hot" title="the Watchtower opened an alarm for this student">
-              alarm #{j.alarm.id} open
-            </Chip>
-          )}
+          <Chip title="Training rows for this model stage">synthetic training data</Chip>
           <Sponsors live={live} keys={["model", "tiger"]} />
-        </motion.div>
-        <motion.div {...rise(6)} className="mt-6 flex flex-wrap gap-2">
-          {canHear && <Action onClick={onHear}>▶ Hear the narrator</Action>}
-          <Action onClick={onAsk}>
-            Ask a question <kbd className="num rounded border border-line-2 px-1.5 text-[10px] text-dim">/</kbd>
-          </Action>
-          <Action primary onClick={onNext}>
-            Timeline →
-          </Action>
-        </motion.div>
+        </div>
+        <p className="mt-5 text-sm text-muted">Want to go deeper? Use the microphone below to ask COOKED about your schedule, or type a question.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {canHear && <Action onClick={onHear}>Hear the answer</Action>}
+          <Action onClick={() => onAskAbout("How many credits have I earned, and which courses are in progress this fall?")}>Check this fall</Action>
+          <Action onClick={onAsk}>Ask anything</Action>
+          <Action primary onClick={onNext}>See timing →</Action>
+        </div>
       </header>
-
-      {/* RiskMeter (number + label + n) renders taller than the old needle gauge did; the single-column
-          reserved height needs to clear it or the header row below starts overlapping it. */}
-      <div className="relative order-first min-h-[420px] min-w-0 lg:order-none lg:h-full lg:max-h-[min(640px,100%)] lg:min-h-0">
-        <Stage>
-          {(box) => {
-            const ring = box.desk ? Math.max(220, Math.min(box.w, box.h - 108, 540)) : Math.min(box.w, 270);
-            return (
-              <div className="flex h-full flex-col items-center justify-center gap-4">
-                <RiskMeter value={risk} size={ring} label="model risk of getting cooked" n={st.time_to_degree.support} />
-                <div className="grid w-full max-w-[34rem] grid-cols-3 divide-x divide-line border-t border-line pt-3">
-                  <div className="px-3 first:pl-0">
-                    {share !== null ? (
-                      <Stat label="twins cooked" value={share * 100} format={(v) => `${Math.round(v)}%`} size="md" caption={`of ${st.twins.n} matched`} tone={riskTone(share)} />
-                    ) : (
-                      <Stat label="twins" value={0} size="md" caption="refused: need 30 balanced" />
-                    )}
-                  </div>
-                  <div className="px-3">{st.plan ? <Stat label="finish at your pace" value={st.plan.projected_years.value} format={(v) => v.toFixed(1)} unit="yrs" size="md" caption={`${st.plan.load} credits a term`} /> : <Stat label="credits a term" value={st.avg_credits.value} format={(v) => v.toFixed(1)} size="md" />}</div>
-                  <div className="px-3">
-                    <Stat label="credits earned" value={st.credits_earned} unit={`/ ${st.credits_required}`} size="md" caption={`${st.terms_done.value} terms done`} />
-                  </div>
-                </div>
-              </div>
-            );
-          }}
-        </Stage>
+      <div className="min-w-0 rounded-2xl border border-line p-5 sm:p-7">
+        <div className="label mb-4">Where the score sits</div>
+        <Bars data={data} domain={[0, 1]} format={pct} axisFormat={pct} unit="model risk" baseline={{ value: 0.5, label: "high-risk line", tone: "risk" }} height={160} />
+        <p className="mt-3 text-sm leading-relaxed text-muted">The trained model sets this score. The high-risk line starts at 50%; the watch line starts at 20%. {st.risk_is_probability ? "The score is calibrated as a probability." : "This score is not a calibrated personal probability."}</p>
+        <details className="mt-4 border-t border-line pt-3 text-xs text-muted"><summary className="cursor-pointer text-gold">What the model read</summary><p className="mt-2 leading-relaxed">It scored your {st.terms_done.value} completed regular terms, {st.avg_credits.value} attempted credits per term, {st.w_total.value} withdrawals, {st.work_hours} work hours per week, major and entry type. It also uses earned, failed and repeated course patterns from completed terms. These are inputs, not a causal explanation of the score.</p></details>
       </div>
     </section>
   );

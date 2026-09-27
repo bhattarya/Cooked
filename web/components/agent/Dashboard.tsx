@@ -31,7 +31,7 @@ export function Dashboard({ deck, j, tw, ds, live, careers, answers, answerIndex
   const scene = (id: DeckScene) => {
     switch (id) {
       case "risk":
-        return <RiskScene j={j} live={live} canHear={actions.canHear} onHear={actions.hear} onAsk={actions.ask} onNext={next} />;
+        return <RiskScene j={j} live={live} canHear={actions.canHear} onHear={actions.hear} onAsk={actions.ask} onAskAbout={actions.askAbout} onNext={next} />;
       case "timeline":
         return <TimelineScene j={j} tw={tw} live={live} onNext={next} />;
       case "twins":

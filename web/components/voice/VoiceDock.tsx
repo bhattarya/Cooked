@@ -1,19 +1,15 @@
 "use client";
 
-import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { availableCommands, subscribeRegistry, type CommandName } from "@/lib/commands";
 import { useCookedVoice, type VoiceState } from "@/lib/voiceAgent";
 import { CommandToast } from "./CommandToast";
-import { VoiceOrb } from "./VoiceOrb";
 
 const HINTS: { cmd: CommandName; text: string }[] = [
-  { cmd: "showScene", text: "“Show me the twins”" },
-  { cmd: "askStudent", text: "“Am I cooked?”" },
-  { cmd: "setScenario", text: "“Set internships to three”" },
+  { cmd: "askStudent", text: "“Is my fall schedule on track?”" },
+  { cmd: "showScene", text: "“Show me matched alumni”" },
   { cmd: "runStressTest", text: "“Run a stress test”" },
   { cmd: "findRepair", text: "“How do I get un-cooked?”" },
-  { cmd: "showScene", text: "“Compare the four models”" },
   { cmd: "nextScene", text: "“Next”" },
   { cmd: "loadSampleStudent", text: "“Load a sample student”" },
 ];
@@ -38,7 +34,7 @@ const isEditable = (t: EventTarget | null) => {
 };
 
 /**
- * Persistent floating voice control. Tap the orb (or press Space) to start; hold to talk when
+ * Persistent floating voice control. Tap the microphone (or press Space) to start; hold to talk when
  * hands-free is off; tap again to end. Captions, a live "what the voice just did" toast, and a
  * typed fallback live here too. Must sit inside <CookedVoiceProvider>.
  */
@@ -65,12 +61,10 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
   const available = useAvailable();
   const [typing, setTyping] = useState(false);
   const [draft, setDraft] = useState("");
-  const [hint, setHint] = useState(0);
-  const glow = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const press = useRef<{ at: number; wasConnected: boolean; wasSpeaking: boolean } | null>(null);
 
-  const { state, connected, levels, pressTalk, releaseTalk, stop, sendText, interrupt } = voice;
+  const { state, connected, pressTalk, releaseTalk, stop, sendText, interrupt } = voice;
   const textOnly = voice.support === "text";
   const showInput = typing || textOnly;
 
@@ -78,33 +72,6 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
     const ok = HINTS.filter((h) => available.includes(h.cmd));
     return ok.length ? ok : HINTS;
   }, [available]);
-
-  useEffect(() => {
-    if (connected || showInput) return;
-    const id = setInterval(() => setHint((n) => n + 1), 4200);
-    return () => clearInterval(id);
-  }, [connected, showInput]);
-
-  // Level-reactive glow, written straight to the DOM so audio never re-renders React.
-  useEffect(() => {
-    const el = glow.current;
-    if (!el) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!connected || reduce) {
-      el.style.setProperty("--lvl", "0");
-      return;
-    }
-    let raf = 0;
-    let lvl = 0;
-    const tick = () => {
-      const { input: i, output: o } = preview ? { input: 0, output: 0.35 + 0.3 * Math.sin(performance.now() / 260) } : levels();
-      lvl += (Math.min(1, Math.max(i * 1.7, o * 1.5)) - lvl) * 0.22;
-      el.style.setProperty("--lvl", lvl.toFixed(3));
-      raf = requestAnimationFrame(tick);
-    };
-    tick();
-    return () => cancelAnimationFrame(raf);
-  }, [connected, levels, preview]);
 
   useEffect(() => {
     if (typing) input.current?.focus();
@@ -158,7 +125,7 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
   const label = muted ? "Muted · hold Space to talk" : STATE_LABEL[state];
   const engineLabel =
     voice.engine === "elevenlabs" || (!connected && voice.support === "elevenlabs") ? "COOKED voice" : voice.support === "text" ? "Typing only" : "Browser speech";
-  const idleHint = hints[hint % hints.length]?.text;
+  const idleHint = hints[0]?.text ?? "a question about your plan";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,24 +136,15 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
   };
 
   return (
-    <MotionConfig reducedMotion="user">
+    <>
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex flex-col items-center gap-2 px-3 pb-[max(14px,env(safe-area-inset-bottom))]">
         <CommandToast />
-        <motion.section
+        <section
           data-voice-dock
           aria-label="Ask COOKED"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 28, delay: 0.15 }}
-          className="glass pointer-events-auto relative flex w-full max-w-[680px] items-center gap-2 rounded-[28px] p-1.5 pr-2 shadow-[0_18px_60px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,220,140,0.08)] sm:gap-3 sm:rounded-[36px] sm:p-2 sm:pr-2.5"
-          // Dense enough that page text never shows through, even where backdrop blur is unavailable.
-          style={{ background: "linear-gradient(180deg, rgba(27,22,13,0.92), rgba(13,10,6,0.95))" }}
+          className="pointer-events-auto relative flex w-full max-w-[680px] items-center gap-2 rounded-2xl border border-line-2 bg-bg-2 p-2 sm:gap-3"
         >
-          <div
-            ref={glow}
-            className="relative shrink-0"
-            style={{ ["--lvl" as string]: 0 }}
-          >
+          <div className="relative shrink-0">
             <button
               type="button"
               aria-label={connected ? "Voice on. Hold to talk, tap to end" : "Start voice control. Hold to talk"}
@@ -207,22 +165,10 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
                 }
               }}
               onClick={(e) => e.preventDefault()}
-              className="relative grid size-[64px] touch-none select-none place-items-center rounded-full outline-none transition-[box-shadow,opacity] focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-40 sm:size-[76px]"
-              style={{
-                background: "radial-gradient(circle at 50% 36%, rgba(246,180,26,0.30), rgba(10,8,5,0.94) 74%)",
-                border: `1px solid ${state === "error" ? "rgba(255,74,61,0.55)" : "rgba(246,180,26,0.5)"}`,
-                boxShadow: "0 0 calc(14px + var(--lvl, 0) * 46px) rgba(246,180,26, calc(0.3 + var(--lvl, 0) * 0.5))",
-                transform: "scale(calc(1 + var(--lvl, 0) * 0.1))",
-                opacity: muted ? 0.62 : 1,
-              }}
+              className={`relative grid size-12 touch-none select-none place-items-center rounded-xl border outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-40 ${connected ? "border-gold bg-gold/15 text-gold" : "border-line-2 text-gold"} ${muted ? "opacity-60" : ""}`}
             >
-              <span className="pointer-events-none grid place-items-center [&_canvas]:!size-[58px] sm:[&_canvas]:!size-[68px]">
-                <VoiceOrb state={state} />
-              </span>
+              <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" /></svg>
             </button>
-            {connected && state === "listening" && voice.micOpen && (
-              <span aria-hidden className="pulse-ring pointer-events-none absolute inset-0 rounded-full border border-gold/50" />
-            )}
           </div>
 
           <div className="min-w-0 flex-1">
@@ -258,24 +204,20 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
               </button>
             ) : (
               <div role="log" aria-live="polite" className="mt-0.5 min-h-[34px] sm:min-h-[38px]">
-                <AnimatePresence mode="popLayout" initial={false}>
                   {userText ? (
-                    <motion.p key={`u-${voice.interim ? "live" : lastUser?.id}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={`truncate text-[13px] italic text-muted ${voice.interim ? "caret" : ""}`}>
+                    <p key={`u-${voice.interim ? "live" : lastUser?.id}`} className={`truncate text-[13px] italic text-muted ${voice.interim ? "caret" : ""}`}>
                       {userText}
-                    </motion.p>
+                    </p>
                   ) : null}
-                </AnimatePresence>
-                <AnimatePresence mode="popLayout" initial={false}>
                   {lastAgent && connected ? (
-                    <motion.p key={`a-${lastAgent.id}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="line-clamp-2 text-[14px] leading-snug text-text">
+                    <p key={`a-${lastAgent.id}`} className="line-clamp-2 text-[14px] leading-snug text-text">
                       {lastAgent.text}
-                    </motion.p>
+                    </p>
                   ) : !connected && !userText ? (
-                    <motion.p key={`h-${hint % hints.length}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="truncate text-[14px] text-muted">
-                      {voice.supportNote && hint % 3 === 2 ? voice.supportNote : <>Tap the orb or hold <kbd className="num rounded border border-line-2 px-1 text-[11px] text-cream">Space</kbd> and say {idleHint}</>}
-                    </motion.p>
+                    <p className="truncate text-[14px] text-muted">
+                      {voice.supportNote ?? <>Tap the microphone or hold <kbd className="num rounded border border-line-2 px-1 text-[11px] text-cream">Space</kbd> and say {idleHint}</>}
+                    </p>
                   ) : null}
-                </AnimatePresence>
               </div>
             )}
           </div>
@@ -311,8 +253,8 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
               </button>
             )}
           </div>
-        </motion.section>
+        </section>
       </div>
-    </MotionConfig>
+    </>
   );
 }

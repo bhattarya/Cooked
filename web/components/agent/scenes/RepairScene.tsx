@@ -1,6 +1,6 @@
 "use client";
 
-import { Bars, Dumbbell, RiskMeter, type BarItem, type DumbbellItem } from "@/components/viz";
+import { Bars, type BarItem } from "@/components/viz";
 import { Chip, Provenance, SceneFrame } from "@/components/scenes";
 import type { Answer } from "@/lib/agentApi";
 import type { SponsorLive } from "../Sponsors";
@@ -19,43 +19,17 @@ export function RepairStage({ j, r, box, onAskAbout }: { j: Journey; r: RepairFu
   const p = r.primary;
   const levers = [r.primary, r.fallback].filter((l): l is RepairLever => !!l);
   const feas = feasibilityOf(p);
-  const rows: DumbbellItem[] = levers.flatMap((l) => (l.model_risk_now_pace != null && l.model_risk_at_target != null ? [{ key: l.title, label: l.title, before: l.model_risk_now_pace, after: l.model_risk_at_target, n: l.support }] : []));
   const ranked: BarItem[] = levers.map((l) => ({ key: l.title, label: l.title, value: l.diff_years, lo: l.ci90?.[0], hi: l.ci90?.[1], n: l.support }));
   if (!p) {
     return (
       <Honest title={reading.kind === "nothing" ? "nothing to repair" : "COOKED refuses to prescribe"} tone={reading.kind === "nothing" ? "cool" : "hot"}>
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="w-[210px] shrink-0">
-            <RiskMeter value={risk} size={210} label="model risk" />
-          </div>
-          <div className="min-w-0 flex-1">
-            {reading.kind === "nothing" ? (
-              <>
-                Model risk is <span className="num text-text">{pct(risk)}</span>, so there is no change worth recommending. {r.refusal}
-              </>
-            ) : (
-              <>
-                {r.refusal ?? "No change has enough matched students behind it."} A fix has to be something alumni like you actually did and finished sooner; without that evidence COOKED says nothing rather than guess.
-              </>
-            )}
-            {r.twins !== undefined && (
-              <span className="num mt-3 block text-[12px] text-dim">
-                searched {r.twins} matched twins · {r.tool_result_id}
-              </span>
-            )}
-          </div>
-        </div>
+        <p>Model risk is {pct(risk)}. {reading.kind === "nothing" ? "No change is supported at this risk level." : "No change has enough matched students behind it."} {r.refusal}</p>
+        {r.twins !== undefined && <p className="mt-3 text-xs text-muted">Searched {r.twins} matched alumni · {r.tool_result_id}</p>}
       </Honest>
     );
   }
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-4">
-      {rows.length > 0 && (
-        <div>
-          <div className="label mb-1">model risk · at your pace against with the fix</div>
-          <Dumbbell data={rows} betterWhen="lower" beforeLabel="At your pace" afterLabel="With the fix" format={pct} domain={[0, 1]} formatDelta={(d) => `${d > 0 ? "+" : d < 0 ? "−" : ""}${Math.round(Math.abs(d) * 100)} pts`} />
-        </div>
-      )}
       <div>
         <div className="label mb-1">ranked by years finished sooner · median, with the 90% range</div>
         <Bars data={ranked} orientation="horizontal" sort="desc" format={(v) => `${v.toFixed(1)} yrs`} axisFormat={(v) => v.toFixed(1)} unit="years sooner" intervalLabel="90% range" highlight={p.title} height={Math.max(72, ranked.length * 46 + 8)} />

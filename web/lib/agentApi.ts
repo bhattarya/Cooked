@@ -24,6 +24,7 @@ export interface Intake {
   source: "sample" | "gemini" | "claude" | "unavailable";
   first_name?: string | null;
   needs_work_hours?: boolean;
+  warnings?: string[];
   summary?: AuditSummary;
   error?: string;
 }

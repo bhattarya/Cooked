@@ -1,14 +1,12 @@
 "use client";
 
-import { Donut, RangeBar, money } from "@/components/viz";
+import { Bars, money } from "@/components/viz";
 import { Chip, Provenance, SceneFrame } from "@/components/scenes";
 import { ThinkingChip } from "@/components/theatre";
 import type { SponsorLive } from "../Sponsors";
 import { careersTakeaway } from "./copy";
-import { Action, Honest, Sponsors, Stage, fit } from "./kit";
+import { Action, Honest, Sponsors, Stage } from "./kit";
 import { pct, type CareersState } from "./model";
-
-const CAREER_COLOR: Record<string, string> = { Employed: "var(--cool)", "Continuing education": "var(--ice)", "Still seeking": "var(--hot)" };
 
 /**
  * Scene 6: careers. The student's real record is mapped onto a Model Lab scenario, so this is a
@@ -27,8 +25,6 @@ export function CareersScene({ state, live, onNext }: { state: CareersState; liv
   const { input, sim, trust } = state.data;
   const top = sim.career[0];
   const baseline = trust.careerFamily === "baseline";
-  const lo = Math.floor((sim.salary.low * 0.6) / 10000) * 10000;
-  const hi = Math.ceil((sim.salary.high * 1.4) / 10000) * 10000;
   const held = [...sim.out_of_range.map((f) => f.replace(/_/g, " ")), ...input.clamped];
 
   return (
@@ -54,22 +50,14 @@ export function CareersScene({ state, live, onNext }: { state: CareersState; liv
       }
     >
       <Stage>
-        {(box) => (
+        {() => (
           <div className="flex h-full min-h-0 flex-col justify-center gap-4">
-            <div className={`grid items-center gap-4 ${box.desk ? "grid-cols-[minmax(0,34rem)_minmax(0,1fr)]" : "grid-cols-1"}`}>
+            <div className={`grid items-center gap-4 sm:grid-cols-2`}>
               <div>
                 <div className="label mb-1">first destination · model odds</div>
-                <Donut
-                  data={sim.career.map((c) => ({ label: c.label, value: c.probability, color: CAREER_COLOR[c.label] }))}
-                  centerValue={top.probability * 100}
-                  centerFormat={(v) => `${Math.round(v)}%`}
-                  centerLabel={top.label.toLowerCase()}
-                  labels={box.w >= 760 ? "leader" : "none"}
-                  format={pct}
-                  unit="odds"
-                  height={fit(box, 0.3, 160, 190, 190)}
-                  thickness={0.26}
-                />
+                <div className="display mb-3 text-5xl font-bold text-text">{pct(top.probability)}</div>
+                <p className="mb-3 text-sm text-muted">{top.label.toLowerCase()} · first destination</p>
+                <Bars data={sim.career.map((c) => ({ label: c.label, value: c.probability }))} domain={[0, 1]} format={pct} axisFormat={pct} unit="model odds" height={190} />
               </div>
               <div className="space-y-2 text-[13px] leading-snug text-muted">
                 {baseline ? (
@@ -83,24 +71,7 @@ export function CareersScene({ state, live, onNext }: { state: CareersState; liv
               </div>
             </div>
 
-            <RangeBar
-              label="First salary, model median (nominal dollars)"
-              value={sim.salary.mid}
-              low={sim.salary.low}
-              high={sim.salary.high}
-              min={lo}
-              max={hi}
-              format={money}
-              size={box.desk && box.h < 640 ? "md" : "lg"}
-              n={sim.salary.support}
-              lowLabel="p25"
-              highLabel="p75"
-              caption={
-                trust.salaryBias !== null
-                  ? `The ${trust.salaryFamily ?? "salary"} model ran about ${money(Math.abs(trust.salaryBias))} ${trust.salaryBias < 0 ? "low" : "high"} on the 2023–2026 graduates it was tested on, because nominal salaries kept rising. Dollars are nominal, never adjusted.`
-                  : "Dollars are nominal, never adjusted for inflation."
-              }
-            />
+            <p className="text-sm leading-relaxed text-muted">First salary model: {money(sim.salary.mid)} median, with 25th to 75th percentile predictions from {money(sim.salary.low)} to {money(sim.salary.high)} in nominal dollars. {trust.salaryBias !== null ? `On its 2023–2026 holdout, the ${trust.salaryFamily ?? "salary"} model ran about ${money(Math.abs(trust.salaryBias))} ${trust.salaryBias < 0 ? "low" : "high"}.` : ""}</p>
 
             <div>
               <div className="label mb-1.5">scenario built from your record</div>

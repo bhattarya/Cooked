@@ -1,6 +1,6 @@
 "use client";
 
-import { LineChart, Waterfall } from "@/components/viz";
+import { Waterfall } from "@/components/viz";
 import { Chip, Provenance, SceneFrame } from "@/components/scenes";
 import type { Answer } from "@/lib/agentApi";
 import type { SponsorLive } from "../Sponsors";
@@ -35,22 +35,7 @@ export function DrillStage({ d, box }: { d: DrillFull; box: Box }) {
           label={`Risk starts at ${pct(d.baseline_risk)} and ${d.path.length ? `ends at ${pct(d.path[d.path.length - 1].risk_after)} after ${plural(d.path.length)}` : "is already past the line"}, against a ${pct(line)} cooked line.`}
         />
       </div>
-      <div className={`grid min-h-0 gap-4 ${box.desk ? "grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" : "grid-cols-1"}`}>
-        <div className="min-w-0">
-          <div className="label mb-1">of {d.sims} simulated futures, still not cooked</div>
-          <LineChart
-            x={d.survival.map((p) => p.term_k)}
-            xFormat={(v) => (v === 0 ? "now" : `+${v}`)}
-            xLabel="terms from now"
-            series={[{ key: "alive", label: "not cooked", color: "var(--cool)", y: d.survival.map((p) => p.survival), area: true }]}
-            yDomain={[0, 1]}
-            yFormat={pct}
-            yTicks={2}
-            curve="step"
-            height={fit(box, 0.26, 120, 170, 160)}
-            n={d.sims}
-          />
-        </div>
+      <div className="min-h-0">
         <ol className="min-w-0 space-y-1.5 text-[12.5px]" aria-label="The shocks, in order">
           <li className="label">the shocks</li>
           {d.path.length === 0 && <li className="rounded-xl border border-hot/30 bg-hot/[0.06] p-3 text-[13px] text-hot">No shock needed: at {d.plan_load} credits a term the plan starts past the line.</li>}
@@ -68,6 +53,7 @@ export function DrillStage({ d, box }: { d: DrillFull; box: Box }) {
             </li>
           ))}
         </ol>
+        <p className="mt-3 text-xs text-muted">{d.sims} simulated futures · {d.rows_stored} stored trajectories.</p>
       </div>
     </div>
   );

@@ -1,20 +1,18 @@
 "use client";
 
-import { motion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { extractNumber } from "@/lib/commands";
 import { listen, useCanListen } from "@/lib/listen";
-import { GoldOrb } from "@/components/theatre";
 
 const CHIPS = [0, 10, 15, 20, 25, 30];
 
 function Veil({ children, label }: { children: ReactNode; label: string }) {
   return (
-    <motion.div role="dialog" aria-modal="true" aria-label={label} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.35 }} className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-bg/55 p-4 pb-32 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, y: 26, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 190, damping: 22, delay: 0.05 }} className="glass w-full max-w-xl rounded-[28px] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.6)] sm:p-8">
+    <div role="dialog" aria-modal="true" aria-label={label} className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-bg/90 p-4 pb-32">
+      <div className="w-full max-w-xl rounded-xl border border-line-2 bg-panel p-6 sm:p-8">
         {children}
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 
@@ -61,9 +59,6 @@ export function WorkHoursPanel({ onAnswer, agentConnected }: { onAnswer: (hours:
   return (
     <Veil label="How many hours a week do you work?">
       <div className="flex items-center gap-4">
-        <span aria-hidden className="shrink-0">
-          <GoldOrb state="listening" size={56} />
-        </span>
         <div>
           <div className="label !text-gold">one thing an audit can&apos;t tell me</div>
           <h2 className="display mt-1.5 text-[1.7rem] font-extrabold leading-[1] text-cream sm:text-[2.1rem]">About how many hours a week do you work?</h2>

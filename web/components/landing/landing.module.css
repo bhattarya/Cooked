@@ -1,205 +1,33 @@
-/* Landing-only keyframes and surfaces. Everything ambient lives here so `prefers-reduced-motion`
-   can switch it all off in one place at the bottom of the file. */
-
-/* the emblem drifts like it is hovering over the skillet's heat */
-@keyframes float {
-  0%, 100% { transform: translate3d(0, 0, 0) rotate(-0.4deg); }
-  50% { transform: translate3d(0, -14px, 0) rotate(0.4deg); }
-}
-.float { animation: float 7.5s ease-in-out infinite; will-change: transform; }
-
-/* gold glow behind the emblem breathes slower than the float so the two never sync up */
-@keyframes breathe {
-  0%, 100% { opacity: 0.62; transform: scale(0.95); }
-  50% { opacity: 1; transform: scale(1.07); }
-}
-.glow { animation: breathe 5.6s ease-in-out infinite; }
-
-/* irregular stops so the flame overlays flicker instead of pulse */
-@keyframes flicker {
-  0% { opacity: 0.55; transform: scale(1) translateY(0); }
-  8% { opacity: 0.95; transform: scale(1.08) translateY(-2%); }
-  17% { opacity: 0.45; transform: scale(0.96) translateY(1%); }
-  29% { opacity: 0.85; transform: scale(1.05) translateY(-1%); }
-  41% { opacity: 0.6; transform: scale(1) translateY(0); }
-  56% { opacity: 1; transform: scale(1.1) translateY(-3%); }
-  68% { opacity: 0.5; transform: scale(0.97) translateY(1%); }
-  83% { opacity: 0.9; transform: scale(1.04) translateY(-1%); }
-  100% { opacity: 0.55; transform: scale(1) translateY(0); }
-}
-.flame {
-  position: absolute;
-  border-radius: 50%;
-  mix-blend-mode: screen;
-  pointer-events: none;
-  background: radial-gradient(closest-side, rgba(255, 170, 40, 0.62), rgba(255, 110, 20, 0.22) 55%, transparent 100%);
-  animation: flicker 2.9s linear infinite;
-}
-
-/* molten gold headline with a highlight that sweeps across it now and then */
-@keyframes sheen {
-  0%, 58% { background-position: 140% 0, 0 0; }
-  100% { background-position: -40% 0, 0 0; }
-}
-.sheen {
-  background:
-    linear-gradient(104deg, transparent 42%, rgba(255, 248, 220, 0.95) 50%, transparent 58%) 140% 0 / 260% 100% no-repeat,
-    linear-gradient(180deg, var(--gold-hi) 0%, var(--gold) 48%, var(--gold-lo) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: sheen 8.5s ease-in-out 3.2s infinite;
-}
-
-/* the door: a glass card with a gold hairline that fades toward the bottom */
 .door {
-  position: relative;
-  border-radius: 28px;
-  background:
-    linear-gradient(180deg, rgba(34, 27, 14, 0.72), rgba(14, 11, 6, 0.78)),
-    rgba(10, 8, 5, 0.6);
-  backdrop-filter: blur(22px) saturate(1.25);
-  -webkit-backdrop-filter: blur(22px) saturate(1.25);
-  box-shadow:
-    0 40px 90px -40px rgba(0, 0, 0, 0.9),
-    0 0 80px -30px rgba(246, 180, 26, 0.28),
-    inset 0 1px 0 rgba(255, 236, 190, 0.1);
-}
-.door::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.35s ease;
-  background: radial-gradient(280px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 209, 92, 0.11), transparent 62%);
-}
-.door:hover::after { opacity: 1; }
-.door::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(165deg, rgba(255, 209, 92, 0.75), rgba(246, 180, 26, 0.18) 38%, rgba(255, 220, 140, 0.05) 70%, rgba(246, 180, 26, 0.3));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  pointer-events: none;
-}
-
-/* primary call to action: glass, gold edge, a shimmer that passes every few seconds */
-.cta {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  border-radius: 18px;
-  padding: 15px 22px;
-  font-size: 15.5px;
-  font-weight: 600;
-  letter-spacing: 0.005em;
-  color: var(--cream);
-  cursor: pointer;
-  border: 1px solid transparent;
-  background:
-    linear-gradient(180deg, rgba(246, 180, 26, 0.4), rgba(246, 180, 26, 0.08) 72%) padding-box,
-    linear-gradient(#1b140a, #110c06) padding-box,
-    linear-gradient(170deg, var(--gold-hi), var(--gold-lo) 68%, rgba(255, 209, 92, 0.55)) border-box;
-  box-shadow:
-    0 18px 44px -18px rgba(246, 180, 26, 0.6),
-    0 0 0 1px rgba(255, 209, 92, 0.06),
-    inset 0 1px 0 rgba(255, 244, 214, 0.28),
-    inset 0 -14px 24px -16px rgba(255, 122, 26, 0.35);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, filter 0.35s ease;
-}
-.cta:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.12);
-  box-shadow:
-    0 26px 56px -18px rgba(246, 180, 26, 0.78),
-    0 0 0 1px rgba(255, 209, 92, 0.14),
-    inset 0 1px 0 rgba(255, 244, 214, 0.38),
-    inset 0 -14px 24px -16px rgba(255, 122, 26, 0.5);
-}
-.cta:active { transform: translateY(0) scale(0.985); }
-.cta:disabled { cursor: wait; filter: saturate(0.8) brightness(0.92); transform: none; }
-.cta:focus-visible, .ghost:focus-visible, .link:focus-visible {
-  outline: 2px solid var(--gold-hi);
-  outline-offset: 3px;
-}
-@keyframes shimmer {
-  0%, 55% { transform: translateX(-140%) skewX(-20deg); }
-  100% { transform: translateX(260%) skewX(-20deg); }
-}
-.cta::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 42%;
-  background: linear-gradient(90deg, transparent, rgba(255, 240, 200, 0.42), transparent);
-  animation: shimmer 5.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  pointer-events: none;
-}
-
-/* secondary path: quiet, but a real button with a real hit area */
-.ghost {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 18px;
-  padding: 13px 20px;
-  font-size: 14.5px;
-  font-weight: 500;
-  color: var(--muted);
-  cursor: pointer;
-  background: rgba(255, 236, 190, 0.03);
   border: 1px solid var(--line-2);
-  transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 20px;
+  background: var(--bg-2);
 }
-.ghost:hover {
-  color: var(--cream);
-  border-color: rgba(255, 209, 92, 0.42);
-  background: rgba(246, 180, 26, 0.07);
-  transform: translateY(-1px);
+.cta, .ghost {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 12px;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background .15s ease, border-color .15s ease;
 }
-.ghost:active { transform: scale(0.99); }
-.ghost:disabled { cursor: wait; opacity: 0.6; }
-
-.link {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: rgba(255, 220, 140, 0.3);
-  text-underline-offset: 3px;
-  transition: color 0.2s ease, text-decoration-color 0.2s ease;
-  border-radius: 3px;
-}
-.link:hover { color: var(--gold-hi); text-decoration-color: var(--gold-hi); }
-
-@keyframes dot { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
-.live { animation: dot 2.4s ease-in-out infinite; }
-
+.cta { background: var(--gold); color: var(--bg); }
+.cta:hover { background: var(--gold-hi); }
+.ghost { border: 1px solid var(--line-2); color: var(--text); }
+.ghost:hover { border-color: var(--gold); background: var(--panel); }
+.cta:focus-visible, .ghost:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 3px; }
+.cta:disabled, .ghost:disabled { opacity: .65; cursor: wait; }
 .spinner {
   width: 14px;
   height: 14px;
+  border: 2px solid var(--line-2);
+  border-top-color: var(--bg);
   border-radius: 50%;
-  border: 2px solid rgba(0, 0, 0, 0.14);
-  border-top-color: rgba(0, 0, 0, 0.7);
-  animation: spin 0.8s linear infinite;
+  animation: spin .8s linear infinite;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .float, .glow, .flame, .sheen, .cta::after, .live { animation: none; }
-  .flame { opacity: 0.6; }
-  .cta, .ghost { transition: none; }
-}
+@keyframes spin { to { transform: rotate(360deg); } }

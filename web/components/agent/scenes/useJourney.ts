@@ -178,6 +178,7 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
           name,
           source: d.source === "claude" ? "claude" : d.source === "gemini" ? "gemini" : "sample",
           label,
+          auditWarnings: d.warnings ?? [],
           st: a.st,
           work: hours,
           load: a.load,
@@ -306,11 +307,11 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
 
   const scenes = useMemo(
     () => [
-      { id: "risk", label: "Verdict" },
+      { id: "risk", label: "My plan" },
       { id: "timeline", label: "Timeline" },
-      { id: "twins", label: "Twins" },
-      { id: "drill", label: "Fire drill", disabled: !journey?.drill },
-      { id: "repair", label: "Repair", disabled: !journey?.repair },
+      { id: "twins", label: "Matched alumni" },
+      { id: "drill", label: "Test a change", disabled: !journey?.drill },
+      { id: "repair", label: "Next step", disabled: !journey?.repair },
       { id: "careers", label: "Careers", disabled: careers.status === "unavailable" },
       { id: "answer", label: "Answer", disabled: answers.length === 0 },
     ],

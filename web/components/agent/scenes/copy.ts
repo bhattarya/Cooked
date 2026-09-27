@@ -28,8 +28,13 @@ export function riskFacts(j: Journey) {
 /** The verdict in plain words, placed from tool results the way the server's own narration template places them. */
 export function riskTakeaway(j: Journey): string {
   const { st } = j;
-  const head = `After ${plural(st.terms_done.value, "term")} averaging ${st.avg_credits.value} credits, the model puts your chance of taking over five years or piling up withdrawals at ${pct(st.risk.value)}.`;
-  return st.twins.refused ? `${head} Too few close twins to compare with: COOKED refuses under 30.` : `${head} That is measured against ${st.twins.n} matched alumni.`;
+  const stage = st.terms_done.value === 0
+    ? "The audit has no completed regular terms, so this is a starting-stage score."
+    : `The audit shows ${plural(st.terms_done.value, "completed regular term")} averaging ${st.avg_credits.value} attempted credits.`;
+  const match = st.twins.refused
+    ? "There were too few balanced alumni for a matched outcome comparison."
+    : `${st.twins.n} balanced alumni provide a separate comparison on the next screen.`;
+  return `${stage} The trained model scores the risk of taking over five years or accumulating withdrawals at ${pct(st.risk.value)}. ${match}`;
 }
 
 export function riskVoice(j: Journey): SceneVoice {
@@ -59,7 +64,7 @@ export function riskVoice(j: Journey): SceneVoice {
 
 export function timelineTakeaway(j: Journey, tw: TwinFacts | null): string {
   const t = j.st.time_to_degree;
-  const model = `The model puts your finish at ${yrs(t.mid)} years, likely ${yrs(t.low)} to ${yrs(t.high)}.`;
+  const model = `The trained model estimates ${yrs(t.mid)} years to degree; its 25th to 75th percentile predictions run from ${yrs(t.low)} to ${yrs(t.high)} years.`;
   if (!tw) return j.st.twins.refused ? `${model} COOKED found no balanced twins to compare with, so it shows no alumni line.` : model;
   const load = tw.loadAfter.onTime;
   return `${model} Your ${tw.n} twins actually took ${yrs(tw.ttd.median)}${load !== null ? `, and those who finished on time carried ${load.toFixed(1)} credits a term from here. You carry ${j.st.avg_credits.value}` : ""}.`;
@@ -232,6 +237,7 @@ export function answerTitle(a: Answer): { title: string; accent: string; kicker:
     return { kicker: "what if", title: "What if", accent };
   }
   if (v.type === "course") return { kicker: "course check", title: "Course", accent: `${v.courses.map((c) => c.course_id).slice(0, 2).join(" vs ")}?` };
+  if (a.tool === "audit_summary") return /fall|schedule|semester/i.test(a.question) ? { kicker: "your audit", title: "Your fall", accent: "schedule" } : { kicker: "your audit", title: "Your degree", accent: "progress" };
   if (v.type === "explain") return { kicker: "why", title: "Why", accent: `${pct(v.state.risk.value)}` };
   if (v.type === "drill") return { kicker: "stress test", title: "Fire", accent: "drill" };
   if (v.type === "cohort") {

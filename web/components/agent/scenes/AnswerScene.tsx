@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
 import { Chip } from "@/components/scenes";
 import type { Answer, Visual } from "@/lib/agentApi";
 import type { Dataset } from "@/lib/types";
@@ -10,7 +9,7 @@ import { read, type CohortAnswer } from "../explore/model";
 import { SponsorChip, type SponsorLive } from "../Sponsors";
 import { answerTitle } from "./copy";
 import { DrillStage } from "./DrillScene";
-import { Action, AnswerText, Stage, rise, type Box } from "./kit";
+import { Action, AnswerText, Stage, type Box } from "./kit";
 import type { DeckScene, DrillFull, Journey, RepairFull } from "./model";
 import { RepairStage } from "./RepairScene";
 
@@ -53,18 +52,18 @@ export function AnswerScene({ answers, index, onSelect, j, ds, live, onAsk, onGo
   return (
     <section className="grid h-full min-h-0 grid-cols-1 content-start gap-6 overflow-y-auto px-5 pb-6 pt-4 sm:px-8 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:content-center lg:items-center lg:gap-10 lg:overflow-hidden lg:px-10 xl:gap-14 xl:px-14">
       <header className="min-w-0">
-        <motion.div {...rise(0)} className="label !text-gold line-clamp-2">
+        <div className="label !text-gold line-clamp-2">
           you asked · “{a.question}”
-        </motion.div>
-        <motion.h2 {...rise(1)} className="display mt-3 text-[2.6rem] font-extrabold leading-[0.92] sm:text-5xl xl:text-[3.6rem]">
+        </div>
+        <h2 className="display mt-3 text-[2.6rem] font-extrabold leading-[0.92] sm:text-5xl xl:text-[3.6rem]">
           {t.title}
           <br />
-          <span className="text-gold-grad">{t.accent}</span>
-        </motion.h2>
-        <motion.p {...rise(2)} className="serif mt-4 max-w-md text-[1.1rem] leading-snug text-muted lg:text-[1.2rem]">
+          <span className="text-gold">{t.accent}</span>
+        </h2>
+        <p className="mt-4 max-w-md text-[1.1rem] leading-snug text-muted lg:text-[1.2rem]">
           <AnswerText segments={a.segments} />
-        </motion.p>
-        <motion.div {...rise(3)} className="mt-5 flex flex-wrap gap-1.5">
+        </p>
+        <div className="mt-5 flex flex-wrap gap-1.5">
           <Chip tone={a.provenance.ok ? "gold" : "hot"} title="every number in this answer must trace back to a tool result">
             {a.provenance.ok ? `✓ ${a.provenance.tokens} numbers traced` : "blocked: an untraced number"}
           </Chip>
@@ -72,13 +71,13 @@ export function AnswerScene({ answers, index, onSelect, j, ds, live, onAsk, onGo
           <SponsorChip k="gemini" live={a.router === "gemini" && live.gemini} compact />
           {(a.tool === "stress_test" || a.tool === "explain_risk") && <SponsorChip k="tiger" live={live.tiger} compact />}
           <SponsorChip k="model" live={live.model} compact />
-        </motion.div>
-        <motion.div {...rise(4)} className="mt-5 flex flex-wrap gap-2">
+        </div>
+        <div className="mt-5 flex flex-wrap gap-2">
           <Action primary onClick={onAsk}>
             Ask another <kbd className="num rounded border border-bg/30 px-1.5 text-[10px]">/</kbd>
           </Action>
           {home && <Action onClick={() => onGo(home.scene)}>{home.label} →</Action>}
-        </motion.div>
+        </div>
       </header>
 
       <div className="relative min-h-[300px] min-w-0 lg:h-full lg:max-h-[min(640px,100%)] lg:min-h-0">

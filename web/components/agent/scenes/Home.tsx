@@ -1,7 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
-import { useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import type { Dataset } from "@/lib/types";
 import type { SponsorLive } from "../Sponsors";
 import { SAMPLES } from "./model";
@@ -20,44 +19,29 @@ export function Home({ ds: _ds, live: _live, name: _name, error, hasJourney, onF
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const [loadingFile, setLoadingFile] = useState(false);
-  const choose = (f?: File) => { if (!f) return; setLoadingFile(true); onFile(f); };
+  useEffect(() => { if (error) setLoadingFile(false); }, [error]);
+  const choose = (file?: File) => { if (!file) return; setLoadingFile(true); onFile(file); };
   const drop = (e: DragEvent) => { e.preventDefault(); setOver(false); choose(e.dataTransfer.files[0]); };
 
-  return (
-    <section className="home-shell relative flex min-h-full flex-1 overflow-y-auto px-5 pb-36 pt-8 sm:px-10 sm:pt-10 lg:px-16">
-      <div className="home-aurora home-aurora-one" aria-hidden /><div className="home-aurora home-aurora-two" aria-hidden /><div className="home-gridline" aria-hidden />
-      <div className="relative z-10 m-auto grid w-full max-w-[1240px] items-center gap-12 py-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,.8fr)] lg:gap-20 lg:py-14">
-        <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .7, ease: [.22, 1, .36, 1] }}>
-          <div className="home-kicker"><span className="home-kicker-dot" /> Personal degree intelligence</div>
-          <h1 className="home-title mt-6">Your degree,<span>decoded.</span></h1>
-          <p className="home-lede mt-6 max-w-xl">Upload the audit you already have. COOKED turns the fine print into a clear path, a little less panic, and one very opinionated next move.</p>
-          {hasJourney && <button onClick={onResume} className="home-resume mt-9">Continue your active plan <span>↗</span></button>}
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 30, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .75, delay: .12, ease: [.22, 1, .36, 1] }} className="relative">
-          <div className={`upload-card ${over ? "upload-card-over" : ""}`} onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={drop}>
-            <div className="upload-card-head"><span>Start here</span><b>01 / 03</b></div>
-            <div className="upload-icon-wrap" aria-hidden><div className="upload-icon">↑</div></div>
-            <h2>{loadingFile ? "Reading the fine print…" : over ? "Release to upload" : "Bring your audit."}</h2>
-            <p>PDF, PNG, JPEG, or WebP. We’ll find completed credits, requirements, and courses in progress.</p>
-            <input ref={input} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="sr-only" aria-label="Upload degree audit" onChange={(e) => { choose(e.target.files?.[0]); e.target.value = ""; }} />
-            <button type="button" disabled={loadingFile} onClick={() => input.current?.click()} className="upload-button"><span>{loadingFile ? "Reading your audit…" : "Choose degree audit"}</span><span aria-hidden>↗</span></button>
-            <div className="upload-foot"><span>Private by default</span><span>Up to 8 MB</span><span>PDFs welcome</span></div>
-          </div>
-          {/* Quiet, always-available fallback: no audit on hand, or the demo needs a guaranteed-working path.
-              Real synthetic students, checked against the trained model — same pipeline as a real upload. */}
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-center text-[13px] text-muted">
-            <span className="text-dim">No audit on hand?</span>
-            {SAMPLES.map((s) => (
-              <button key={s.id} onClick={() => onSample(s.id)} className="underline decoration-line-2 underline-offset-4 transition hover:text-text hover:decoration-gold/60">
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {error && <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="home-error lg:col-start-2"><span className="home-error-mark">!</span><div><strong>That upload needs another look.</strong><p>{error}</p><button onClick={() => onSample(SAMPLES[0].id)}>Try a sample plan →</button></div></motion.div>}
+  return <section className="flex h-full overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
+    <div className="m-auto grid w-full max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-center lg:gap-16">
+      <div>
+        <p className="label !text-gold">Your student guide</p>
+        <h1 className="display mt-4 max-w-xl text-4xl font-bold text-cream sm:text-6xl">Know where your degree stands.</h1>
+        <p className="mt-6 max-w-xl text-base leading-relaxed text-muted">Add your degree audit. Ask COOKED about this fall, your credits, or your timeline by voice or text. See what the audit says, what the trained model estimates, and how comparable students did.</p>
+        <p className="mt-5 max-w-xl text-xs leading-relaxed text-dim">Your audit is read for courses and credits. Model scores and cohort comparisons come from the synthetic HackUMBC dataset and describe patterns, not promises.</p>
+        {hasJourney && <button type="button" onClick={onResume} className="mt-7 rounded-lg border border-gold/50 px-4 py-2 text-sm text-gold hover:border-gold">Continue your plan →</button>}
       </div>
-    </section>
-  );
+      <div>
+        <div className={`rounded-xl border bg-panel p-5 sm:p-7 ${over ? "border-gold" : "border-line-2"}`} onDragOver={e => {e.preventDefault(); setOver(true);}} onDragLeave={() => setOver(false)} onDrop={drop}>
+          <h2 className="text-xl font-semibold text-text">Start with your audit</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted">PDF or image · up to 8 MB. COOKED checks completed and in-progress courses before making a plan.</p>
+          <input ref={input} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="sr-only" aria-label="Upload degree audit" onChange={e => {choose(e.target.files?.[0]); e.target.value = "";}} />
+          <button type="button" disabled={loadingFile} onClick={() => input.current?.click()} className="mt-6 w-full rounded-lg bg-gold px-4 py-3 text-sm font-semibold text-bg disabled:opacity-60">{loadingFile ? "Reading your audit…" : over ? "Drop your audit here" : "Choose degree audit"}</button>
+          {error && <div role="alert" className="mt-4 border-t border-line pt-4 text-sm text-hot"><p>{error}</p><p className="mt-1 text-xs text-muted">Try another file, or use a clearly labeled synthetic sample below.</p></div>}
+        </div>
+        <div className="mt-5"><h3 className="label">Try a synthetic sample</h3><div className="mt-3 flex flex-wrap gap-2">{SAMPLES.map(s => <button key={s.id} type="button" onClick={() => onSample(s.id)} className="rounded-lg border border-line-2 px-3 py-2 text-sm text-muted hover:border-gold/50 hover:text-text">{s.label}</button>)}</div></div>
+      </div>
+    </div>
+  </section>;
 }

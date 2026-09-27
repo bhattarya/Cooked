@@ -112,7 +112,7 @@ function Journey({ user }: { user: SessionUser }) {
   );
 
   const screen = useMemo((): ScreenContext => {
-    const reachable = ["explore", "models", "advisor", "audit"] as SceneId[];
+    const reachable = ["explore", "audit"] as SceneId[];
     if (phase === "theatre") {
       const lead = jr.steps.find((s) => s.status === "running");
       const done = jr.steps.filter((s) => s.status === "done" || s.status === "warn").length;
@@ -136,7 +136,7 @@ function Journey({ user }: { user: SessionUser }) {
       title: "Start",
       summary: journey
         ? `The start screen. A student (${journey.label}) is already loaded and can be reopened. To begin fresh: drop a degree audit, or load a sample student: working (22 hours a week), cooked (light load, heavy job) or on_track (full loads).`
-        : "The start screen. No student is loaded. Drop a degree audit, or load a sample student: working (works 22 hours a week), cooked (light load, heavy job) or on_track (full loads). The cohort explorer and the Model Lab are also available.",
+        : "The start screen. No student is loaded. Drop a degree audit, or load a sample student: working (works 22 hours a week), cooked (light load, heavy job) or on_track (full loads). The cohort explorer is also available.",
       facts: { student_loaded: Boolean(journey) },
       student: Boolean(journey),
       scenes: reachable,
@@ -264,8 +264,6 @@ function Journey({ user }: { user: SessionUser }) {
   }, []);
 
   // ---------- render ----------
-  const heat = journey ? Math.min(1, journey.st.risk.value * 1.1) : 0;
-
   if (phase === "theatre") {
     return <TheatreHost steps={jr.steps} exiting={jr.exiting} error={jr.error} askingWork={jr.askingWork} onWork={jr.answerWork} onExited={jr.finishExit} onBack={jr.backHome} />;
   }
@@ -286,7 +284,7 @@ function Journey({ user }: { user: SessionUser }) {
   );
 
   return (
-    <AppChrome user={user} active="home" right={right} heat={phase === "deck" ? heat : 0}>
+    <AppChrome user={user} active="home" right={right} heat={0}>
       <AnimatePresence mode="wait" initial={false}>
         {phase === "deck" && journey ? (
           <motion.div key="deck" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.7 }} className="relative flex min-h-0 flex-1 flex-col">

@@ -25,7 +25,7 @@ COURSE_RX = re.compile(r"\b(CMSC|IS|MATH|STAT|ENGL|PHYS|ECON|MGMT|ACCT|PSYC|SOCY
 TOOLS = [
     {
         "name": "audit_summary",
-        "description": "Read the uploaded audit directly: earned and required credits, remaining credits, completed courses and courses in progress. Use for degree progress or audit questions.",
+        "description": "Read the uploaded audit directly: earned and required credits, remaining credits, completed courses and courses in progress. Use for degree progress, fall schedule, timing, or audit questions.",
         "parameters": {"type": "OBJECT", "properties": {}},
     },
     {
@@ -219,7 +219,7 @@ def local_route(q: str) -> tuple[str, dict]:
         return "course_plan", args
     if re.search(r"\b(grads?|graduates?|alumni|other students?|students like|people (?:who|like)|classmates|cohort)\b", s):
         return "cohort_pattern", {}
-    if re.search(r"audit|credits? (?:left|remaining|earned|required|completed)|how many credits|degree progress|courses? (?:completed|in progress)|what have i (?:taken|completed)", s):
+    if re.search(r"audit|credits? (?:left|remaining|earned|required|completed)|how many credits|degree progress|courses? (?:completed|in progress)|what have i (?:taken|completed)|\b(?:schedule|semester|this fall|on track|on time|timeline)\b", s):
         return "audit_summary", {}
     n = re.search(r"(\d+(?:\.\d+)?)", s)
     if re.search(r"stress|drill|shock|break|what could go wrong", s):
@@ -272,8 +272,9 @@ def _audit_summary(engine, sid, args, work, plan, question=None):
         {"text": " required, leaving "}, _tok(f"{remaining:g}", tr),
         {"text": " credits. Courses in progress aren't counted as earned. Meeting the credit total alone doesn't confirm all degree requirements are satisfied."},
     ]
-    for label, courses in ((" Completed courses: ", state["courses_done"]),
-                           (" In progress: ", state["courses_in_progress"])):
+    requested_ip = bool(question and re.search(r"in progress|this fall|schedule|semester", question, re.IGNORECASE))
+    course_groups = ((" In progress: ", state["courses_in_progress"]),) if requested_ip else ((" Completed courses: ", state["courses_done"]), (" In progress: ", state["courses_in_progress"]))
+    for label, courses in course_groups:
         if courses:
             segs.append({"text": label})
             for i, course in enumerate(courses):
@@ -281,6 +282,12 @@ def _audit_summary(engine, sid, args, work, plan, question=None):
                     segs.append({"text": ", "})
                 segs.append(_tok(course, tr))
             segs.append({"text": "."})
+    if question and re.search(r"schedule|semester|this fall|on track|on time|timeline|timing", question, re.IGNORECASE):
+        ttd = state["time_to_degree"]
+        segs += [{"text": " The trained model estimates a median of "}, _tok(f"{ttd['mid']:.1f}", ttd["tool_result_id"]),
+                 {"text": " years to degree at this stage; its middle half runs from "}, _tok(f"{ttd['low']:.1f}", ttd["tool_result_id"]),
+                 {"text": " to "}, _tok(f"{ttd['high']:.1f}", ttd["tool_result_id"]),
+                 {"text": " years. This is a model estimate, not a course-by-course guarantee. Ask about a specific course to check its prerequisites and offering."}]
     return segs, {"type": "explain", "state": state, "tool_result_id": tr}
 
 
