@@ -1,4 +1,5 @@
-// Sessions: a signed JWT in an HttpOnly cookie. Google identity or a guest; nothing else is stored.
+// Sessions: a signed JWT in an HttpOnly cookie. Google identity (via Firebase or plain OAuth) or a
+// guest; nothing else is stored.
 import { SignJWT, jwtVerify } from "jose";
 
 export const SESSION_COOKIE = "cooked_auth";
@@ -9,6 +10,8 @@ export interface SessionUser {
   firstName: string;
   email?: string;
   picture?: string;
+  /** Firebase user id, when signed in through Firebase. */
+  uid?: string;
   guest: boolean;
 }
 
@@ -19,6 +22,15 @@ function secret(): Uint8Array {
 }
 
 export const googleConfigured = () => Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET && process.env.AUTH_SECRET);
+
+export const firebaseProjectId = () => process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || null;
+
+export const firebaseConfigured = () =>
+  Boolean(process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN && process.env.NEXT_PUBLIC_FIREBASE_APP_ID && firebaseProjectId() && process.env.AUTH_SECRET);
+
+/** Firebase wins when both are set up; guests are always allowed. */
+export type SignInMethod = "firebase" | "google" | null;
+export const signInMethod = (): SignInMethod => (firebaseConfigured() ? "firebase" : googleConfigured() ? "google" : null);
 
 export async function signSession(user: SessionUser): Promise<string> {
   return new SignJWT({ ...user })
@@ -32,7 +44,7 @@ export async function readSession(token: string | undefined): Promise<SessionUse
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"] });
-    return { name: String(payload.name), firstName: String(payload.firstName), email: payload.email as string | undefined, picture: payload.picture as string | undefined, guest: Boolean(payload.guest) };
+    return { name: String(payload.name), firstName: String(payload.firstName), email: payload.email as string | undefined, picture: payload.picture as string | undefined, uid: payload.uid as string | undefined, guest: Boolean(payload.guest) };
   } catch {
     return null;
   }

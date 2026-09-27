@@ -9,14 +9,15 @@ from fastapi import APIRouter, File, Path, Query, UploadFile
 from fastapi.responses import Response
 
 from api import agent, explore
+from api.auth import CurrentUser, require_signed_in
 from api.engine import NotFound, db, get_engine
 from api.schemas import (
     AskRequest,
     CampusID,
     Data,
     DrillRequest,
-    ExploreRequest,
     Envelope,
+    ExploreRequest,
     FeedbackRequest,
     FeedbackResult,
     MemoryRequest,
@@ -170,8 +171,12 @@ def say(body: SayRequest):
 
 
 @router.get("/institution/queue", response_model=Envelope[Data])
-def queue(staff: bool = False, limit: Annotated[int, Query(ge=1, le=2000)] = 200):
-    """Aggregated by pattern by default; per-student rows only behind the staff toggle."""
+def queue(
+    user: CurrentUser, staff: bool = False, limit: Annotated[int, Query(ge=1, le=2000)] = 200
+):
+    """Aggregated by pattern by default; per-student rows need a signed-in user (when auth is on)."""
+    if staff:
+        require_signed_in(user)
     return wrap(get_engine().queue(staff, limit))
 
 

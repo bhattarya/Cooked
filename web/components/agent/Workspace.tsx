@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { alarmCheck, askAgent, findRepair, getMyths, getState, narrate, remember, runDrill, sayLine, setWorkHours, uploadAudit, type Answer, type Myths } from "@/lib/agentApi";
 import { auditLines, auditPdf } from "@/lib/audit";
+import { signOutOfGoogle } from "@/lib/auth";
 import { useDataset } from "@/lib/data";
 import { listen, useCanListen } from "@/lib/listen";
 import { apiHealth, type Health, type ServerDrill, type ServerRepair } from "@/lib/live";
@@ -347,7 +348,15 @@ function WorkspaceContent({ user, liveAgentConfigured }: { user: SessionUser; li
             ) : (
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs">{user.name[0]}</span>
             )}
-            <form action="/auth/logout" method="POST">
+            <form
+              action="/auth/logout"
+              method="POST"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const form = e.currentTarget;
+                void signOutOfGoogle().finally(() => form.submit());
+              }}
+            >
               <button className="text-xs text-muted hover:text-text">Sign out</button>
             </form>
           </div>

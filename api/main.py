@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
+from api import auth
 from api.engine import NotFound, NotReady, model_dir
 from api.health import database_kind, dependency_status
 from api.providers import backboard, elevenlabs, gemini, net
@@ -49,7 +50,7 @@ app.add_middleware(
     ],
     allow_methods=["GET", "POST"],
     allow_credentials=True,
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
@@ -89,6 +90,15 @@ async def validation_error(request, exc):
 async def not_ready(request, exc: NotReady):
     return JSONResponse(
         status_code=503, content={"error": exc.error, "message": exc.message, "needs": exc.needs}
+    )
+
+
+@app.exception_handler(auth.AuthError)
+async def auth_error(request, exc: auth.AuthError):
+    return JSONResponse(
+        status_code=exc.status,
+        content={"error": exc.error, "message": exc.message, "needs": ["A valid Firebase ID token."]},
+        headers={"WWW-Authenticate": "Bearer"} if exc.status == 401 else None,
     )
 
 
@@ -139,9 +149,11 @@ def healthz(response: Response):
             "gemini": gemini.configured(),
             "elevenlabs": elevenlabs.configured("narrator"),
             "backboard": backboard.configured(),
+            "firebase_auth": auth.enabled(),
         },
         checks=checks,
     )
 
 
 app.include_router(router)
+app.include_router(auth.router)

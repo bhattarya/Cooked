@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { project, type Drill, type Feasibility, type Lever, type Outcomes, type Repair, type Seg, type ShockStep, type State, type SurvivalPoint, type ToolResult } from "./engine";
 import type { Course } from "./types";
+import { authHeaders } from "./auth";
 
 const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
@@ -53,13 +54,21 @@ export async function api<T>(path: string, body?: unknown): Promise<Call<T>> {
   const t0 = performance.now();
   const r = await fetch(`${API}${path}`, {
     method: body === undefined ? "GET" : "POST",
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers: { ...(await authHeaders()), ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });
   const j = await r.json();
-  if (!r.ok) throw new Error(j?.message ?? `HTTP ${r.status}`);
+  if (!r.ok) throw new ApiError(r.status, j?.message ?? `HTTP ${r.status}`);
   return { data: j.data as T, version: j.model_version, ms: performance.now() - t0 };
+}
+
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
 }
 
 // ---------- server shapes ----------

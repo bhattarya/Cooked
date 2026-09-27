@@ -78,6 +78,10 @@ services:
       - key: DEMO_MODE
         scope: RUN_TIME
         value: "0"
+      # Firebase ID tokens are verified with only the project ID (public, not a secret)
+      - key: FIREBASE_PROJECT_ID
+        scope: RUN_TIME
+        value: ""
   - name: web
     github:
       repo: bhattarya/Cooked
@@ -104,6 +108,29 @@ services:
         type: SECRET
         scope: RUN_TIME
         value: ""
+      # Google sign-in through Firebase (preferred). The web config is public and inlined at build time.
+      - key: NEXT_PUBLIC_FIREBASE_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        value: ""
+      - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+        scope: RUN_AND_BUILD_TIME
+        value: ""
+      - key: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+        scope: RUN_AND_BUILD_TIME
+        value: ""
+      - key: NEXT_PUBLIC_FIREBASE_APP_ID
+        scope: RUN_AND_BUILD_TIME
+        value: ""
+      - key: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+        scope: RUN_AND_BUILD_TIME
+        value: ""
+      - key: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+        scope: RUN_AND_BUILD_TIME
+        value: ""
+      - key: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+        scope: RUN_AND_BUILD_TIME
+        value: ""
+      # Fallback: plain Google OAuth, used only when Firebase isn't configured
       - key: AUTH_GOOGLE_ID
         type: SECRET
         scope: RUN_TIME

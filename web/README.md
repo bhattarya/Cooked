@@ -16,7 +16,7 @@ npm run dev    # http://localhost:3000
 | `/app` | Agent workspace (signed-in only): voice orb, audit upload, sponsor-tagged agent pipeline, dashboard, voice/text questions |
 | `/app/explore` | Audit-free cohort questions: Gemini routes to a fixed Tiger Data aggregate, with a chart and spoken response |
 | `/app/advisor` | Institution queue: every current student scored by the model |
-| `/auth/*` | Google OAuth (PKCE, ID token verified against Google's keys), guest session, sign out |
+| `/auth/*` | `/auth/firebase` turns a Firebase Google sign-in (ID token verified against Google's keys) into a session; `/auth/google` is the plain-OAuth fallback (PKCE); guest session; sign out |
 
 ## How the pieces fit
 

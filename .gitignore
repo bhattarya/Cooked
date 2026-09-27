@@ -159,3 +159,7 @@ models/*.pkl
 .env.local-test
 web/AGENTS.md
 web/CLAUDE.md
+
+# Firebase service-account keys: never commit (nothing here needs one)
+service_key.json
+*-firebase-adminsdk-*.json
