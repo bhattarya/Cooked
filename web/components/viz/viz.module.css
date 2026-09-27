@@ -1,0 +1,648 @@
+/* Chart library chrome. Everything here is scoped to the viz components; colours come from the
+   global tokens (--viz-*, --seq-*, --div-*, --line, --text, ...). */
+
+.root,
+.card,
+.hero {
+  /* secondary ink for ticks and captions: the dim token alone is under 4.5:1 on the panel */
+  --faint: color-mix(in srgb, var(--muted) 60%, var(--dim));
+}
+.root {
+  position: relative;
+  display: block;
+  width: 100%;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.root:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 6px;
+  border-radius: 8px;
+}
+.plot {
+  position: relative;
+  width: 100%;
+  /* the svg is sized from the measured width; without this it would pin the parent grid/flex track open */
+  contain: inline-size;
+}
+.emptyNote {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 48px;
+  color: var(--faint);
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.plot svg {
+  display: block;
+  overflow: visible;
+}
+
+/* visually hidden, still exposed to assistive tech */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* SVG text */
+.tick {
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 10px;
+  fill: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.cat {
+  font-family: var(--f-sans), system-ui, sans-serif;
+  font-size: 12px;
+  fill: var(--muted);
+}
+.val {
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 11px;
+  fill: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.cap {
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  fill: var(--faint);
+}
+.halo {
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.display {
+  font-family: var(--f-display), "Arial Narrow", sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.005em;
+  fill: var(--text);
+}
+
+/* marks that respond to hover/keyboard */
+.mark {
+  transition: opacity 0.18s ease, filter 0.18s ease;
+}
+.dimmed {
+  opacity: 0.32;
+}
+.lift {
+  filter: brightness(1.18);
+}
+.fade {
+  transition: opacity 0.35s ease;
+}
+
+/* ------------------------------- tooltip -------------------------------- */
+.tip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 30;
+  min-width: 128px;
+  max-width: 260px;
+  padding: 9px 11px 10px;
+  border-radius: 10px;
+  background: rgba(19, 16, 10, 0.94);
+  border: 1px solid var(--line-2);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text);
+  transition: transform 0.09s ease-out;
+  will-change: transform;
+}
+.tipTitle {
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.tipRow {
+  display: grid;
+  grid-template-columns: 14px auto 1fr;
+  align-items: baseline;
+  column-gap: 7px;
+  padding: 1px 0;
+}
+.tipKey {
+  align-self: center;
+  justify-self: start;
+  display: block;
+}
+.tipKey[data-shape="line"] {
+  width: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--k);
+}
+.tipKey[data-shape="dot"] {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--k);
+}
+.tipKey[data-shape="box"] {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--k);
+}
+.tipKey[data-shape="none"] {
+  width: 0;
+  height: 0;
+}
+.tipVal {
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.tipLab {
+  color: var(--muted);
+}
+.tipNote {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid var(--line);
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--faint);
+}
+
+/* -------------------------------- legend -------------------------------- */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+button.legendItem {
+  cursor: pointer;
+}
+button.legendItem:hover,
+button.legendItem:focus-visible {
+  background: var(--line);
+  border-color: var(--line-2);
+  outline: none;
+}
+button.legendItem[aria-pressed="false"] {
+  opacity: 0.45;
+}
+button.legendItem[aria-pressed="false"] .legendLab {
+  text-decoration: line-through;
+  text-decoration-color: var(--dim);
+}
+.legendKey {
+  flex: none;
+  display: block;
+}
+.legendKey[data-shape="dot"] {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--k);
+}
+.legendKey[data-shape="box"] {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--k);
+}
+.legendKey[data-shape="line"] {
+  width: 14px;
+  height: 2.5px;
+  border-radius: 2px;
+  background: var(--k);
+}
+.legendKey[data-shape="dash"] {
+  width: 14px;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--k) 0 4px, transparent 4px 7px);
+}
+.legendLab {
+  color: var(--muted);
+}
+.legendVal {
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------- animation ------------------------------ */
+@keyframes vizPop {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes vizRipple {
+  0% {
+    transform: scale(0.35);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+@keyframes vizFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes vizRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes vizBreath {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes vizSheen {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: vizPop 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation-delay: var(--d, 0ms);
+}
+.ripple {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: vizRipple 2.6s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+  animation-delay: var(--d, 0s);
+}
+.breath {
+  animation: vizBreath 2.8s ease-in-out infinite;
+}
+.rise {
+  animation: vizRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+.fadeIn {
+  animation: vizFade 0.6s ease both;
+  animation-delay: var(--d, 0ms);
+}
+.root[data-live="0"] .ripple,
+.root[data-live="0"] .breath {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pop,
+  .rise,
+  .fadeIn,
+  .breath {
+    animation: none;
+  }
+  .ripple {
+    animation: none;
+    opacity: 0.35;
+    transform: scale(1.9);
+  }
+  .mark,
+  .fade,
+  .tip {
+    transition: none;
+  }
+}
+
+/* ------------------------------ chart card ------------------------------ */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 20px 22px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(120% 60% at 0% 0%, rgba(246, 180, 26, 0.05), transparent 60%),
+    linear-gradient(180deg, var(--panel-2), var(--panel));
+}
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.eyebrow::before {
+  content: "";
+  width: 14px;
+  height: 1px;
+  background: var(--gold);
+  opacity: 0.7;
+}
+.cardTitle {
+  margin: 6px 0 0;
+  font-family: var(--f-display), "Arial Narrow", sans-serif;
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 0.98;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.takeaway {
+  margin: 8px 0 0;
+  max-width: 62ch;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.takeaway strong {
+  color: var(--cream);
+  font-weight: 600;
+}
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.cardBody {
+  position: relative;
+  margin-top: 18px;
+  flex: 1;
+  min-height: 0;
+  transition: opacity 0.3s ease;
+}
+.cardBody[data-dim="1"] {
+  opacity: 0.5;
+}
+.cardLegend {
+  margin-top: 12px;
+}
+.cardFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-top: 16px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--faint);
+}
+.nChip {
+  color: var(--muted);
+}
+.footNote {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.helpBtn {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.helpBtn:hover,
+.helpBtn[aria-expanded="true"] {
+  color: var(--gold);
+  border-color: var(--gold);
+  background: rgba(246, 180, 26, 0.08);
+}
+.helpBtn:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 3px;
+}
+.pop2 {
+  position: absolute;
+  top: 34px;
+  right: 0;
+  z-index: 40;
+  width: min(320px, 78vw);
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  background: rgba(19, 16, 10, 0.97);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  animation: vizRise 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.pop2 h4 {
+  margin: 0 0 6px;
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.state {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  padding: 24px;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px dashed var(--line-2);
+  color: var(--muted);
+  font-size: 13px;
+}
+.state[data-kind="error"] {
+  border-color: rgba(255, 74, 61, 0.4);
+  color: var(--hot);
+}
+.skeleton {
+  min-height: 160px;
+  border-radius: 12px;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 220, 140, 0.07) 50%, transparent 70%) 0 0 / 200% 100%;
+  animation: vizSheen 1.6s linear infinite;
+  border: 1px solid var(--line);
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+  .pop2 {
+    animation: none;
+  }
+}
+
+/* --------------------------- badges and figures -------------------------- */
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 6px;
+  border-radius: 999px;
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone) 32%, transparent);
+  white-space: nowrap;
+}
+.delta[data-size="lg"] {
+  font-size: 13px;
+  padding: 3px 10px 3px 8px;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.statLabel {
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.statValue {
+  font-family: var(--f-display), "Arial Narrow", sans-serif;
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: 0.005em;
+  color: var(--text);
+}
+.statUnit {
+  margin-left: 0.14em;
+  font-size: 0.42em;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+.hero {
+  position: relative;
+  width: 100%;
+}
+.heroTop {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+.heroRange {
+  text-align: right;
+}
+@media (max-width: 520px) {
+  .heroRange {
+    text-align: left;
+  }
+}
+.glow {
+  filter: drop-shadow(0 0 10px var(--g, rgba(246, 180, 26, 0.55)));
+}
+.btnGhost {
+  appearance: none;
+  border: 1px solid var(--line-2);
+  background: rgba(19, 16, 10, 0.7);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-family: var(--f-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.btnGhost:hover,
+.btnGhost:focus-visible {
+  color: var(--gold);
+  border-color: var(--gold);
+  outline: none;
+}
+.plotOverlay {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 5;
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 16px 16px 14px;
+    border-radius: 14px;
+  }
+  .cardTitle {
+    font-size: 22px;
+  }
+}
