@@ -1464,6 +1464,48 @@
         ]
       }
     },
+    "/distribution/cohort": {
+      "get": {
+        "description": "Real DOIT dataset distributions: 3,200 alumni and 1,800 current students.",
+        "operationId": "cohort_distribution_distribution_cohort_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service unavailable"
+          }
+        },
+        "summary": "Cohort Distribution",
+        "tags": [
+          "product"
+        ]
+      }
+    },
     "/drill": {
       "post": {
         "description": "Greedy adversarial drill plus 200 Monte Carlo futures written to app.drill_trajectory.",
@@ -1802,6 +1844,60 @@
         "summary": "Me",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/ml/evidence/{id}": {
+      "get": {
+        "description": "Transparent ML Model Evidence Card data: prediction drivers, holdout accuracy, 30 nearest alumni twins.",
+        "operationId": "ml_evidence_ml_evidence__id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service unavailable"
+          }
+        },
+        "summary": "Ml Evidence",
+        "tags": [
+          "product"
         ]
       }
     },
@@ -2377,6 +2473,60 @@
           }
         },
         "summary": "Ask",
+        "tags": [
+          "product"
+        ]
+      }
+    },
+    "/students/{id}/fall-schedule": {
+      "get": {
+        "description": "Fall Schedule & Timing Balance Card data: timing, prerequisites, credit load balance, weekly study hours.",
+        "operationId": "fall_schedule_students__id__fall_schedule_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service unavailable"
+          }
+        },
+        "summary": "Fall Schedule",
         "tags": [
           "product"
         ]

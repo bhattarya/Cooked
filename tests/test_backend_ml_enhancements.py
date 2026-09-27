@@ -70,6 +70,8 @@ def test_non_standard_fallback_regex_matching():
 
 
 def test_ml_evidence_structure(monkeypatch):
+    import pandas as pd
+
     class MockEngine:
         models = type("M", (), {
             "manifest": {
@@ -78,15 +80,20 @@ def test_ml_evidence_structure(monkeypatch):
             },
             "calibrated_ok": True,
         })()
-        people = type("P", (), {"alumni_ids": list(range(14000))})()
+        people = type("P", (), {
+            "alumni_ids": list(range(14000)),
+            "alumni_out": pd.DataFrame({"salary": [60000.0, 80000.0, 100000.0]}),
+            "static": pd.DataFrame({"population": ["alumni", "alumni", "current"], "ttd": [4.0, 5.0, None]}),
+        })()
 
     eng = MockEngine()
     ev = _build_ml_evidence(eng)
     assert "Gradient Boosting" in ev["model_type"]
     assert "data/raw/alumni.csv" in ev["datasets"]
     assert ev["metrics"]["accuracy_auc"] == 0.9254
-    assert ev["feature_importances"]["work_hours"] == 0.35
-    assert ev["cohort_statistics"]["median_alumni_salary"] == 75000
+    # Every cohort figure here comes from the mocked dataset, not a hardcoded placeholder.
+    assert ev["cohort_statistics"]["median_alumni_salary"] == 80000.0
+    assert ev["cohort_statistics"]["avg_time_to_degree_years"] == 4.5
 
 
 def test_voice_and_say_integration(monkeypatch):

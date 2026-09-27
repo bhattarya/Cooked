@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import re
 
+import pandas as pd
 from pydantic import ValidationError
 
 from api import explore as explore_mod
@@ -258,15 +259,9 @@ def _build_ml_evidence(engine: Engine, sid: str | None = None) -> dict:
             "brier_score": brier,
             "calibration_status": "Calibrated" if getattr(engine.models, "calibrated_ok", True) else "Uncalibrated",
         },
-        "feature_importances": {
-            "work_hours": 0.35,
-            "course_load": 0.30,
-            "prerequisite_bottlenecking": 0.20,
-            "repeat_attempts": 0.15,
-        },
         "cohort_statistics": {
-            "median_alumni_salary": 75000,
-            "avg_time_to_degree_years": 4.2,
+            "median_alumni_salary": round(float(pd.to_numeric(engine.people.alumni_out["salary"], errors="coerce").median()), 0),
+            "avg_time_to_degree_years": round(float(engine.people.static.loc[engine.people.static.population == "alumni", "ttd"].mean()), 2),
             "total_alumni_cohort": alumni_count,
         },
     }
@@ -462,20 +457,23 @@ def _explain(engine, sid, args, work, plan, question=None):
     grad_prob = round((1.0 - risk) * 100)
     risk_pct = round(risk * 100)
     auc = round(float(engine.models.manifest.get("gates", {}).get("risk_discrimination", {}).get("auc_after_one_term", 0.925)), 2)
+    # §8.4: the model never writes a number into plain text -- every figure below is a _tok()
+    # tied to a real tool_result_id, not narration with a digit baked in.
     segs: list[dict] = [
         {"text": "Your risk is "}, _tok(risk_pct, st["risk"]["tool_result_id"]),
-        {"text": f" percent (giving a {grad_prob} percent graduation probability). "},
+        {"text": " percent, giving a "}, _tok(grad_prob, st["risk"]["tool_result_id"]),
+        {"text": " percent graduation probability. "},
     ]
     if ref is not None:
         segs += [{"text": "You're averaging "}, _tok(st["avg_credits"]["value"], st["avg_credits"]["tool_result_id"]),
                  {"text": " credits a term. Matched students who finished on time went on to average "}, _tok(ref, tr),
                  {"text": " a term after this point. "}]
     segs += [
-        {"text": "This result is calculated by a Gradient Boosting model trained on 140,000+ transcripts (AUC "},
+        {"text": "This result is calculated by a Gradient Boosting model held out and tested on real graduates, scoring "},
         _tok(f"{auc:.2f}", tr),
-        {"text": "). Primary drivers are work hours (35%), course load (30%), prerequisite bottlenecking (20%), and repeat attempts (15%). Cohort benchmark: median salary is $75,000 with 4.2 years average time-to-degree across "},
+        {"text": " AUC (perfect is one, a coin flip is one half). It's compared against "},
         _tok(st["twins"]["n"], st["twins"]["tool_result_id"]),
-        {"text": " matched alumni."}
+        {"text": " matched alumni with a similar record so far."}
     ]
     return segs, {"type": "explain", "state": st, "reference_load": ref, "tool_result_id": tr, "ml_evidence": _build_ml_evidence(engine, sid)}
 
