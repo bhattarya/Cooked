@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
-import { Bars, ChartCard, ConfusionMatrix, Delta, Donut, Dumbbell, Flow, Heatmap, Legend, LineChart, Radar, RangeBar, Ridgeline, RiskRing, RocCurve, Scatter, Sparkline, Stat, Strip, Waterfall } from "../index";
+import { AlumniDistributionCard, Bars, ChartCard, ConfusionMatrix, Delta, Donut, Dumbbell, FallScheduleCard, Flow, Heatmap, Legend, LineChart, MLEvidenceCard, Radar, RangeBar, Ridgeline, RiskRing, RocCurve, Scatter, Sparkline, Stat, Strip, Waterfall } from "../index";
 import { money, pct, int } from "../format";
 import { PATTERN_COLORS } from "../tokens";
 import * as F from "./fake";
@@ -130,6 +130,20 @@ export function Gallery() {
                   <Stat label="Alumni in cohort" value={3200} format={int} size="lg" caption="FAKE count" delta={{ value: 3.8, unit: "%", goodWhen: "neutral" }} />
                 </div>
               </div>
+            </div>
+          </div>
+        </Section>
+
+        <Section id="doit-ml" no="1.5" title="Real DOIT Datasets & Transparent ML Evidence">
+          <div className={s.grid}>
+            <div className={s.c12}>
+              <AlumniDistributionCard />
+            </div>
+            <div className={s.c12}>
+              <MLEvidenceCard />
+            </div>
+            <div className={s.c12}>
+              <FallScheduleCard />
             </div>
           </div>
         </Section>

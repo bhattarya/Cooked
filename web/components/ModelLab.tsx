@@ -116,7 +116,7 @@ export function ModelLab({ user }: { user: SessionUser }) {
   );
 
   return (
-    <AppChrome user={user} active="lab" heat={0} right={tabs}>
+    <AppChrome user={user} active="home" heat={0} right={tabs}>
       {auditInput && <p className="px-6 py-2 text-xs text-muted">Based on your audit · scenario changes are exploratory. Assumed: {auditInput.assumed.join(", ") || "none"}.{auditInput.clamped.length ? ` Limited to training range: ${auditInput.clamped.join(", ")}.` : ""}</p>}
       <SceneDeck
         deck={deck}

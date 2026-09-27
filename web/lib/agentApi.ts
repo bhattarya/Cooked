@@ -92,8 +92,9 @@ export async function uploadAudit(file: Blob, name = "audit.pdf"): Promise<Call<
   const ext = name.toLowerCase();
   const isPdf = ext.endsWith(".pdf") || (file.type ? file.type.includes("pdf") : false);
   const isImg = /\.(png|jpg|jpeg|webp)$/.test(ext) || (file.type ? file.type.includes("image") : false);
-  if (!isPdf && !isImg && file.type && !["application/pdf", "image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-    throw new Error("Choose a PDF, PNG, JPEG or WebP degree audit.");
+  const isTxt = ext.endsWith(".txt") || (file.type ? file.type.includes("text") : false);
+  if (!isPdf && !isImg && !isTxt && file.type && !["application/pdf", "image/png", "image/jpeg", "image/webp", "text/plain"].includes(file.type)) {
+    throw new Error("Choose a PDF, PNG, JPEG, WebP, or TXT degree audit.");
   }
   const t0 = performance.now();
   const fd = new FormData();

@@ -234,12 +234,8 @@ function Journey({ user }: { user: SessionUser }) {
       return { ok: r.ok, message: r.message, data: r.data };
     },
     showScene: async ({ scene }) => {
-      if (scene === "advisor") { router.push("/app/advisor"); return "Opening the advisor overview."; }
+      if (scene === "advisor" || scene === "models") { router.push("/app"); return "Opening Voice Workspace."; }
       if (scene === "audit") { jr.backHome(); return "Your audit workspace is open. Choose a file to upload, or reopen your results."; }
-      if (scene === "models") {
-        router.push("/app/lab");
-        return "Opening the Model Lab, where the four models can be compared side by side.";
-      }
       if (scene === "explore") {
         router.push("/app/explore");
         return "Opening the cohort explorer.";

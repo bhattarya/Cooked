@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "motion/react";
 import type { CSSProperties, ReactNode } from "react";
 import { signOutOfGoogle } from "@/lib/auth";
 import type { SessionUser } from "@/lib/session";
 import { Wordmark } from "../brand";
 
-export type AppSection = "home" | "explore" | "lab" | "advisor";
+export type AppSection = "home" | "explore";
 const NAV: { key: AppSection; href: string; label: string }[] = [
-  { key: "home", href: "/app", label: "My plan" },
-  { key: "explore", href: "/app/explore", label: "Ask the cohort" },
+  { key: "home", href: "/app", label: "Voice Workspace" },
+  { key: "explore", href: "/app/explore", label: "Cohort Intelligence" },
 ];
 
 /** Bottom space kept free for the floating voice dock (web/components/voice). */
@@ -24,9 +25,12 @@ export function AppChrome({ user, active, right, heat = 0, children }: { user: S
         <Link href="/app" aria-label="COOKED home" className="shrink-0">
           <Wordmark size={15} />
         </Link>
-        <nav aria-label="Student workspace" className="ml-1 flex min-w-0 gap-0.5 overflow-x-auto sm:ml-4">
+        <nav aria-label="Student workspace" className="ml-1 flex min-w-0 gap-1 overflow-x-auto sm:ml-4">
           {NAV.map((n) => (
-            <Link key={n.key} href={n.href} aria-current={n.key === active ? "page" : undefined} className={`relative shrink-0 rounded-full px-3 py-1.5 text-xs transition ${n.key === active ? "text-gold" : "text-muted hover:text-text"}`}>
+            <Link key={n.key} href={n.href} aria-current={n.key === active ? "page" : undefined} className={`relative shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${n.key === active ? "text-gold" : "text-muted hover:text-text"}`}>
+              {n.key === active && (
+                <motion.span layoutId="chrome-nav" className="absolute inset-0 rounded-full border border-gold/40 bg-gold/10" transition={{ type: "spring", stiffness: 420, damping: 34 }} />
+              )}
               <span className="relative">{n.label}</span>
             </Link>
           ))}

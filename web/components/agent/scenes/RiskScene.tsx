@@ -1,11 +1,40 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Bars, type BarItem } from "@/components/viz";
 import { Chip, Provenance } from "@/components/scenes";
+import { getArena } from "@/lib/agentApi";
+import type { ArenaReport } from "@/lib/arena-types";
 import type { SponsorLive } from "../Sponsors";
 import { riskTakeaway } from "./copy";
 import { Action, Sponsors } from "./kit";
 import { pct, verdictOf, type Journey } from "./model";
+
+/** Real held-out test accuracy (AUROC) for every model family this task actually tried, not just
+    the one that shipped -- the proof this is a trained, measured model and not a guess. */
+function TrainingEvidence() {
+  const [risk, setRisk] = useState<ArenaReport["tasks"]["risk"] | null>(null);
+  useEffect(() => {
+    let live = true;
+    getArena().then((r) => live && setRisk(r.data.tasks.risk)).catch(() => {});
+    return () => { live = false; };
+  }, []);
+  if (!risk) return null;
+  const data: BarItem[] = risk.candidates.map((c) => ({ key: c.family, label: c.label, value: c.metrics.auroc, n: c.metrics.n_test }));
+  return (
+    <details className="mt-4 border-t border-line pt-3 text-xs text-muted">
+      <summary className="cursor-pointer text-gold">How this model was actually tested</summary>
+      <p className="mt-2 leading-relaxed">
+        Four model families were trained on the same historical students and scored on {risk.split.test_years[0]}–{risk.split.test_years[1]} graduates none of them saw during training.
+        Higher is better; 50% is a coin flip. <strong className="text-text">{risk.champion.label}</strong> shipped because it {risk.champion.beats_baseline ? "beat the plain baseline" : "did not beat the baseline, and the app says so"} on this held-out test.
+      </p>
+      <div className="mt-3">
+        <Bars data={data} domain={[0, 1]} format={pct} axisFormat={pct} unit="AUROC, held-out test" sort="desc" highlight={risk.champion.family} height={140} />
+      </div>
+      <p className="mt-2 text-[11px] text-dim">n = held-out students scored per family, not training rows. {risk.card.limitations[0]}</p>
+    </details>
+  );
+}
 
 /** The trained risk score, with the decision line used by the actual verdict. */
 export function RiskScene({ j, live, canHear, onHear, onAsk, onAskAbout, onNext }: { j: Journey; live: SponsorLive; canHear: boolean; onHear: () => void; onAsk: () => void; onAskAbout: (question: string) => void; onNext: () => void }) {
@@ -16,8 +45,8 @@ export function RiskScene({ j, live, canHear, onHear, onAsk, onAskAbout, onNext 
     <section className="grid h-full min-h-0 grid-cols-1 content-start gap-8 overflow-y-auto px-5 pb-8 pt-6 sm:px-8 lg:grid-cols-2 lg:content-center lg:items-center lg:gap-14 lg:px-12">
       <header className="min-w-0">
         <div className="label text-gold">{st.major} · {st.track} · {st.entry_type === "Transfer" ? "transfer" : "first-time"}</div>
-        <h2 className="display mt-5 text-[clamp(3.5rem,7vw,7rem)] font-bold leading-none text-text">{pct(risk)}</h2>
-        <p className="mt-3 text-lg text-gold">{verdictOf(risk)} · trained risk model</p>
+        <h2 className="display mt-5 text-[clamp(3.5rem,7vw,7rem)] font-bold leading-[0.85] text-text">{pct(risk)}</h2>
+        <p className="mt-6 text-lg text-gold">{verdictOf(risk)} · trained risk model</p>
         <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">{riskTakeaway(j)}</p>
         <p className="mt-4 max-w-xl text-sm leading-relaxed text-text">Your audit records {st.credits_earned} of {st.credits_required} required credits earned and {st.courses_in_progress.length} courses in progress. In-progress credits are not counted as earned.</p>
         {j.auditWarnings.some(note => note.includes("entry type")) && <p className="mt-3 max-w-xl border-l-2 border-gold pl-3 text-xs leading-relaxed text-muted">{j.auditWarnings.find(note => note.includes("entry type"))}</p>}
@@ -41,6 +70,7 @@ export function RiskScene({ j, live, canHear, onHear, onAsk, onAskAbout, onNext 
         <Bars data={data} domain={[0, 1]} format={pct} axisFormat={pct} unit="model risk" baseline={{ value: 0.5, label: "high-risk line", tone: "risk" }} height={160} />
         <p className="mt-3 text-sm leading-relaxed text-muted">The trained model sets this score. The high-risk line starts at 50%; the watch line starts at 20%. {st.risk_is_probability ? "The score is calibrated as a probability." : "This score is not a calibrated personal probability."}</p>
         <details className="mt-4 border-t border-line pt-3 text-xs text-muted"><summary className="cursor-pointer text-gold">What the model read</summary><p className="mt-2 leading-relaxed">It scored your {st.terms_done.value} completed regular terms, {st.avg_credits.value} attempted credits per term, {st.w_total.value} withdrawals, {st.work_hours} work hours per week, major and entry type. It also uses earned, failed and repeated course patterns from completed terms. These are inputs, not a causal explanation of the score.</p></details>
+        <TrainingEvidence />
       </div>
     </section>
   );

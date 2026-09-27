@@ -4,14 +4,22 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { availableCommands, subscribeRegistry, type CommandName } from "@/lib/commands";
 import { useCookedVoice, type VoiceState } from "@/lib/voiceAgent";
 import { CommandToast } from "./CommandToast";
+import { VoiceOrb } from "./VoiceOrb";
 
 const HINTS: { cmd: CommandName; text: string }[] = [
-  { cmd: "askStudent", text: "“Is my fall schedule on track?”" },
-  { cmd: "showScene", text: "“Show me matched alumni”" },
-  { cmd: "runStressTest", text: "“Run a stress test”" },
+  { cmd: "askStudent", text: "“How's my Fall schedule timing?”" },
+  { cmd: "askStudent", text: "“Am I on track for graduation?”" },
+  { cmd: "showScene", text: "“Compare me with UMBC alumni”" },
+  { cmd: "askStudent", text: "“Explain how ML got 79%”" },
   { cmd: "findRepair", text: "“How do I get un-cooked?”" },
-  { cmd: "nextScene", text: "“Next”" },
-  { cmd: "loadSampleStudent", text: "“Load a sample student”" },
+  { cmd: "runStressTest", text: "“Run a stress test”" },
+];
+
+const SHORTCUTS = [
+  "How's my Fall schedule timing?",
+  "Am I on track for graduation?",
+  "Compare me with UMBC alumni",
+  "Explain how ML got 79%",
 ];
 
 const STATE_LABEL: Record<VoiceState, string> = {
@@ -33,14 +41,9 @@ const isEditable = (t: EventTarget | null) => {
   return Boolean(el?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"], [role="slider"]'));
 };
 
-/**
- * Persistent floating voice control. Tap the microphone (or press Space) to start; hold to talk when
- * hands-free is off; tap again to end. Captions, a live "what the voice just did" toast, and a
- * typed fallback live here too. Must sit inside <CookedVoiceProvider>.
- */
 export interface DockPreview { state: VoiceState; user?: string; agent?: string }
 
-export function VoiceDock({ preview }: { /** Dev harness only: render a state statically for visual QA. */ preview?: DockPreview }) {
+export function VoiceDock({ preview }: { preview?: DockPreview }) {
   const live = useCookedVoice();
   const voice = useMemo(
     () =>
@@ -77,8 +80,6 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
     if (typing) input.current?.focus();
   }, [typing]);
 
-  // Shared press/release semantics for the orb and the Space key: a short press on a live session
-  // ends it, a long press is push-to-talk, pressing while the agent speaks silences it first.
   const onPress = () => {
     press.current = { at: performance.now(), wasConnected: connected, wasSpeaking: state === "speaking" };
     pressTalk();
@@ -124,7 +125,7 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
   const muted = connected && !voice.micOpen && state !== "speaking" && state !== "thinking";
   const label = muted ? "Muted · hold Space to talk" : STATE_LABEL[state];
   const engineLabel =
-    voice.engine === "elevenlabs" || (!connected && voice.support === "elevenlabs") ? "COOKED voice" : voice.support === "text" ? "Typing only" : "Browser speech";
+    voice.engine === "elevenlabs" || (!connected && voice.support === "elevenlabs") ? "COOKED Voice" : voice.support === "text" ? "Typing only" : "Browser speech";
   const idleHint = hints[0]?.text ?? "a question about your plan";
 
   const submit = async (e: React.FormEvent) => {
@@ -135,15 +136,57 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
     await sendText(text);
   };
 
+  const handleShortcutClick = (text: string) => {
+    void sendText(text);
+  };
+
   return (
     <>
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex flex-col items-center gap-2 px-3 pb-[max(14px,env(safe-area-inset-bottom))]">
         <CommandToast />
+
+        {/* Spoken Response Card when Agent Speaks */}
+        {lastAgent && connected && (
+          <div className="pointer-events-auto w-full max-w-[680px] rounded-xl border border-gold/40 bg-panel/95 p-3.5 shadow-2xl backdrop-blur-xl transition-all">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 shrink-0">
+                <VoiceOrb state={state} size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="label !text-gold">COOKED Spoken Response</span>
+                  <span className="text-[10px] text-dim">ElevenLabs Voice</span>
+                </div>
+                <p className="text-xs font-medium leading-relaxed text-cream">{lastAgent.text}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Voice Prompt Shortcut Bar */}
+        {!connected && (
+          <div className="pointer-events-auto hidden sm:flex items-center gap-1.5 overflow-x-auto max-w-[680px] w-full px-1 py-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-gold/80 shrink-0 mr-1">Voice Shortcuts:</span>
+            {SHORTCUTS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => handleShortcutClick(s)}
+                className="shrink-0 rounded-full border border-line-2 bg-panel/80 px-2.5 py-1 text-[11px] text-muted transition hover:border-gold/50 hover:bg-gold/10 hover:text-gold"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Main Floating Voice Control Dock */}
         <section
           data-voice-dock
           aria-label="Ask COOKED"
-          className="pointer-events-auto relative flex w-full max-w-[680px] items-center gap-2 rounded-2xl border border-line-2 bg-bg-2 p-2 sm:gap-3"
+          className="pointer-events-auto relative flex w-full max-w-[680px] items-center gap-2 rounded-2xl border border-line-2 bg-bg-2 p-2.5 shadow-2xl backdrop-blur-xl sm:gap-3"
         >
+          {/* Orb & Mic Button */}
           <div className="relative shrink-0">
             <button
               type="button"
@@ -165,15 +208,26 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
                 }
               }}
               onClick={(e) => e.preventDefault()}
-              className={`relative grid size-12 touch-none select-none place-items-center rounded-xl border outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-40 ${connected ? "border-gold bg-gold/15 text-gold" : "border-line-2 text-gold"} ${muted ? "opacity-60" : ""}`}
+              className={`relative grid size-12 touch-none select-none place-items-center rounded-xl border outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-40 transition-all ${
+                connected ? "border-gold bg-gold/15 text-gold shadow-lg shadow-gold/20" : "border-line-2 text-gold hover:border-gold/40"
+              } ${muted ? "opacity-60" : ""}`}
             >
-              <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" /></svg>
+              {connected ? (
+                <VoiceOrb state={state} size={32} />
+              ) : (
+                <svg aria-hidden viewBox="0 0 24 24" className="size-5 text-gold" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="3" width="6" height="11" rx="3" />
+                  <path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" />
+                </svg>
+              )}
             </button>
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className={`label ${state === "error" ? "!text-hot" : muted ? "" : connected ? "!text-gold" : ""}`}>{label}</span>
+              <span className={`label ${state === "error" ? "!text-hot" : muted ? "" : connected ? "!text-gold font-bold" : ""}`}>
+                {label}
+              </span>
               <span className="hidden items-center gap-1.5 text-[10.5px] text-dim sm:flex">
                 <span aria-hidden className={`size-1.5 rounded-full ${voice.engine === "none" && !connected ? "bg-dim" : "bg-gold"}`} />
                 {engineLabel}
@@ -189,35 +243,39 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
                   onKeyDown={(e) => {
                     if (e.key === "Escape" && !textOnly) setTyping(false);
                   }}
-                  placeholder="Type a command or a question"
+                  placeholder="Type a command or a question for your plan"
                   aria-label="Type a command or question for COOKED"
                   autoComplete="off"
-                  className="h-8 min-w-0 flex-1 rounded-full border border-line-2 bg-black/30 px-3.5 text-[14px] text-text outline-none placeholder:text-dim focus:border-gold/60"
+                  className="h-8 min-w-0 flex-1 rounded-full border border-line-2 bg-black/40 px-3.5 text-[13.5px] text-text outline-none placeholder:text-dim focus:border-gold/60"
                 />
-                <button type="submit" disabled={!draft.trim()} className="h-8 shrink-0 rounded-full bg-gold px-3.5 text-[12.5px] font-semibold text-bg transition disabled:opacity-35">
+                <button type="submit" disabled={!draft.trim()} className="h-8 shrink-0 rounded-full bg-gold px-3.5 text-[12px] font-bold text-bg transition disabled:opacity-35">
                   Send
                 </button>
               </form>
             ) : voice.error ? (
-              <button type="button" onClick={voice.clearError} role="alert" className="mt-0.5 block w-full truncate text-left text-[13.5px] text-hot">
+              <button type="button" onClick={voice.clearError} role="alert" className="mt-0.5 block w-full truncate text-left text-[13px] text-hot">
                 {voice.error}
               </button>
             ) : (
-              <div role="log" aria-live="polite" className="mt-0.5 min-h-[34px] sm:min-h-[38px]">
-                  {userText ? (
-                    <p key={`u-${voice.interim ? "live" : lastUser?.id}`} className={`truncate text-[13px] italic text-muted ${voice.interim ? "caret" : ""}`}>
-                      {userText}
-                    </p>
-                  ) : null}
-                  {lastAgent && connected ? (
-                    <p key={`a-${lastAgent.id}`} className="line-clamp-2 text-[14px] leading-snug text-text">
-                      {lastAgent.text}
-                    </p>
-                  ) : !connected && !userText ? (
-                    <p className="truncate text-[14px] text-muted">
-                      {voice.supportNote ?? <>Tap the microphone or hold <kbd className="num rounded border border-line-2 px-1 text-[11px] text-cream">Space</kbd> and say {idleHint}</>}
-                    </p>
-                  ) : null}
+              <div role="log" aria-live="polite" className="mt-0.5 min-h-[34px] sm:min-h-[38px] flex items-center">
+                {userText ? (
+                  <p key={`u-${voice.interim ? "live" : lastUser?.id}`} className={`truncate text-[13px] italic text-muted ${voice.interim ? "caret" : ""}`}>
+                    {userText}
+                  </p>
+                ) : null}
+                {lastAgent && connected ? (
+                  <p key={`a-${lastAgent.id}`} className="line-clamp-2 text-[13.5px] leading-snug text-cream font-medium">
+                    {lastAgent.text}
+                  </p>
+                ) : !connected && !userText ? (
+                  <p className="truncate text-[13.5px] text-muted">
+                    {voice.supportNote ?? (
+                      <>
+                        Tap mic or hold <kbd className="num rounded border border-line-2 px-1 text-[11px] text-cream">Space</kbd> and say {idleHint}
+                      </>
+                    )}
+                  </p>
+                ) : null}
               </div>
             )}
           </div>
@@ -230,7 +288,7 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
               aria-label="Hands-free listening"
               onClick={() => voice.setHandsFree(!voice.handsFree)}
               className="group flex h-9 items-center gap-2 rounded-full border border-line-2 px-2.5 text-[11.5px] text-muted outline-none transition hover:border-gold/40 hover:text-text focus-visible:ring-2 focus-visible:ring-gold"
-              title={voice.handsFree ? "Hands-free: the mic stays open" : "Push-to-talk: hold Space or the orb to talk"}
+              title={voice.handsFree ? "Hands-free: mic stays open" : "Push-to-talk: hold Space or mic to talk"}
             >
               <span aria-hidden className="relative h-[15px] w-[26px] rounded-full transition-colors" style={{ background: voice.handsFree ? "var(--gold)" : "rgba(255,220,140,0.16)" }}>
                 <span className="absolute top-[2px] size-[11px] rounded-full bg-bg transition-all" style={{ left: voice.handsFree ? 13 : 2 }} />
@@ -245,11 +303,21 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
               onClick={() => setTyping((t) => !t)}
               className="grid size-9 place-items-center rounded-full border border-line-2 text-muted outline-none transition hover:border-gold/40 hover:text-text focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-40"
             >
-              <svg aria-hidden viewBox="0 0 20 20" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="5" width="15" height="10" rx="2.5" /><path d="M6 8.5h.01M9 8.5h.01M12 8.5h.01M14.5 8.5h.01M6.5 11.5h7" /></svg>
+              <svg aria-hidden viewBox="0 0 20 20" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2.5" y="5" width="15" height="10" rx="2.5" />
+                <path d="M6 8.5h.01M9 8.5h.01M12 8.5h.01M14.5 8.5h.01M6.5 11.5h7" />
+              </svg>
             </button>
             {connected && (
-              <button type="button" aria-label="End voice session" onClick={stop} className="grid size-9 place-items-center rounded-full border border-line-2 text-muted outline-none transition hover:border-hot/50 hover:text-hot focus-visible:ring-2 focus-visible:ring-gold">
-                <svg aria-hidden viewBox="0 0 20 20" className="size-4" fill="currentColor"><rect x="5" y="5" width="10" height="10" rx="2" /></svg>
+              <button
+                type="button"
+                aria-label="End voice session"
+                onClick={stop}
+                className="grid size-9 place-items-center rounded-full border border-line-2 text-muted outline-none transition hover:border-hot/50 hover:text-hot focus-visible:ring-2 focus-visible:ring-gold"
+              >
+                <svg aria-hidden viewBox="0 0 20 20" className="size-4" fill="currentColor">
+                  <rect x="5" y="5" width="10" height="10" rx="2" />
+                </svg>
               </button>
             )}
           </div>

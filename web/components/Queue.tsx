@@ -75,7 +75,7 @@ export function Queue({ user, canSeeRows }: { user: SessionUser; canSeeRows: boo
   });
 
   return (
-    <AppChrome user={user} active="advisor" heat={0}>
+    <AppChrome user={user} active="home" heat={0}>
       {snap ? (
         <Watchtower snap={snap} canSeeRows={canSeeRows} staff={staff} onStaff={setStaffWanted} />
       ) : (

@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, File, Path, Query, UploadFile
 from fastapi.responses import Response
 
-from api import agent, audit_parse, explore, model_lab
+from api import agent, audit_parse, distribution, explore, model_lab
 from api.auth import CurrentUser, require_signed_in
 from api.engine import NotFound, db, get_engine
 from api.profiles import AuditCourse, AuditProfile, AuditTerm
@@ -247,4 +247,23 @@ def model_lab_from_student(body: FromStudentRequest):
     `overrides` change it. Response is `/model-lab/simulate`'s shape plus `derived_from` and
     `baseline` (the student's own unmodified prediction)."""
     return wrap(model_lab.from_student(get_engine(), body))
+
+
+@router.get("/distribution/cohort", response_model=Envelope[Data])
+def cohort_distribution():
+    """Real DOIT dataset distributions: 3,200 alumni and 1,800 current students."""
+    return wrap(distribution.get_cohort_distribution())
+
+
+@router.get("/ml/evidence/{id}", response_model=Envelope[Data])
+def ml_evidence(id: CampusID):
+    """Transparent ML Model Evidence Card data: prediction drivers, holdout accuracy, 30 nearest alumni twins."""
+    return wrap(distribution.get_ml_evidence(get_engine(), id))
+
+
+@router.get("/students/{id}/fall-schedule", response_model=Envelope[Data])
+def fall_schedule(id: CampusID):
+    """Fall Schedule & Timing Balance Card data: timing, prerequisites, credit load balance, weekly study hours."""
+    return wrap(distribution.get_fall_schedule(get_engine(), id))
+
 
