@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "motion/react";
 import type { CSSProperties, ReactNode } from "react";
 import { signOutOfGoogle } from "@/lib/auth";
 import type { SessionUser } from "@/lib/session";
@@ -23,14 +22,13 @@ export function AppChrome({ user, active, right, heat = 0, children }: { user: S
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden" style={{ ["--heat-level" as string]: heat } as CSSProperties}>
       <div className="haze" />
-      <header className="relative z-40 flex h-14 shrink-0 items-center gap-2 border-b border-line bg-bg/60 px-4 backdrop-blur-xl sm:gap-4 sm:px-6">
+      <header className="relative z-40 flex h-16 shrink-0 items-center gap-2 border-b border-line-2 bg-bg px-4 sm:gap-4 sm:px-6">
         <Link href="/app" aria-label="COOKED home" className="shrink-0">
           <Wordmark size={15} />
         </Link>
         <nav aria-label="Sections" className="ml-1 flex min-w-0 gap-0.5 overflow-x-auto sm:ml-4">
           {NAV.map((n) => (
-            <Link key={n.key} href={n.href} aria-current={n.key === active ? "page" : undefined} className={`relative shrink-0 rounded-full px-3 py-1.5 text-xs transition ${n.key === active ? "text-gold" : "text-muted hover:text-text"}`}>
-              {n.key === active && <motion.span layoutId="chrome-nav" className="absolute inset-0 rounded-full border border-gold/40 bg-gold/10" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
+            <Link key={n.key} href={n.href} aria-current={n.key === active ? "page" : undefined} className={`relative shrink-0 border-b-2 px-3 py-4 text-xs transition ${n.key === active ? "border-gold text-text" : "border-transparent text-muted hover:text-text"}`}>
               <span className="relative">{n.label}</span>
             </Link>
           ))}

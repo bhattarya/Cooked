@@ -8,7 +8,7 @@ import type { Step } from "../Pipeline";
 import { RunErrorPanel, WorkHoursPanel } from "./Overlays";
 import { useNarrator } from "./narrator";
 
-/** The full-screen processing theatre. The orb breathes with whichever voice is talking; the two panels that can interrupt it live here. */
+/** The audit progress screen and the two panels that can interrupt it. */
 export function TheatreHost({ steps, exiting, error, askingWork, onWork, onExited, onBack }: { steps: Step[]; exiting: boolean; error: string | null; askingWork: boolean; onWork: (h: number) => void; onExited: () => void; onBack: () => void }) {
   const { level } = useNarrator();
   const voice = useCookedVoice();
@@ -27,7 +27,7 @@ export function TheatreHost({ steps, exiting, error, askingWork, onWork, onExite
 
   return (
     <div className="relative">
-      <ProcessingTheatre steps={steps} title="Reading your audit" subtitle="Seven agents, one real call each. Every number on the next screens is traced back to one of them." voiceLevel={connected ? agentLevel : level} exiting={exiting} onExited={onExited} className="!h-[calc(100dvh-88px)]" />
+      <ProcessingTheatre steps={steps} title="Reading your audit" subtitle="Seven steps trace the work behind your results. Live and cached sources are labeled as each finding arrives." voiceLevel={connected ? agentLevel : level} exiting={exiting} onExited={onExited} className="!h-[calc(100dvh-88px)]" />
       <AnimatePresence>
         {askingWork && !exiting && <WorkHoursPanel key="work" onAnswer={onWork} agentConnected={connected} />}
         {error && !exiting && <RunErrorPanel key="error" message={error} onBack={onBack} />}

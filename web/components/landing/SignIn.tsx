@@ -73,13 +73,13 @@ export function SignIn({
       ) : method ? (
         <>
           {google}
-          <div className="flex items-center gap-3 text-[10.5px] uppercase tracking-[0.2em] text-[#8f8773]" aria-hidden>
+          <div className="flex items-center gap-3 text-[10.5px] uppercase tracking-[0.2em] text-muted" aria-hidden>
             <span className="h-px flex-1 bg-line-2" />
             or
             <span className="h-px flex-1 bg-line-2" />
           </div>
           {guest}
-          <p className="text-center text-[11.5px] text-[#8f8773]">No account needed to try it.</p>
+          <p className="text-center text-[11.5px] text-muted">No account needed to try it.</p>
         </>
       ) : (
         <>
@@ -87,7 +87,7 @@ export function SignIn({
             Continue as guest
             <Arrow />
           </button>
-          <span className="flex items-center justify-center gap-2 text-center text-[11.5px] text-[#8f8773]">
+          <span className="flex items-center justify-center gap-2 text-center text-[11.5px] text-muted">
             <GoogleG /> Google sign-in turns on once Firebase (or AUTH_GOOGLE_ID) is set
           </span>
         </>

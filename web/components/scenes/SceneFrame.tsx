@@ -33,8 +33,8 @@ export function SceneFrame({
       }`}
     >
       <header className="min-w-0">
-        <div className="label !text-gold">{kicker}</div>
-        <h2 className="display mt-3 text-[3.25rem] font-extrabold leading-[0.9] sm:text-6xl xl:text-[5.25rem]">
+        <div className="label !text-gold border-b border-line-2 pb-4">{kicker}</div>
+        <h2 className="display mt-6 text-[3.25rem] font-semibold leading-[0.95] sm:text-6xl xl:text-[5.25rem]">
           {title}
           {accent && (
             <>

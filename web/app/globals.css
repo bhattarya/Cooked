@@ -1,51 +1,43 @@
 @import "tailwindcss";
 
 :root {
-  /* surfaces: warm black, sampled from the COOKED emblem's background */
-  --bg: #0a0805;
-  --bg-2: #0f0c07;
-  --panel: #13100a;
-  --panel-2: #1a150d;
-  --line: rgba(255, 220, 140, 0.08);
-  --line-2: rgba(255, 220, 140, 0.16);
-  --text: #f8f1e1;
-  --muted: #a89f8a;
-  --dim: #6f6858;
-
-  /* brand: the dog's gold, the flame's orange, the chef hat's cream */
-  --gold: #f6b41a;
-  --gold-hi: #ffd15c;
-  --gold-lo: #b97a06;
-  --ember: #ff7a1a;
-  --cream: #fff8e7;
-
-  /* semantic. `heat` is the primary accent (gold); `hot` is danger/risk */
+  --bg: #11120f;
+  --bg-2: #171813;
+  --panel: #1d1e18;
+  --panel-2: #24261f;
+  --line: rgba(232, 230, 211, 0.09);
+  --line-2: rgba(232, 230, 211, 0.2);
+  --text: #f1eee5;
+  --muted: #a9ab9e;
+  --dim: #777b6f;
+  --gold: #d1a847;
+  --gold-hi: #e7c879;
+  --gold-lo: #9b752d;
+  --ember: #db8a50;
+  --cream: #f1eee5;
   --heat: var(--gold);
-  --hot: #ff4a3d;
-  --amber: var(--ember);
-  --cool: #3ddbb4;
-  --ice: #7fb8ff;
-  --violet: #b7a1ff;
-  --rose: #ff6b9a;
-
-  /* data-viz: eight categorical hues that stay distinct on warm black, in assignment order */
-  --viz-1: #f6b41a;
-  --viz-2: #3ddbb4;
-  --viz-3: #b7a1ff;
-  --viz-4: #7fb8ff;
-  --viz-5: #ff7a1a;
-  --viz-6: #ff6b9a;
-  --viz-7: #b5e05a;
+  --hot: #ed7569;
+  --amber: #db8a50;
+  --cool: #9ecca6;
+  --ice: #93b9d1;
+  --violet: #b8a9d3;
+  --rose: #db9aae;
+  --viz-1: #d1a847;
+  --viz-2: #9ecca6;
+  --viz-3: #b8a9d3;
+  --viz-4: #93b9d1;
+  --viz-5: #db8a50;
+  --viz-6: #db9aae;
+  --viz-7: #b4c77b;
   --viz-8: #e8d9b0;
-  /* sequential (low -> high) and diverging (good <- 0 -> bad) ramps */
-  --seq-1: #2a1f0a;
-  --seq-2: #6b4a0a;
-  --seq-3: #b97a06;
-  --seq-4: #f6b41a;
-  --seq-5: #ffe08a;
-  --div-good: #3ddbb4;
-  --div-mid: #f6b41a;
-  --div-bad: #ff4a3d;
+  --seq-1: #292718;
+  --seq-2: #62502a;
+  --seq-3: #9b752d;
+  --seq-4: #d1a847;
+  --seq-5: #e7c879;
+  --div-good: #9ecca6;
+  --div-mid: #d1a847;
+  --div-bad: #ed7569;
 }
 
 @theme inline {
@@ -119,16 +111,16 @@ body {
 }
 
 .panel {
-  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 /* frosted overlay surface for docks, HUDs and floating controls */
 .glass {
-  background: rgba(19, 16, 10, 0.62);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  background: rgba(29, 30, 24, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--line-2);
 }
 
@@ -145,9 +137,7 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background:
-    radial-gradient(60% 40% at 50% -10%, rgba(246, 180, 26, calc(0.06 + var(--heat-level, 0) * 0.2)), transparent 70%),
-    radial-gradient(40% 30% at 100% 0%, rgba(255, 74, 61, calc(var(--heat-level, 0) * 0.14)), transparent 70%);
+  background: linear-gradient(180deg, rgba(209,168,71,calc(var(--heat-level, 0) * .035)), transparent 55%);
   transition: background 1.2s ease;
 }
 
@@ -217,3 +207,8 @@ input[type="range"].slider::-moz-range-thumb {
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* Shared editorial controls */
+:where(button,a,input,select,textarea):focus-visible{outline:2px solid var(--gold-hi);outline-offset:3px}
+:where(button){cursor:pointer}
+:where(button:disabled){cursor:not-allowed}

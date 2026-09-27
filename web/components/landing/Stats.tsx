@@ -40,14 +40,14 @@ export function Stats({ reduced, className = "" }: { reduced: boolean; className
       <dl className="flex flex-wrap items-end justify-center gap-x-6 gap-y-3 sm:gap-x-8 xl:justify-start">
         {STATS.map((s, i) => (
           <div key={s.label} className="flex flex-col-reverse gap-1">
-            <dt className="text-[10.5px] uppercase tracking-[0.14em] text-[#8f8773]">{s.label}</dt>
+            <dt className="text-[10.5px] uppercase tracking-[0.14em] text-muted">{s.label}</dt>
             <dd className="num text-[22px] font-medium leading-none text-gold-hi sm:text-[26px]">
               <CountUp value={s.value} decimals={s.decimals} suffix={s.suffix} delay={1.3 + i * 0.12} reduced={reduced} />
             </dd>
           </div>
         ))}
       </dl>
-      <p className="mt-3.5 max-w-[46ch] text-[11.5px] leading-relaxed text-[#8f8773]">
+      <p className="mt-3.5 max-w-[46ch] text-[11.5px] leading-relaxed text-muted">
         <span className="inline-block h-1.5 w-1.5 -translate-y-px rounded-full bg-gold align-middle" aria-hidden /> Synthetic data. Every figure comes from the{" "}
         <a href="https://github.com/jasonpaluck/hackumbc-2026" target="_blank" rel="noreferrer" className={`${styles.link} text-muted`}>
           HackUMBC 2026 dataset (UMBC DoIT, CC0)

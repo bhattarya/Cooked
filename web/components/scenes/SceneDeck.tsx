@@ -52,14 +52,14 @@ export function SceneDeck({ deck, render, className = "" }: { deck: SceneDeckSta
       </div>
 
       {/* phones and tablets: pill strip */}
-      <nav aria-label="Scenes" className="z-20 flex shrink-0 gap-1.5 overflow-x-auto px-4 pt-3 lg:hidden">
+      <nav aria-label="Scenes" className="z-20 flex shrink-0 gap-1 overflow-x-auto border-b border-line-2 px-4 pt-2 lg:hidden">
         {scenes.map((s, i) => (
           <button
             key={s.id}
             disabled={s.disabled}
             onClick={() => go(i)}
             aria-current={i === index ? "step" : undefined}
-            className={`num shrink-0 rounded-full border px-3 py-1 text-[11px] uppercase tracking-wider transition disabled:opacity-25 ${i === index ? "border-gold/60 bg-gold/10 text-gold" : "border-line text-dim hover:text-muted"}`}
+            className={`num shrink-0 border-b-2 px-3 py-2 text-[11px] uppercase tracking-wider transition disabled:opacity-25 ${i === index ? "border-gold text-gold" : "border-transparent text-dim hover:text-muted"}`}
           >
             {s.label}
           </button>
@@ -67,29 +67,28 @@ export function SceneDeck({ deck, render, className = "" }: { deck: SceneDeckSta
       </nav>
 
       {/* desktop: vertical rail */}
-      <nav aria-label="Scenes" className="absolute left-5 top-1/2 z-20 hidden -translate-y-1/2 flex-col gap-1 lg:flex">
+      <nav aria-label="Scenes" className="absolute bottom-0 left-0 top-0 z-20 hidden w-32 flex-col justify-center gap-1 border-r border-line-2 bg-bg px-3 lg:flex">
         {scenes.map((s, i) => {
           const on = i === index;
           return (
-            <button key={s.id} disabled={s.disabled} onClick={() => go(i)} aria-current={on ? "step" : undefined} aria-label={s.label} className="group flex items-center gap-3 py-1.5 disabled:opacity-25">
+            <button key={s.id} disabled={s.disabled} onClick={() => go(i)} aria-current={on ? "step" : undefined} aria-label={s.label} className={`group flex items-center gap-2 border-l-2 px-2 py-2 text-left disabled:opacity-25 ${on ? "border-gold bg-gold/[0.05]" : "border-transparent hover:bg-panel"}`}>
               <span className="num w-5 text-[10px] text-dim transition group-hover:text-muted" style={on ? { color: "var(--gold)" } : undefined}>{String(i + 1).padStart(2, "0")}</span>
-              <span className={`h-px transition-all duration-500 ${on ? "w-9 bg-gold" : "w-4 bg-line-2 group-hover:w-6 group-hover:bg-muted"}`} />
-              <span className={`text-[11px] uppercase tracking-[0.14em] transition-all duration-300 ${on ? "translate-x-0 text-gold opacity-100" : "-translate-x-1 text-muted opacity-0 group-hover:translate-x-0 group-hover:opacity-100"}`}>{s.label}</span>
+              <span className={`text-[11px] uppercase tracking-[0.08em] ${on ? "text-gold" : "text-muted group-hover:text-text"}`}>{s.label}</span>
             </button>
           );
         })}
       </nav>
 
-      <div className="relative min-h-0 flex-1 lg:pl-28" onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => (start.current = null)}>
+      <div className="relative min-h-0 flex-1 lg:pl-32" onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => (start.current = null)}>
         <AnimatePresence mode="wait" initial={false} custom={dir}>
           {id && (
             <motion.div
               key={id}
               custom={dir}
               variants={{
-                enter: (d: number) => ({ opacity: 0, x: d * 56, scale: 0.985, filter: "blur(10px)" }),
-                center: { opacity: 1, x: 0, scale: 1, filter: "blur(0px)", transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] } },
-                exit: (d: number) => ({ opacity: 0, x: d * -40, scale: 0.99, filter: "blur(8px)", transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }),
+                enter: (d: number) => ({ opacity: 0, x: d * 18 }),
+                center: { opacity: 1, x: 0, transition: { duration: 0.28, ease: "easeOut" } },
+                exit: (d: number) => ({ opacity: 0, x: d * -12, transition: { duration: 0.16 } }),
               }}
               initial="enter"
               animate="center"
