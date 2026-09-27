@@ -84,6 +84,7 @@ def test_repeats_sort_chronologically_and_summer_does_not_change_stage():
 
 def test_invalid_extraction_is_a_readable_error(monkeypatch):
     monkeypatch.setattr(agent.net, "enabled", lambda: True)
+    monkeypatch.setattr(agent.net, "key", lambda name: "test-key" if name == "ANTHROPIC_API_KEY" else None)
     monkeypatch.setattr(agent.gemini, "configured", lambda: True)
     monkeypatch.setattr(agent.claude, "parse_audit", lambda *_: {"credits_earned": "invalid_number"})
     monkeypatch.setattr(agent.gemini, "parse_audit", lambda *_: {"credits_earned": "invalid_number"})
@@ -128,6 +129,7 @@ def test_credit_question_reads_audit_facts():
 @pytest.mark.db
 def test_uploaded_profile_is_used_by_models(db, engine_client, monkeypatch):
     monkeypatch.setattr(agent.net, "enabled", lambda: True)
+    monkeypatch.setattr(agent.net, "key", lambda name: "test-key" if name == "ANTHROPIC_API_KEY" else None)
     monkeypatch.setattr(agent.gemini, "configured", lambda: True)
     mock_parse = lambda *_: {
         "major": "Computer Science", "entry_type": "Transfer",
