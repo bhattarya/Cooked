@@ -51,7 +51,7 @@ export function Dashboard({ deck, j, tw, ds, live, careers, answers, answerIndex
     <SceneDeck
       deck={deck}
       // the deck reserves room for its left rail with padding that its absolutely-positioned scenes ignore, so each scene keeps clear of the rail itself
-      render={(id) => <div className="h-full lg:pl-36 xl:pl-32">{scene(id as DeckScene)}</div>}
+      render={(id) => <div className="h-full w-full">{scene(id as DeckScene)}</div>}
     />
   );
 }

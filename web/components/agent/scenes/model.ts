@@ -38,7 +38,7 @@ export const SAMPLES: { id: string; key: SampleKey; label: string; hint: string 
 export interface Journey {
   id: string;
   name: string | null;
-  source: "sample" | "gemini";
+  source: "sample" | "gemini" | "claude";
   label: string;
   st: FullState;
   /** Weekly work hours the user gave (an audit cannot say); undefined lets the server use the profile. */

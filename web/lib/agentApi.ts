@@ -21,7 +21,7 @@ export interface AuditSummary {
 }
 export interface Intake {
   id: string | null;
-  source: "sample" | "gemini" | "unavailable";
+  source: "sample" | "gemini" | "claude" | "unavailable";
   first_name?: string | null;
   needs_work_hours?: boolean;
   summary?: AuditSummary;
@@ -62,8 +62,12 @@ export interface Myths {
 export async function uploadAudit(file: Blob, name = "audit.pdf"): Promise<Call<Intake>> {
   if (!file.size) throw new Error("That file is empty. Choose your degree audit again.");
   if (file.size > 8_000_000) throw new Error("Your audit is too large. Choose a PDF or image under 8 MB.");
-  if (file.type && !["application/pdf", "image/png", "image/jpeg", "image/webp"].includes(file.type))
+  const ext = name.toLowerCase();
+  const isPdf = ext.endsWith(".pdf") || (file.type ? file.type.includes("pdf") : false);
+  const isImg = /\.(png|jpg|jpeg|webp)$/.test(ext) || (file.type ? file.type.includes("image") : false);
+  if (!isPdf && !isImg && file.type && !["application/pdf", "image/png", "image/jpeg", "image/webp"].includes(file.type)) {
     throw new Error("Choose a PDF, PNG, JPEG or WebP degree audit.");
+  }
   const t0 = performance.now();
   const fd = new FormData();
   fd.append("file", file, name);

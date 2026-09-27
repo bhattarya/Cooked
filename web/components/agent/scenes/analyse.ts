@@ -10,7 +10,7 @@ export type Patch = (key: string, p: Partial<Step>) => void;
 
 /** The seven agents of an audit, in the order they run, each tagged with the sponsor behind it. */
 export const auditPipelineSteps = (live: SponsorLive): Step[] => [
-  { key: "read", agent: "Reader", task: "reading your audit", sponsor: "gemini", live: live.gemini, status: "running" },
+  { key: "read", agent: "Reader", task: "reading your audit", sponsor: live.claude ? "claude" : "gemini", live: live.claude || live.gemini, status: "running" },
   { key: "match", agent: "Matcher", task: "finding alumni like you", sponsor: "tiger", live: live.tiger, status: "pending" },
   { key: "risk", agent: "Watchtower", task: "scoring your trajectory", sponsor: "model", live: live.model, status: "pending" },
   { key: "drill", agent: "Fire drill", task: "simulating what could go wrong", sponsor: "tiger", live: live.tiger, status: "pending" },

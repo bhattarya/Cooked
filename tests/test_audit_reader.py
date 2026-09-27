@@ -47,6 +47,7 @@ def test_reader_timeout_is_not_reported_as_bad_pdf(monkeypatch):
 def test_intake_returns_reader_error_without_creating_profile(monkeypatch):
     monkeypatch.setenv('GEMINI_API_KEY','test-key')
     monkeypatch.setenv('GEMINI_AUDIT_MODEL','pdf-model')
+    monkeypatch.setenv('AUDIT_PROVIDER', 'gemini')
     monkeypatch.setattr(gemini.net,'enabled',lambda: True)
     def parse(*a):
         raise gemini.AuditReadError('reader_unavailable', 'Reader temporarily unavailable.')

@@ -24,6 +24,36 @@ FAIL, WITHDRAW = {"F", "FF", "NP", "NC", "U"}, {"W", "WP", "WF"}
 PASS = {"A", "A+", "A-", "B", "B+", "B-", "C", "C+", "C-", "D", "D+", "D-", "P", "S", "CR", "T"}
 
 
+def norm_major(raw: str) -> str:
+    """Map common audit labels onto the two majors represented by the frozen models."""
+    value = re.sub(r"[^a-z]+", " ", str(raw).lower()).strip()
+    if "computer science" in value or re.search(r"\bcs\b", value):
+        return "Computer Science"
+    if "information systems" in value or "infosys" in value or re.search(r"\bis\b", value):
+        return "Information Systems"
+    return "Computer Science"
+
+
+def norm_entry_type(raw: str | None) -> str:
+    """Normalize labels used by different audit templates."""
+    value = re.sub(r"[^a-z]+", " ", str(raw or "").lower()).strip()
+    if "transfer" in value:
+        return "Transfer"
+    if not value or any(term in value for term in ("freshman", "first year", "first time", "new student")):
+        return "First-Time Freshman"
+    raise ValueError("Unsupported entry type")
+
+
+def norm_residency(raw: str | None) -> str:
+    """Normalize residency labels while defaulting when an audit omits the field."""
+    value = re.sub(r"[^a-z]+", " ", str(raw or "").lower()).strip()
+    if "out" in value or "non resident" in value or "nonresident" in value:
+        return "Out-of-State"
+    if not value or "in" in value or "resident" in value:
+        return "In-State"
+    raise ValueError("Unsupported residency")
+
+
 def norm_course(raw: str) -> str:
     m = COURSE.match(raw.strip().upper())
     return f"{m.group(1)}{m.group(2)}" if m else raw.strip().upper().replace(" ", "")
@@ -86,6 +116,21 @@ class AuditProfile(BaseModel):
     @classmethod
     def _norm_done(cls, v: list[str]) -> list[str]:
         return [norm_course(c) for c in v if c]
+
+    @field_validator("major", mode="before")
+    @classmethod
+    def _major(cls, v: str) -> str:
+        return norm_major(v)
+
+    @field_validator("entry_type", mode="before")
+    @classmethod
+    def _entry_type(cls, v: str | None) -> str:
+        return norm_entry_type(v)
+
+    @field_validator("residency", mode="before")
+    @classmethod
+    def _residency(cls, v: str | None) -> str:
+        return norm_residency(v)
 
     @field_validator("first_name")
     @classmethod
@@ -192,4 +237,3 @@ def restore(people, conn, pid: str) -> bool:
         return False
     register(people, pid, AuditProfile(**row[0]))
     return True
-

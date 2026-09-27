@@ -135,6 +135,7 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
       void sayServer("thanks", name);
       const fail = (message: string, keepRunning = true): RunResult => {
         setError(message);
+        setPhase("home");
         if (keepRunning) setSteps((s) => s.map((x) => (x.status === "running" ? { ...x, status: "error", result: "failed" } : x)));
         return { ok: false, message };
       };
@@ -150,8 +151,8 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
         if (d.first_name && user.guest) name = d.first_name;
         patch("read", {
           status: "done",
-          live: d.source === "gemini" && lv.gemini,
-          result: `${d.source === "sample" ? "sample audit · synthetic student" : "read by Gemini"} · ${s.terms} terms · ${s.courses_done} courses done · ${s.in_progress} in progress · ${s.credits_earned}/${s.credits_required} credits`,
+          live: d.source === "sample" ? false : d.source === "claude" ? lv.claude : lv.gemini,
+          result: `${d.source === "sample" ? "sample audit · synthetic student" : `read by ${d.source === "claude" ? "Claude" : "Gemini"}`} · ${s.terms} terms · ${s.courses_done} courses done · ${s.in_progress} in progress · ${s.credits_earned}/${s.credits_required} credits`,
           tr: s.tool_result_id,
           ms: intake.ms,
         });
@@ -175,7 +176,7 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
         const j: Journey = {
           id: d.id,
           name,
-          source: d.source === "gemini" ? "gemini" : "sample",
+          source: d.source === "claude" ? "claude" : d.source === "gemini" ? "gemini" : "sample",
           label,
           st: a.st,
           work: hours,

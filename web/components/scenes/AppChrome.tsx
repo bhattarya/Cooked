@@ -21,7 +21,7 @@ export const DOCK_CLEARANCE = "pb-28";
 /** The one frame for every /app screen: fixed to the viewport, warm-black haze, slim header, no page scroll. */
 export function AppChrome({ user, active, right, heat = 0, children }: { user: SessionUser; active: AppSection; right?: ReactNode; heat?: number; children: ReactNode }) {
   return (
-    <div className="relative flex h-dvh flex-col overflow-hidden" style={{ ["--heat-level" as string]: heat } as CSSProperties}>
+    <div className="app-shell relative flex h-dvh flex-col overflow-hidden" style={{ ["--heat-level" as string]: heat } as CSSProperties}>
 
       <header className="relative z-40 flex h-14 shrink-0 items-center gap-2 border-b border-line bg-bg/60 px-4 backdrop-blur-xl sm:gap-4 sm:px-6">
         <Link href="/app" aria-label="COOKED home" className="shrink-0">

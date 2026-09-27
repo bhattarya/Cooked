@@ -53,6 +53,25 @@ def test_inconsistent_or_missing_term_totals_are_rejected():
         profiles.AuditTerm(label="Fall 2025", credits_attempted=12)
 
 
+def test_common_degree_audit_major_labels_normalize_to_model_majors():
+    assert profiles.AuditProfile(major="B.S. Computer Science").major == "Computer Science"
+    assert profiles.AuditProfile(major="Information Systems, B.S.").major == "Information Systems"
+    assert profiles.AuditProfile(major="Mechanical Engineering").major == "Computer Science"
+
+
+def test_common_entry_and_residency_labels_normalize():
+    profile = profiles.AuditProfile(
+        major="Computer Science B.S.",
+        entry_type="First-year student",
+        residency="Maryland resident",
+    )
+    assert profile.entry_type == "First-Time Freshman"
+    assert profile.residency == "In-State"
+    assert profiles.AuditProfile(
+        major="Information Systems", entry_type="Transfer student", residency="Non-resident"
+    ).entry_type == "Transfer"
+
+
 def test_repeats_sort_chronologically_and_summer_does_not_change_stage():
     p = profiles.AuditProfile(terms=[
         profiles.AuditTerm(label="Spring 2025", courses=[profiles.AuditCourse(course_id="CMSC201", grade="B")]),
@@ -66,7 +85,7 @@ def test_repeats_sort_chronologically_and_summer_does_not_change_stage():
 def test_invalid_extraction_is_a_readable_error(monkeypatch):
     monkeypatch.setattr(agent.net, "enabled", lambda: True)
     monkeypatch.setattr(agent.gemini, "configured", lambda: True)
-    monkeypatch.setattr(agent.gemini, "parse_audit", lambda *_: {"major": "Biology"})
+    monkeypatch.setattr(agent.claude, "parse_audit", lambda *_: {"credits_earned": "invalid_number"})
     result = agent.intake(Mock(), b"%PDF-test", "application/pdf")
     assert result["id"] is None
     assert "verify" in result["error"]
@@ -109,7 +128,7 @@ def test_credit_question_reads_audit_facts():
 def test_uploaded_profile_is_used_by_models(db, engine_client, monkeypatch):
     monkeypatch.setattr(agent.net, "enabled", lambda: True)
     monkeypatch.setattr(agent.gemini, "configured", lambda: True)
-    monkeypatch.setattr(agent.gemini, "parse_audit", lambda *_: {
+    monkeypatch.setattr(agent.claude, "parse_audit", lambda *_: {
         "major": "Computer Science", "entry_type": "Transfer",
         "credits_earned": 62.5, "credits_required": 120,
         "terms": [{"label": "Fall 2025", "courses": [

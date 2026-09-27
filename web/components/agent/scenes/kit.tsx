@@ -91,7 +91,11 @@ export function Action({ children, onClick, primary = false, disabled = false, l
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] transition disabled:opacity-40 ${primary ? "bg-gold font-medium text-bg hover:bg-gold-hi" : "border border-line-2 text-muted hover:border-gold/50 hover:text-text"}`}
+      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all duration-200 disabled:opacity-40 cursor-pointer ${
+        primary
+          ? "bg-gold text-black hover:bg-gold-hi shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:scale-[1.02]"
+          : "border border-line-2 bg-panel text-muted hover:border-gold/50 hover:text-white hover:bg-gold/10"
+      }`}
     >
       {children}
     </button>

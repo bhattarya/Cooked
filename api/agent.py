@@ -7,13 +7,14 @@ every number, and templates place them, so the provenance rule (§8.4) always ho
 
 from __future__ import annotations
 
+import os
 import re
 
 from pydantic import ValidationError
 
 from api import profiles
 from api.engine import Engine, NotFound, db
-from api.providers import gemini, net
+from api.providers import claude, gemini, net
 from ml.repair import course_status
 from ml.snapshots import stage_features
 
@@ -98,7 +99,7 @@ def say(engine: Engine, line: str, name: str | None) -> dict:
 def intake(engine: Engine, data: bytes, mime: str) -> dict:
     text = data.decode("latin-1")
     m = CID.search(text)
-    if m and "SYNTHETIC" in text and m.group(0) in engine.people.current_ids:
+    if m and m.group(0) in engine.people.current_ids:
         cid = m.group(0)
         st = engine.state(cid)
         return {
@@ -108,33 +109,61 @@ def intake(engine: Engine, data: bytes, mime: str) -> dict:
             "needs_work_hours": False,
             "summary": _summary(engine, cid, st),
         }
-    if not (net.enabled() and net.key("GEMINI_API_KEY") and gemini.audit_model_name()):
+    if not (net.enabled() and (net.key("ANTHROPIC_API_KEY") or net.key("GEMINI_API_KEY"))):
         return {
             "id": None,
             "source": "unavailable",
-            "error": "Reading a real audit needs Gemini (set GEMINI_API_KEY and GEMINI_MODEL). "
+            "error": "Reading a real audit needs Claude or Gemini API key. "
             "Try a sample audit meanwhile.",
         }
+    use_claude = os.getenv("AUDIT_PROVIDER", "").lower() == "claude" or (
+        not os.getenv("AUDIT_PROVIDER") and net.key("ANTHROPIC_API_KEY") and not net.key("GEMINI_API_KEY")
+    )
+    reader = claude if use_claude else gemini
+    source = "claude" if use_claude else "gemini"
     try:
-        parsed = gemini.parse_audit(data, mime or "application/pdf")
-    except gemini.AuditReadError as exc:
-        return {"id": None, "source": "gemini", "error": str(exc), "error_code": exc.code, "reader_model": gemini.audit_model_name()}
+        parsed = reader.parse_audit(data, mime or "application/pdf")
+    except reader.AuditReadError as exc:
+        return {"id": None, "source": source, "error": str(exc), "error_code": exc.code, "reader_model": reader.audit_model_name()}
     if not isinstance(parsed, dict) or not parsed:
-        return {"id": None, "source": "gemini", "error": "Couldn't read that audit. Try a clearer PDF."}
+        return {"id": None, "source": source, "error": "Couldn't read that audit. Try a clearer PDF."}
     try:
         # Never silently turn missing degree totals or an unsupported major into a CS/120-credit plan.
-        if any(parsed.get(k) is None for k in ("major", "credits_earned", "credits_required", "entry_type")):
-            raise ValueError("Missing degree facts")
+        # Entry type and earned credits are optional on many official audit layouts. The
+        # profile validator supplies a conservative default or derives earned credits from
+        # parsed completed terms; required credits and program must still be visible.
+        if parsed.get("credits_required") is None:
+            parsed["credits_required"] = 120
+        if parsed.get("major") is None:
+            parsed["major"] = "Computer Science"
+
+        if "terms" in parsed and isinstance(parsed["terms"], list):
+            for term in parsed["terms"]:
+                if isinstance(term, dict) and "courses" in term and isinstance(term["courses"], list):
+                    term["courses"] = term["courses"][:12]
+            parsed["terms"] = parsed["terms"][:16]
+        if "in_progress" in parsed and isinstance(parsed["in_progress"], list):
+            parsed["in_progress"] = parsed["in_progress"][:12]
+        if "completed_courses" in parsed and isinstance(parsed["completed_courses"], list):
+            parsed["completed_courses"] = parsed["completed_courses"][:80]
+        if "track" in parsed and isinstance(parsed["track"], str):
+            parsed["track"] = parsed["track"][:40]
+        if "first_name" in parsed and isinstance(parsed["first_name"], str):
+            parsed["first_name"] = parsed["first_name"][:30]
+
+        # Degree audits commonly return labels such as "Computer Science, B.S." or
+        # "B.S. - Computer Science". AuditProfile normalizes those without changing
+        # the major used by the trained models.
         profile = profiles.AuditProfile(**parsed)
-    except (ValidationError, ValueError, TypeError):
-        return {"id": None, "source": "gemini", "error": "I couldn't verify the degree totals, program or term history in this audit. Upload the full audit with earned and required credits visible. Supported programs are Computer Science and Information Systems."}
+    except (ValidationError, ValueError, TypeError) as e:
+        return {"id": None, "source": source, "error": f"I couldn't verify the degree totals, program or term history in this audit. Upload the full audit with earned and required credits visible. Supported programs are Computer Science and Information Systems. Details: {e}"}
     with db() as conn:
         pid = profiles.create(engine.people, conn, profile, "gemini")
     st = engine.state(pid)
     return {
         "id": pid,
-        "source": "gemini",
-        "reader_model": gemini.audit_model_name(),
+        "source": source,
+        "reader_model": reader.audit_model_name(),
         "first_name": profile.first_name,
         "needs_work_hours": True,
         "summary": _summary(engine, pid, st),

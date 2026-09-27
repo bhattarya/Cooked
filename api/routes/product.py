@@ -162,7 +162,8 @@ async def audit(file: Annotated[UploadFile, File()]):
         raise HTTPException(413, "Choose an audit under 8 MB.")
     if not data:
         raise HTTPException(422, "The uploaded file is empty.")
-    mime = ("application/pdf" if data.startswith(b"%PDF-") else
+    is_pdf = b"%PDF" in data[:1024]
+    mime = ("application/pdf" if is_pdf else
             "image/png" if data.startswith(b"\x89PNG\r\n\x1a\n") else
             "image/jpeg" if data.startswith(b"\xff\xd8\xff") else
             "image/webp" if data.startswith(b"RIFF") and data[8:12] == b"WEBP" else None)

@@ -3,10 +3,11 @@
 import type { Health } from "@/lib/live";
 
 // Which sponsor powers each agent, and whether it's live right now (honest fallbacks).
-export type SponsorKey = "gemini" | "elevenlabs" | "backboard" | "tiger" | "digitalocean" | "model";
+export type SponsorKey = "gemini" | "claude" | "elevenlabs" | "backboard" | "tiger" | "digitalocean" | "model";
 
 export const SPONSORS: Record<SponsorKey, { label: string; color: string; role: string }> = {
   gemini: { label: "Gemini", color: "#8ab4f8", role: "reads audits, routes questions" },
+  claude: { label: "Claude", color: "#d97757", role: "reads audits" },
   elevenlabs: { label: "Voice", color: "#f4f1ea", role: "speaks every answer" },
   backboard: { label: "Backboard", color: "#c4b5fd", role: "remembers your decisions" },
   tiger: { label: "Tiger Data", color: "#fbbf24", role: "3,200 alumni + drill simulations" },
@@ -16,6 +17,7 @@ export const SPONSORS: Record<SponsorKey, { label: string; color: string; role: 
 
 export interface SponsorLive {
   gemini: boolean;
+  claude: boolean;
   elevenlabs: boolean;
   backboard: boolean;
   tiger: boolean;
@@ -26,6 +28,7 @@ export interface SponsorLive {
 export function sponsorLive(h: Health & { database_kind?: string } | null): SponsorLive {
   return {
     gemini: !!h?.providers?.gemini,
+    claude: !!h?.providers?.claude,
     elevenlabs: !!h?.providers?.elevenlabs,
     backboard: !!h?.providers?.backboard,
     tiger: h?.database_kind === "tiger-cloud",
@@ -36,6 +39,7 @@ export function sponsorLive(h: Health & { database_kind?: string } | null): Spon
 
 export const FALLBACK: Record<SponsorKey, string> = {
   gemini: "local parser + router",
+  claude: "local parser",
   elevenlabs: "browser voice",
   backboard: "stored in Postgres",
   tiger: "TimescaleDB (local)",
@@ -58,7 +62,7 @@ export function SponsorChip({ k, live, compact = false }: { k: SponsorKey; live:
   );
 }
 
-const ORDER: SponsorKey[] = ["gemini", "elevenlabs", "backboard", "tiger", "model", "digitalocean"];
+const ORDER: SponsorKey[] = ["gemini", "claude", "elevenlabs", "backboard", "tiger", "model", "digitalocean"];
 
 /** Six quiet dots for the header: lit when that service is live, dim when its fallback is running. Hover for which. */
 export function SponsorDots({ live }: { live: SponsorLive }) {
