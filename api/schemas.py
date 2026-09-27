@@ -30,6 +30,7 @@ class HealthResponse(StrictModel):
     status: Literal["ok", "degraded"]
     mode: Literal["scaffold", "models"] = "scaffold"
     model_version: str | None = None
+    audit_reader_model: str | None = None
     demo_mode: bool = False
     providers: dict[str, bool] = Field(default_factory=dict)
     database_kind: Literal["tiger-cloud", "timescaledb-local", "unknown"] = "unknown"

@@ -37,8 +37,8 @@ export interface LabSim {
  * Stale answers never overwrite newer ones: every request carries a sequence number, a superseded
  * request is aborted at the network (AbortController wired into fetch), and repeats are served from a small cache.
  */
-export function useLabSim(): LabSim {
-  const [scenario, setScenario] = useState<ModelLabScenario>(DEFAULT_SCENARIO);
+export function useLabSim(initial?: ModelLabScenario): LabSim {
+  const [scenario, setScenario] = useState<ModelLabScenario>(initial ?? DEFAULT_SCENARIO);
   const [shown, setShown] = useState<{ key: string; result: SimulateResponse } | null>(null);
   const [pending, setPending] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export function useLabSim(): LabSim {
   const [cloud, setCloud] = useState<SimulateResponse["constellation"]["points"] | null>(null);
 
   const live = useRef({
-    scenario: DEFAULT_SCENARIO,
+    scenario: initial ?? DEFAULT_SCENARIO,
     seq: 0,
     ctrl: null as AbortController | null,
     newest: null as Promise<SimulateResponse> | null,

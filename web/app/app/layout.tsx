@@ -1,7 +1,12 @@
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { VoiceRoot } from "@/components/voice/VoiceRoot";
+import { AdvisorSession } from "@/components/agent/AdvisorSession";
+import { SESSION_COOKIE, readSession } from "@/lib/session";
 
-// One voice provider + dock for every signed-in screen; scenes register the commands they can handle.
-export default function AppLayout({ children }: { children: ReactNode }) {
-  return <VoiceRoot>{children}</VoiceRoot>;
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  const user = await readSession((await cookies()).get(SESSION_COOKIE)?.value);
+  if (!user) redirect("/");
+  return <VoiceRoot><AdvisorSession user={user}>{children}</AdvisorSession></VoiceRoot>;
 }

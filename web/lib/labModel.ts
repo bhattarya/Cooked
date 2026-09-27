@@ -5,7 +5,8 @@ import { authHeaders } from "./auth";
 import type { ArenaReport, CareerClass, Envelope, Family, ModelLabScenario, SimulateResponse, TaskId } from "./arena-types";
 import { fieldSpec, type ScenarioField } from "./commands";
 
-const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+// The browser uses this origin; Next routes to the configured API server.
+const API = "/backend";
 
 export type LabField = keyof ModelLabScenario;
 export type NumericField = Exclude<LabField, "major" | "entry_type" | "residency">;

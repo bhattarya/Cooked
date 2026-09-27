@@ -7,7 +7,7 @@ export type SponsorKey = "gemini" | "elevenlabs" | "backboard" | "tiger" | "digi
 
 export const SPONSORS: Record<SponsorKey, { label: string; color: string; role: string }> = {
   gemini: { label: "Gemini", color: "#8ab4f8", role: "reads audits, routes questions" },
-  elevenlabs: { label: "ElevenLabs", color: "#f4f1ea", role: "speaks every answer" },
+  elevenlabs: { label: "Voice", color: "#f4f1ea", role: "speaks every answer" },
   backboard: { label: "Backboard", color: "#c4b5fd", role: "remembers your decisions" },
   tiger: { label: "Tiger Data", color: "#fbbf24", role: "3,200 alumni + drill simulations" },
   digitalocean: { label: "DigitalOcean", color: "#3b82f6", role: "hosts the agents" },

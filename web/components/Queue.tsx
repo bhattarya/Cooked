@@ -1,5 +1,6 @@
 "use client";
 
+import { useAdvisorSession } from "./agent/AdvisorSession";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { routeToScene } from "@/components/agent/explore/sceneRoutes";
@@ -19,6 +20,7 @@ import { int, pct } from "@/components/viz";
  * `canSeeRows` is the same gate the API enforces: per-student rows only for people signed in with Google once Firebase is on.
  */
 export function Queue({ user, canSeeRows }: { user: SessionUser; canSeeRows: boolean }) {
+  const { journey } = useAdvisorSession();
   const router = useRouter();
   const health = useApiHealth();
   const [snap, setSnap] = useState<Snapshot | null>(null);
@@ -67,7 +69,7 @@ export function Queue({ user, canSeeRows }: { user: SessionUser; canSeeRows: boo
   const summary = snap
     ? `The Watchtower${snap.source === "model" ? ` (model ${snap.version})` : " (local engine, the API is offline)"} scored ${int(snap.scored)} current students. ${int(snap.atRisk)} are at or above the ${snap.threshold.toFixed(2)} line${snap.openAlarms !== null ? ` and ${int(snap.openAlarms)} alarms are open` : ""}. ${canSeeRows ? "Student rows are behind the Student rows toggle." : "Student rows need a Google sign-in, so only counts are shown."}`
     : "The Watchtower is still scoring the current students.";
-  useVoiceScreen({ scene: null, title: "Watchtower", summary, facts, student: false, scenes: ["explore", "models", "risk", "timeline", "twins", "drill", "repair", "careers"] });
+  useVoiceScreen({ scene: "advisor", title: "Watchtower", summary, facts, student: Boolean(journey), scenes: ["explore", "models", "risk", "timeline", "twins", "drill", "repair", "careers"] });
   useVoiceCommands({
     describeScreen: () => ({ message: summary, data: { scene: "advisor", ...facts } }),
     showScene: ({ scene }) => routeToScene(scene, router.push),

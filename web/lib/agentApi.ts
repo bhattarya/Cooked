@@ -5,7 +5,8 @@ import type { ArenaReport, ModelLabScenario, SimulateResponse } from "./arena-ty
 import { authHeaders } from "./auth";
 import { api, type Call, type ServerDrill, type ServerNarration, type ServerRepair, type ServerState } from "./live";
 
-const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+// The browser uses this origin; Next routes to the configured API server.
+const API = "/backend";
 
 export interface AuditSummary {
   major: string;
@@ -47,7 +48,7 @@ export type Visual =
   | { type: "repair"; repair: ServerRepair }
   | { type: "explain"; state: ServerState; reference_load?: number | null; tool_result_id?: string };
 export interface Answer extends ServerNarration {
-  tool: "what_if" | "course_plan" | "stress_test" | "find_fix" | "explain_risk";
+  tool: "audit_summary" | "what_if" | "course_plan" | "stress_test" | "find_fix" | "explain_risk";
   args: Record<string, unknown>;
   router: "gemini" | "local";
   visual: Visual;
@@ -59,12 +60,25 @@ export interface Myths {
 }
 
 export async function uploadAudit(file: Blob, name = "audit.pdf"): Promise<Call<Intake>> {
+  if (!file.size) throw new Error("That file is empty. Choose your degree audit again.");
+  if (file.size > 8_000_000) throw new Error("Your audit is too large. Choose a PDF or image under 8 MB.");
+  if (file.type && !["application/pdf", "image/png", "image/jpeg", "image/webp"].includes(file.type))
+    throw new Error("Choose a PDF, PNG, JPEG or WebP degree audit.");
   const t0 = performance.now();
   const fd = new FormData();
   fd.append("file", file, name);
-  const r = await fetch(`${API}/audit/parse`, { method: "POST", body: fd, headers: await authHeaders() });
-  const j = await r.json();
-  if (!r.ok) throw new Error(j?.message ?? `HTTP ${r.status}`);
+  let r: Response;
+  const headers = await authHeaders();
+  try {
+    r = await fetch(`${API}/audit/parse`, { method: "POST", body: fd, headers, signal: AbortSignal.timeout(180_000) });
+  } catch (error) {
+    throw new Error(error instanceof DOMException && error.name === "TimeoutError"
+      ? "Reading this audit took too long. Try a smaller or clearer PDF."
+      : "Couldn't reach the audit service. Check your connection and try again.");
+  }
+  const j = await r.json().catch(() => null);
+  if (!r.ok) throw new Error(j?.message ?? j?.detail ?? (r.status === 413 ? "Your audit is too large. Choose a file under 8 MB." : "The audit service is unavailable. Please try again."));
+  if (!j?.data) throw new Error("The audit service returned an incomplete response. Please try again.");
   return { data: j.data, version: j.model_version, ms: performance.now() - t0 };
 }
 
@@ -74,7 +88,7 @@ export const askAgent = (id: string, question: string, work?: number, plan?: num
   api<Answer>(`/students/${id}/ask`, { question, work_hours: work, plan_load: plan });
 export const setWorkHours = (id: string, hours: number) => api<{ id: string; work_hours: number }>(`/profiles/${id}/work`, { work_hours: hours });
 export const getState = (id: string, work?: number, plan?: number) =>
-  api<ServerState & { terms: { attempted: number; earned: number; withdrawals: number }[]; courses_done: string[]; courses_in_progress: string[]; major: string; track: string; credits_earned: number; credits_required: number; work_hours: number }>(
+  api<ServerState & { terms: { attempted: number; earned: number; withdrawals: number; failures?: number }[]; courses_done: string[]; courses_in_progress: string[]; major: string; track: string; credits_earned: number; credits_required: number; work_hours: number }>(
     `/students/${id}/state?${new URLSearchParams({ ...(work !== undefined ? { work_hours: String(work) } : {}), ...(plan !== undefined ? { plan_load: String(plan) } : {}) })}`,
   );
 export const runDrill = (id: string, load?: number, work?: number) => api<ServerDrill>("/drill", { campus_id: id, plan_load: load, work_hours: work });

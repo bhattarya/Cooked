@@ -181,7 +181,7 @@ def run_repair(
     k = len(base)
     current = round(float(base[:, 0].mean())) if k else 15
     extra = people.current_extra.loc[cid]
-    remaining = max(0, int(extra["credits_required"]) - int(extra["credits_earned"]))
+    remaining = max(0, float(extra["credits_required"]) - float(extra["credits_earned"]))
     need = math.ceil(remaining / max(1, 10 - k))
     start = max(current + 1, min(need, 17))
 

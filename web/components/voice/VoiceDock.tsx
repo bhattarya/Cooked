@@ -19,7 +19,7 @@ const HINTS: { cmd: CommandName; text: string }[] = [
 ];
 
 const STATE_LABEL: Record<VoiceState, string> = {
-  idle: "Voice control",
+  idle: "Ask COOKED",
   connecting: "Connecting",
   listening: "Listening",
   thinking: "Working on it",
@@ -157,7 +157,7 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
   const muted = connected && !voice.micOpen && state !== "speaking" && state !== "thinking";
   const label = muted ? "Muted · hold Space to talk" : STATE_LABEL[state];
   const engineLabel =
-    voice.engine === "elevenlabs" || (!connected && voice.support === "elevenlabs") ? "ElevenLabs agent" : voice.support === "text" ? "Typing only" : "Browser speech";
+    voice.engine === "elevenlabs" || (!connected && voice.support === "elevenlabs") ? "COOKED voice" : voice.support === "text" ? "Typing only" : "Browser speech";
   const idleHint = hints[hint % hints.length]?.text;
 
   const submit = async (e: React.FormEvent) => {
@@ -174,11 +174,11 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
         <CommandToast />
         <motion.section
           data-voice-dock
-          aria-label="Voice control"
+          aria-label="Ask COOKED"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 28, delay: 0.15 }}
-          className="glass pointer-events-auto relative flex w-full max-w-[720px] items-center gap-2 rounded-[36px] p-2 pr-2.5 shadow-[0_18px_60px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,220,140,0.08)] sm:gap-3"
+          className="glass pointer-events-auto relative flex w-full max-w-[680px] items-center gap-2 rounded-[28px] p-1.5 pr-2 shadow-[0_18px_60px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,220,140,0.08)] sm:gap-3 sm:rounded-[36px] sm:p-2 sm:pr-2.5"
           // Dense enough that page text never shows through, even where backdrop blur is unavailable.
           style={{ background: "linear-gradient(180deg, rgba(27,22,13,0.92), rgba(13,10,6,0.95))" }}
         >
@@ -207,7 +207,7 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
                 }
               }}
               onClick={(e) => e.preventDefault()}
-              className="relative grid size-[64px] touch-none select-none place-items-center rounded-full outline-none transition-[box-shadow,opacity] focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-40 max-sm:size-[56px]"
+              className="relative grid size-[56px] touch-none select-none place-items-center rounded-full outline-none transition-[box-shadow,opacity] focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-40 sm:size-[64px]"
               style={{
                 background: "radial-gradient(circle at 50% 36%, rgba(246,180,26,0.30), rgba(10,8,5,0.94) 74%)",
                 border: `1px solid ${state === "error" ? "rgba(255,74,61,0.55)" : "rgba(246,180,26,0.5)"}`,
@@ -257,7 +257,7 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
                 {voice.error}
               </button>
             ) : (
-              <div role="log" aria-live="polite" className="mt-0.5 min-h-[38px]">
+              <div role="log" aria-live="polite" className="mt-0.5 min-h-[34px] sm:min-h-[38px]">
                 <AnimatePresence mode="popLayout" initial={false}>
                   {userText ? (
                     <motion.p key={`u-${voice.interim ? "live" : lastUser?.id}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={`truncate text-[13px] italic text-muted ${voice.interim ? "caret" : ""}`}>

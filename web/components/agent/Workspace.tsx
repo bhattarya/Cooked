@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppChrome, useSceneDeck } from "@/components/scenes";
 import { ThinkingChip } from "@/components/theatre";
@@ -12,14 +12,15 @@ import type { SessionUser } from "@/lib/session";
 import { useCookedVoice, useVoiceCommands, useVoiceScreen } from "@/lib/voiceAgent";
 import { parseIntent } from "@/lib/voiceIntents";
 import { Dashboard } from "./Dashboard";
-import { SponsorDots, sponsorLive } from "./Sponsors";
+import { sponsorLive } from "./Sponsors";
 import { AskPalette } from "./scenes/AskPalette";
 import { BUS_SCENE, answerVoice, careersVoice, drillVoice, repairVoice, riskVoice, timelineVoice, twinsVoice, type SceneVoice } from "./scenes/copy";
 import { Home } from "./scenes/Home";
 import { SAMPLES, twinFacts, type DeckScene } from "./scenes/model";
 import { narrator } from "./scenes/narrator";
 import { TheatreHost } from "./scenes/TheatreHost";
-import { NO_STUDENT, useJourney } from "./scenes/useJourney";
+import { useAdvisorSession } from "./AdvisorSession";
+import { NO_STUDENT } from "./scenes/useJourney";
 
 export function Workspace({ user }: { user: SessionUser }) {
   return (
@@ -40,7 +41,8 @@ function Journey({ user }: { user: SessionUser }) {
   const ds = useDataset();
   const [health, setHealth] = useState<(Health & { database_kind?: string }) | null>(null);
   const live = useMemo(() => sponsorLive(health), [health]);
-  const jr = useJourney({ user, live });
+  const jr = useAdvisorSession();
+  const search = useSearchParams();
   const { journey, phase, scenes } = jr;
   const deck = useSceneDeck(scenes, "risk");
   const { go: deckGo } = deck;
@@ -110,7 +112,7 @@ function Journey({ user }: { user: SessionUser }) {
   );
 
   const screen = useMemo((): ScreenContext => {
-    const reachable = ["explore", "models"] as SceneId[];
+    const reachable = ["explore", "models", "advisor", "audit"] as SceneId[];
     if (phase === "theatre") {
       const lead = jr.steps.find((s) => s.status === "running");
       const done = jr.steps.filter((s) => s.status === "done" || s.status === "warn").length;
@@ -141,6 +143,13 @@ function Journey({ user }: { user: SessionUser }) {
     };
   }, [phase, jr.steps, jr.askingWork, deck.id, journey, scenes, sceneVoice]);
   useVoiceScreen(screen);
+  const requestedScene = search.get("scene");
+  const { showDeck } = jr;
+  useEffect(() => {
+    if (!journey || !requestedScene) return;
+    showDeck();
+    deckGo(requestedScene);
+  }, [requestedScene, journey, deckGo, showDeck]);
 
   // ---------- questions ----------
   const showAnswer = useCallback(
@@ -225,6 +234,8 @@ function Journey({ user }: { user: SessionUser }) {
       return { ok: r.ok, message: r.message, data: r.data };
     },
     showScene: async ({ scene }) => {
+      if (scene === "advisor") { router.push("/app/advisor"); return "Opening the advisor overview."; }
+      if (scene === "audit") { jr.backHome(); return "Your audit workspace is open. Choose a file to upload, or reopen your results."; }
       if (scene === "models") {
         router.push("/app/lab");
         return "Opening the Model Lab, where the four models can be compared side by side.";
@@ -244,15 +255,6 @@ function Journey({ user }: { user: SessionUser }) {
     },
     nextScene: () => step(1),
     previousScene: () => step(-1),
-    setScenario: async ({ field, value }) => {
-      if (field !== "work_hours") return { ok: false, message: "On this screen I can only change work hours. The Model Lab lets you change the other inputs." };
-      const hours = Math.round(Number(value));
-      if (jr.waitingForWork()) {
-        jr.answerWork(hours);
-        return `Got it: ${hours} hours a week. Continuing the analysis.`;
-      }
-      return jr.applyWork(hours);
-    },
   });
 
   // dev-only handle so the voice handlers can be driven from the console; removed with the verification pass
@@ -270,7 +272,6 @@ function Journey({ user }: { user: SessionUser }) {
 
   const right = (
     <>
-      <SponsorDots live={live} />
       {phase === "deck" && (
         <>
           <button type="button" onClick={() => setAskOpen(true)} aria-label="Ask a question about your plan" aria-keyshortcuts="/" className="inline-flex items-center gap-2 rounded-full border border-gold/45 bg-gold/[0.07] px-3.5 py-1.5 text-xs text-gold transition hover:bg-gold/15">
@@ -289,9 +290,6 @@ function Journey({ user }: { user: SessionUser }) {
       <AnimatePresence mode="wait" initial={false}>
         {phase === "deck" && journey ? (
           <motion.div key="deck" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.7 }} className="relative flex min-h-0 flex-1 flex-col">
-            <p className="hidden shrink-0 truncate px-6 pt-1.5 text-center text-[10.5px] text-dim sm:block">
-              Synthetic HackUMBC 2026 alumni (UMBC DoIT, CC0): a simulation, not UMBC records. It shows what happened to similar simulated students, not a prediction about you.
-            </p>
             <Dashboard
               deck={deck}
               j={journey}

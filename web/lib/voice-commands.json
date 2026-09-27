@@ -9,7 +9,9 @@
     { "id": "repair", "label": "Repair", "blurb": "the smallest change that gets you un-cooked", "aliases": ["repair", "fix", "the fix", "un-cooked", "uncooked", "get un cooked", "plan b"] },
     { "id": "careers", "label": "Careers", "blurb": "first destination and salary outlook (exploratory)", "aliases": ["careers", "career", "jobs", "job", "salary", "destinations", "outcomes", "roi"] },
     { "id": "models", "label": "Model Lab", "blurb": "the four models side by side", "aliases": ["models", "model lab", "the lab", "lab", "four models", "compare the models", "compare the four models", "scenario"] },
-    { "id": "explore", "label": "Cohort explorer", "blurb": "patterns across the synthetic cohort", "aliases": ["explore", "explorer", "cohort", "the cohort", "patterns"] }
+    { "id": "explore", "label": "Cohort explorer", "blurb": "patterns across the synthetic cohort", "aliases": ["explore", "explorer", "cohort", "the cohort", "patterns"] },
+    { "id": "advisor", "label": "Advisor", "blurb": "cohort monitoring and advisor overview", "aliases": ["advisor", "watchtower", "advising"] },
+    { "id": "audit", "label": "Your audit", "blurb": "upload or reopen your degree audit", "aliases": ["audit", "degree audit", "upload", "home"] }
   ],
   "samples": [
     { "key": "working", "label": "Working 22 h/week", "blurb": "the alarm fires early" },
@@ -74,7 +76,7 @@
         "type": "object",
         "required": ["scene"],
         "properties": {
-          "scene": { "type": "string", "enum": ["risk", "timeline", "twins", "drill", "repair", "careers", "models", "explore"], "description": "Which scene to show." }
+          "scene": { "type": "string", "enum": ["risk", "timeline", "twins", "drill", "repair", "careers", "models", "explore", "advisor", "audit"], "description": "Which scene to show." }
         }
       }
     },

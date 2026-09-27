@@ -7,7 +7,7 @@ import type { Alum, Dataset, Student } from "@/lib/types";
 import type { ModelLabScenario, SimulateResponse } from "@/lib/arena-types";
 
 export type FullState = ServerState & {
-  terms: { attempted: number; earned: number; withdrawals: number }[];
+  terms: { attempted: number; earned: number; withdrawals: number; failures?: number }[];
   courses_done: string[];
   courses_in_progress: string[];
   major: string;
@@ -209,8 +209,8 @@ export function careersInput(st: FullState, sample: Student | null): CareersInpu
     credits_per_term: Math.round(hold("credits per term", attempted / st.terms.length, 3, 18)),
     earned_ratio: Math.round(hold("credits earned", attempted ? earned / attempted : 1, 0.5, 1) * 100) / 100,
     withdrawals: hold("withdrawals", withdrawals, 0, 10),
-    failures: 0,
-    enrollment_gaps: sample ? clamp(sample.gaps, 0, 4) : 0,
+    failures: hold("failures", st.terms.reduce((sum, t) => sum + (t.failures ?? 0), 0), 0, 10),
+    enrollment_gaps: hold("enrollment gaps", st.enrollment_gaps ?? sample?.gaps ?? 0, 0, 4),
     internship_count: sample ? clamp(sample.intern, 0, 4) : ASSUMED.internship_count,
     credential_count: ASSUMED.credential_count,
     engagement_count: ASSUMED.engagement_count,

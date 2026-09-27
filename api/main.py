@@ -116,7 +116,7 @@ async def http_error(request, exc):
         status_code=exc.status_code,
         content={
             "error": "http_error",
-            "message": "The requested resource is unavailable.",
+            "message": exc.detail if request.url.path.endswith("/audit/parse") and isinstance(exc.detail, str) else "The requested resource is unavailable.",
             "needs": [],
         },
     )
@@ -142,6 +142,7 @@ def healthz(response: Response):
         status="ok" if ready else "degraded",
         mode="models" if version else "scaffold",
         model_version=version,
+        audit_reader_model=gemini.audit_model_name() or None,
         demo_mode=not net.enabled(),
         database_kind=database_kind(),
         voice_usage=dict(elevenlabs.usage),

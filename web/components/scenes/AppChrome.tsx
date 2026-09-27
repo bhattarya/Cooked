@@ -9,9 +9,9 @@ import { Wordmark } from "../brand";
 
 export type AppSection = "home" | "explore" | "lab" | "advisor";
 const NAV: { key: AppSection; href: string; label: string }[] = [
-  { key: "home", href: "/app", label: "Audit" },
-  { key: "explore", href: "/app/explore", label: "Cohort" },
-  { key: "lab", href: "/app/lab", label: "Models" },
+  { key: "home", href: "/app", label: "Your plan" },
+  { key: "explore", href: "/app/explore", label: "Explore" },
+  { key: "lab", href: "/app/lab", label: "What-if" },
   { key: "advisor", href: "/app/advisor", label: "Advisor" },
 ];
 
@@ -22,12 +22,12 @@ export const DOCK_CLEARANCE = "pb-28";
 export function AppChrome({ user, active, right, heat = 0, children }: { user: SessionUser; active: AppSection; right?: ReactNode; heat?: number; children: ReactNode }) {
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden" style={{ ["--heat-level" as string]: heat } as CSSProperties}>
-      <div className="haze" />
+
       <header className="relative z-40 flex h-14 shrink-0 items-center gap-2 border-b border-line bg-bg/60 px-4 backdrop-blur-xl sm:gap-4 sm:px-6">
         <Link href="/app" aria-label="COOKED home" className="shrink-0">
           <Wordmark size={15} />
         </Link>
-        <nav aria-label="Sections" className="ml-1 flex min-w-0 gap-0.5 overflow-x-auto sm:ml-4">
+        <nav aria-label="Advisor workspace" className="ml-1 flex min-w-0 gap-0.5 overflow-x-auto sm:ml-4">
           {NAV.map((n) => (
             <Link key={n.key} href={n.href} aria-current={n.key === active ? "page" : undefined} className={`relative shrink-0 rounded-full px-3 py-1.5 text-xs transition ${n.key === active ? "text-gold" : "text-muted hover:text-text"}`}>
               {n.key === active && <motion.span layoutId="chrome-nav" className="absolute inset-0 rounded-full border border-gold/40 bg-gold/10" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
@@ -52,7 +52,7 @@ export function AppChrome({ user, active, right, heat = 0, children }: { user: S
               void signOutOfGoogle().finally(() => form.submit());
             }}
           >
-            <button className="text-xs text-muted hover:text-text">Sign out</button>
+            <button className="text-xs text-muted hover:text-text max-sm:sr-only">Sign out</button>
           </form>
         </div>
       </header>

@@ -299,7 +299,7 @@ function VoiceEngineProvider({ children }: { children: ReactNode }) {
     fetch("/voice-session?probe=1", { cache: "no-store", signal: ac.signal })
       .then((r) => {
         if (r.ok) setSupport("elevenlabs");
-        else fallback(r.status === 401 ? "Sign in to talk to the live ElevenLabs agent. Push-to-talk still works." : "Live ElevenLabs voice isn't set up here. Push-to-talk still works.");
+        else fallback(r.status === 401 ? "Sign in to talk to the voice advisor. Push-to-talk still works." : "Live voice isn't available here. Push-to-talk still works.");
       })
       .catch(() => {
         if (!ac.signal.aborted) fallback("Live voice is unreachable. Push-to-talk still works.");

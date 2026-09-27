@@ -13,7 +13,7 @@
 //  - the latest ScreenContext (published by scenes) is what `describeScreen` reads back.
 import catalogue from "./voice-commands.json";
 
-export type SceneId = "risk" | "timeline" | "twins" | "drill" | "repair" | "careers" | "models" | "explore";
+export type SceneId = "risk" | "timeline" | "twins" | "drill" | "repair" | "careers" | "models" | "explore" | "advisor" | "audit";
 export type SampleKey = "working" | "cooked" | "on_track";
 export type ScenarioField =
   | "major" | "entry_type" | "residency" | "work_hours" | "completed_terms" | "credits_per_term"
@@ -303,9 +303,10 @@ const emitRegistry = () => bus.registryListeners.forEach((fn) => fn());
  * Register the commands a scene can perform. Later registrations win per command, and
  * unregistering restores the previous handler, so a new scene can mount before the old one leaves.
  */
-export function registerCommands(handlers: Partial<CommandHandlers>): () => void {
+export function registerCommands(handlers: Partial<CommandHandlers>, fallback = false): () => void {
   const slot: Slot = { id: ++bus.slotId, handlers };
-  bus.slots.push(slot);
+  if (fallback) bus.slots.unshift(slot);
+  else bus.slots.push(slot);
   emitRegistry();
   return () => {
     bus.slots = bus.slots.filter((s) => s.id !== slot.id);

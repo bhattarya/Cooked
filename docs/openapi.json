@@ -287,6 +287,17 @@
       "HealthResponse": {
         "additionalProperties": false,
         "properties": {
+          "audit_reader_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audit Reader Model"
+          },
           "checks": {
             "$ref": "#/components/schemas/HealthChecks"
           },

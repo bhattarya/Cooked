@@ -10,7 +10,8 @@ export interface Speaking {
   done: Promise<void>;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+// The browser uses this origin; Next routes to the configured API server.
+const API = "/backend";
 
 async function clipUrl(text: string, voice: VoiceName): Promise<string | null> {
   if (!API) return null;

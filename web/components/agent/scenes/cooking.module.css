@@ -1,0 +1,19 @@
+.stage { min-height: calc(100dvh - 112px); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 24px 100px; background:radial-gradient(ellipse at 50% 45%, #30271b 0%, #141411 58%); }
+.eyebrow { font-size:10px; letter-spacing:.24em; color:#b8a27a; }
+.art { width:min(380px, 80vw); height:auto; margin:18px 0; overflow:visible; }
+.dog { transform-origin:200px 210px; animation:bob 2.4s ease-in-out infinite; }
+.flame { transform-origin:200px 249px; animation:flicker .65s ease-in-out infinite alternate; }
+.steam { animation:steam 3s ease-in-out infinite; }
+.spark { animation:twinkle 2s ease-in-out infinite; }
+.status { text-align:center; }
+.status h1 { font-size:clamp(24px, 4vw, 38px); font-weight:650; letter-spacing:-.035em; color:#f3e9d5; }
+.status p { margin-top:12px; font-size:14px; color:#b6af9f; }
+.track { margin-top:30px; width:min(250px, 70vw); height:3px; border-radius:3px; background:#39352c; overflow:hidden; }
+.track div { height:100%; background:#edbd55; transition:width .6s ease; }
+.count { margin-top:12px; font-size:11px; color:#8e8674; }
+.paused * { animation-play-state:paused; }
+@keyframes bob { 0%,100% { transform:translateY(0) rotate(-2deg); } 50% { transform:translateY(-7px) rotate(2deg); } }
+@keyframes flicker { from { transform:scaleY(.8); opacity:.65; } to { transform:scaleY(1.08); opacity:1; } }
+@keyframes steam { 0% { transform:translateY(7px); opacity:0; } 40% { opacity:.4; } 100% { transform:translateY(-16px); opacity:0; } }
+@keyframes twinkle { 0%,100% { opacity:.2; } 50% { opacity:1; } }
+@media (prefers-reduced-motion:reduce) { .stage * { animation:none; transition:none; } }

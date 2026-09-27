@@ -8,7 +8,8 @@ import { project, type Drill, type Feasibility, type Lever, type Outcomes, type 
 import type { Course } from "./types";
 import { authHeaders } from "./auth";
 
-const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+// The browser uses this origin; Next routes to the configured API server.
+const API = "/backend";
 
 export interface Health {
   live: boolean;
@@ -75,6 +76,7 @@ export class ApiError extends Error {
 type Ev = { value: number; tool_result_id: string };
 type Range = { low: number; mid: number; high: number; support: number; tool_result_id: string };
 export interface ServerState {
+  enrollment_gaps?: number;
   campus_id: string;
   pattern: string | null;
   risk: Ev;

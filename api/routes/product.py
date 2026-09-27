@@ -5,8 +5,9 @@ from __future__ import annotations
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, File, Path, Query, UploadFile
+from fastapi import APIRouter, File, HTTPException, Path, Query, UploadFile
 from fastapi.responses import Response
+from starlette.concurrency import run_in_threadpool
 
 from api import agent, explore, model_lab
 from api.auth import CurrentUser, require_signed_in
@@ -158,8 +159,19 @@ async def audit(file: Annotated[UploadFile, File()]):
     The file is never stored; only parsed courses and terms are kept."""
     data = await file.read(8_000_001)
     if len(data) > 8_000_000:
-        raise NotFound("audit too large")
-    return wrap(agent.intake(get_engine(), data, file.content_type or "application/pdf"))
+        raise HTTPException(413, "Choose an audit under 8 MB.")
+    if not data:
+        raise HTTPException(422, "The uploaded file is empty.")
+    mime = ("application/pdf" if data.startswith(b"%PDF-") else
+            "image/png" if data.startswith(b"\x89PNG\r\n\x1a\n") else
+            "image/jpeg" if data.startswith(b"\xff\xd8\xff") else
+            "image/webp" if data.startswith(b"RIFF") and data[8:12] == b"WEBP" else None)
+    if mime is None:
+        raise HTTPException(415, "Choose a PDF, PNG, JPEG or WebP audit.")
+    # Provider calls are synchronous and can take minutes; keep the event loop free for voice.
+    def parse():
+        return wrap(agent.intake(get_engine(), data, mime))
+    return await run_in_threadpool(parse)
 
 
 @router.post("/profiles/{id}/work", response_model=Envelope[Data])
