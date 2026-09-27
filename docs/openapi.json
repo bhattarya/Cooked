@@ -136,6 +136,30 @@
         "title": "Envelope[FeedbackResult]",
         "type": "object"
       },
+      "Envelope_Receipt_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Receipt"
+          },
+          "mock": {
+            "const": false,
+            "default": false,
+            "title": "Mock",
+            "type": "boolean"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_version",
+          "data"
+        ],
+        "title": "Envelope[Receipt]",
+        "type": "object"
+      },
       "Envelope_dict_str__Any__": {
         "additionalProperties": false,
         "properties": {
@@ -247,6 +271,26 @@
         "title": "FeedbackResult",
         "type": "object"
       },
+      "FromStudentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "overrides": {
+            "additionalProperties": true,
+            "title": "Overrides",
+            "type": "object"
+          },
+          "student_id": {
+            "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id"
+        ],
+        "title": "FromStudentRequest",
+        "type": "object"
+      },
       "HealthChecks": {
         "additionalProperties": false,
         "properties": {
@@ -353,6 +397,178 @@
           "checks"
         ],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "ManualAuditRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "credits_required": {
+            "default": 120,
+            "maximum": 200.0,
+            "minimum": 60.0,
+            "title": "Credits Required",
+            "type": "integer"
+          },
+          "entry_type": {
+            "default": "First-Time Freshman",
+            "enum": [
+              "Transfer",
+              "First-Time Freshman"
+            ],
+            "title": "Entry Type",
+            "type": "string"
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "in_progress": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "In Progress",
+            "type": "array"
+          },
+          "major": {
+            "default": "Computer Science",
+            "enum": [
+              "Computer Science",
+              "Information Systems"
+            ],
+            "title": "Major",
+            "type": "string"
+          },
+          "residency": {
+            "default": "In-State",
+            "enum": [
+              "In-State",
+              "Out-of-State"
+            ],
+            "title": "Residency",
+            "type": "string"
+          },
+          "terms": {
+            "items": {
+              "$ref": "#/components/schemas/ManualTerm"
+            },
+            "maxItems": 20,
+            "title": "Terms",
+            "type": "array"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track"
+          }
+        },
+        "title": "ManualAuditRequest",
+        "type": "object"
+      },
+      "ManualCourse": {
+        "additionalProperties": false,
+        "properties": {
+          "credits": {
+            "default": 3,
+            "maximum": 8.0,
+            "minimum": 0.0,
+            "title": "Credits",
+            "type": "number"
+          },
+          "grade": {
+            "default": "",
+            "maxLength": 3,
+            "title": "Grade",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 12,
+            "minLength": 3,
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "ManualCourse",
+        "type": "object"
+      },
+      "ManualTerm": {
+        "additionalProperties": false,
+        "properties": {
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/ManualCourse"
+            },
+            "maxItems": 12,
+            "title": "Courses",
+            "type": "array"
+          },
+          "credits_attempted": {
+            "anyOf": [
+              {
+                "maximum": 30.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credits Attempted"
+          },
+          "credits_earned": {
+            "anyOf": [
+              {
+                "maximum": 30.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credits Earned"
+          },
+          "label": {
+            "maxLength": 30,
+            "title": "Label",
+            "type": "string"
+          },
+          "withdrawals": {
+            "anyOf": [
+              {
+                "maximum": 8.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Withdrawals"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "ManualTerm",
         "type": "object"
       },
       "MeResponse": {
@@ -661,6 +877,195 @@
         "title": "Profile",
         "type": "object"
       },
+      "Receipt": {
+        "additionalProperties": false,
+        "properties": {
+          "campus_id": {
+            "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
+            "title": "Campus Id",
+            "type": "string"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/ReceiptFeature"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "terms": {
+            "items": {
+              "$ref": "#/components/schemas/ReceiptTerm"
+            },
+            "title": "Terms",
+            "type": "array"
+          },
+          "tool_result_id": {
+            "title": "Tool Result Id",
+            "type": "string"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/ReceiptTotals"
+          }
+        },
+        "required": [
+          "campus_id",
+          "terms",
+          "totals",
+          "features",
+          "tool_result_id"
+        ],
+        "title": "Receipt",
+        "type": "object"
+      },
+      "ReceiptFeature": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "tool_result_id": {
+            "title": "Tool Result Id",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "label",
+          "value",
+          "unit",
+          "note",
+          "tool_result_id"
+        ],
+        "title": "ReceiptFeature",
+        "type": "object"
+      },
+      "ReceiptTerm": {
+        "additionalProperties": false,
+        "properties": {
+          "attempted": {
+            "title": "Attempted",
+            "type": "number"
+          },
+          "counted": {
+            "title": "Counted",
+            "type": "boolean"
+          },
+          "earned": {
+            "title": "Earned",
+            "type": "number"
+          },
+          "failures": {
+            "title": "Failures",
+            "type": "integer"
+          },
+          "gpa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpa"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "tool_result_id": {
+            "title": "Tool Result Id",
+            "type": "string"
+          },
+          "withdrawals": {
+            "title": "Withdrawals",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "attempted",
+          "earned",
+          "withdrawals",
+          "failures",
+          "counted",
+          "tool_result_id"
+        ],
+        "title": "ReceiptTerm",
+        "type": "object"
+      },
+      "ReceiptTotals": {
+        "additionalProperties": false,
+        "properties": {
+          "credits_earned": {
+            "title": "Credits Earned",
+            "type": "integer"
+          },
+          "credits_in_progress": {
+            "title": "Credits In Progress",
+            "type": "integer"
+          },
+          "credits_required": {
+            "title": "Credits Required",
+            "type": "integer"
+          },
+          "repeats": {
+            "title": "Repeats",
+            "type": "integer"
+          },
+          "terms_completed": {
+            "title": "Terms Completed",
+            "type": "integer"
+          },
+          "tool_result_id": {
+            "title": "Tool Result Id",
+            "type": "string"
+          },
+          "withdrawals": {
+            "title": "Withdrawals",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "credits_earned",
+          "credits_in_progress",
+          "credits_required",
+          "terms_completed",
+          "withdrawals",
+          "repeats",
+          "tool_result_id"
+        ],
+        "title": "ReceiptTotals",
+        "type": "object"
+      },
       "RepairRequest": {
         "additionalProperties": false,
         "properties": {
@@ -944,9 +1349,61 @@
         ]
       }
     },
+    "/audit/manual": {
+      "post": {
+        "description": "Last-resort path when neither the parser nor the image reader could read the audit.",
+        "operationId": "audit_manual_audit_manual_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualAuditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service unavailable"
+          }
+        },
+        "summary": "Audit Manual",
+        "tags": [
+          "product"
+        ]
+      }
+    },
     "/audit/parse": {
       "post": {
-        "description": "Sample audits map to their synthetic student; real PDFs are read by Gemini into a profile.\nThe file is never stored; only parsed courses and terms are kept.",
+        "description": "Sample audits map to their synthetic student. Real audits are read directly by a\ndeterministic text parser first (fast, exact); Gemini vision is only a fallback for scans\nor low-confidence reads; the file is never stored, only parsed courses and terms.",
         "operationId": "audit_audit_parse_post",
         "requestBody": {
           "content": {
@@ -1379,6 +1836,58 @@
         ]
       }
     },
+    "/model-lab/from-student": {
+      "post": {
+        "description": "A lab scenario derived server-side from a real profile (sample or uploaded audit); only\n`overrides` change it. Response is `/model-lab/simulate`'s shape plus `derived_from` and\n`baseline` (the student's own unmodified prediction).",
+        "operationId": "model_lab_from_student_model_lab_from_student_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FromStudentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service unavailable"
+          }
+        },
+        "summary": "Model Lab From Student",
+        "tags": [
+          "product"
+        ]
+      }
+    },
     "/model-lab/simulate": {
       "post": {
         "description": "Score one interactive, synthetic planning scenario with every model in the arena: the\nchampion of each task answers, the other families answer beside it, and `drivers` lists the\ninputs moving the risk.",
@@ -1519,6 +2028,60 @@
           }
         },
         "summary": "Narrate",
+        "tags": [
+          "product"
+        ]
+      }
+    },
+    "/profiles/{id}/receipt": {
+      "get": {
+        "description": "What the models actually read from this profile's audit: terms, totals, labelled\nfeatures and the tool_result_id tying them to one scoring run.",
+        "operationId": "profile_receipt_profiles__id__receipt_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^(CID-[0-9]{6}|USR-[0-9a-f]{10})$",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Receipt_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service unavailable"
+          }
+        },
+        "summary": "Profile Receipt",
         "tags": [
           "product"
         ]
