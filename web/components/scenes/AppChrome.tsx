@@ -9,9 +9,8 @@ import { Wordmark } from "../brand";
 
 export type AppSection = "home" | "explore" | "lab" | "advisor";
 const NAV: { key: AppSection; href: string; label: string }[] = [
-  { key: "home", href: "/app", label: "Your plan" },
-  { key: "explore", href: "/app/explore", label: "Explore" },
-  { key: "lab", href: "/app/lab", label: "What-if" },
+  { key: "home", href: "/app", label: "Audit & Plan" },
+  { key: "lab", href: "/app/lab", label: "Model Lab" },
   { key: "advisor", href: "/app/advisor", label: "Advisor" },
 ];
 

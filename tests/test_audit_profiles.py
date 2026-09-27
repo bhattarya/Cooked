@@ -86,6 +86,7 @@ def test_invalid_extraction_is_a_readable_error(monkeypatch):
     monkeypatch.setattr(agent.net, "enabled", lambda: True)
     monkeypatch.setattr(agent.gemini, "configured", lambda: True)
     monkeypatch.setattr(agent.claude, "parse_audit", lambda *_: {"credits_earned": "invalid_number"})
+    monkeypatch.setattr(agent.gemini, "parse_audit", lambda *_: {"credits_earned": "invalid_number"})
     result = agent.intake(Mock(), b"%PDF-test", "application/pdf")
     assert result["id"] is None
     assert "verify" in result["error"]
@@ -128,7 +129,7 @@ def test_credit_question_reads_audit_facts():
 def test_uploaded_profile_is_used_by_models(db, engine_client, monkeypatch):
     monkeypatch.setattr(agent.net, "enabled", lambda: True)
     monkeypatch.setattr(agent.gemini, "configured", lambda: True)
-    monkeypatch.setattr(agent.claude, "parse_audit", lambda *_: {
+    mock_parse = lambda *_: {
         "major": "Computer Science", "entry_type": "Transfer",
         "credits_earned": 62.5, "credits_required": 120,
         "terms": [{"label": "Fall 2025", "courses": [
@@ -138,7 +139,9 @@ def test_uploaded_profile_is_used_by_models(db, engine_client, monkeypatch):
             {"course_id": "STAT355", "credits": 3, "grade": "IP"},
         ]}],
         "in_progress": [{"course_id": "STAT355", "credits": 3}],
-    })
+    }
+    monkeypatch.setattr(agent.claude, "parse_audit", mock_parse)
+    monkeypatch.setattr(agent.gemini, "parse_audit", mock_parse)
     response = engine_client.post("/audit/parse", files={"file": ("audit.pdf", b"%PDF-1.4 test", "application/pdf")})
     assert response.status_code == 200
     data = response.json()["data"]

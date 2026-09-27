@@ -109,13 +109,13 @@ _COURSE = {
 AUDIT_SCHEMA = {
     "type": "OBJECT",
     "properties": {
-        "first_name": {"type": "STRING", "nullable": True},
+        "first_name": {"type": "STRING"},
         "major": {"type": "STRING", "description": "Program label, such as Computer Science, Computer Science B.S., Information Systems, or Information Systems B.S.; never substitute a different program"},
-        "track": {"type": "STRING", "nullable": True},
+        "track": {"type": "STRING"},
         "entry_type": {"type": "STRING", "description": "Transfer if explicitly stated; otherwise First-Time Freshman"},
         "residency": {"type": "STRING", "description": "In-State or Out-of-State when stated; otherwise In-State"},
-        "credits_earned": {"type": "NUMBER", "nullable": True},
-        "credits_required": {"type": "NUMBER", "nullable": True},
+        "credits_earned": {"type": "NUMBER"},
+        "credits_required": {"type": "NUMBER"},
         "terms": {
             "type": "ARRAY",
             "items": {
@@ -123,9 +123,9 @@ AUDIT_SCHEMA = {
                 "properties": {
                     "label": {"type": "STRING", "description": "e.g. Fall 2024, or Term 1 if unnamed"},
                     "courses": {"type": "ARRAY", "items": _COURSE},
-                    "credits_attempted": {"type": "NUMBER", "nullable": True},
-                    "credits_earned": {"type": "NUMBER", "nullable": True},
-                    "withdrawals": {"type": "INTEGER", "nullable": True},
+                    "credits_attempted": {"type": "NUMBER"},
+                    "credits_earned": {"type": "NUMBER"},
+                    "withdrawals": {"type": "INTEGER"},
                 },
                 "required": ["label"],
             },
