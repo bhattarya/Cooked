@@ -29,7 +29,7 @@ export function AnswerScene({ answers, index, onSelect, j, ds, live, onAsk, onGo
   const v = a.visual;
 
   return (
-    <section className="grid h-full min-h-0 grid-cols-1 content-start gap-6 overflow-y-auto px-5 pb-6 pt-4 sm:px-8 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:content-center lg:items-center lg:gap-10 lg:overflow-hidden lg:px-10 xl:gap-14 xl:px-14">
+    <section className="grid h-full min-h-0 grid-cols-1 content-start gap-6 overflow-y-auto px-5 pb-6 pt-4 sm:px-8 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:content-center lg:items-center lg:gap-10 lg:overflow-hidden lg:py-10 lg:pl-32 lg:pr-10 xl:gap-14 xl:pr-14">
       <header className="min-w-0">
         <motion.div {...rise(0)} className="label !text-gold line-clamp-2">
           you asked · “{a.question}”

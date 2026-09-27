@@ -28,7 +28,11 @@ export function SceneFrame({
 }) {
   return (
     <section
-      className={`grid h-full min-h-0 grid-cols-1 content-start gap-6 overflow-y-auto px-5 pb-6 pt-4 sm:px-8 lg:content-center lg:items-center lg:gap-10 lg:overflow-hidden lg:px-10 xl:gap-14 xl:px-14 ${
+      // SceneDeck's scene wrapper is `absolute inset-0` on a `position: relative` parent, so the parent's
+      // `lg:pl-32` never actually shifts this content (CSS positions absolute children from the padding
+      // edge). Every scene rendered through SceneDeck's desktop rail must claim its own 128px of left
+      // clearance here instead — this is that one place.
+      className={`grid h-full min-h-0 grid-cols-1 content-start gap-6 overflow-y-auto px-5 pb-6 pt-4 sm:px-8 lg:content-center lg:items-center lg:gap-10 lg:overflow-hidden lg:py-10 lg:pl-32 lg:pr-10 xl:gap-14 xl:pr-14 ${
         wide ? "lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]" : "lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]"
       }`}
     >

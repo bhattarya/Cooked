@@ -5,6 +5,7 @@ import type { ArenaReport, ModelLabScenario, SimulateResponse } from "./arena-ty
 import { authHeaders } from "./auth";
 import { api, type Call, type ServerDrill, type ServerNarration, type ServerRepair, type ServerState } from "./live";
 
+export type { Call };
 const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
 export interface AuditSummary {
@@ -18,13 +19,46 @@ export interface AuditSummary {
   credits_required: number;
   tool_result_id: string;
 }
+export type AuditErrorCode = "unreadable" | "no_courses_found" | "too_large" | "unsupported_type" | "reader_unavailable" | "reader_timeout" | "network" | "server";
+export interface Reading {
+  method: "text" | "vision" | "sample" | "manual";
+  ms?: number;
+  pages?: number;
+  terms?: number;
+  courses?: number;
+}
 export interface Intake {
   id: string | null;
-  source: "sample" | "gemini" | "unavailable";
+  source: "sample" | "gemini" | "parser" | "manual" | "unavailable";
   first_name?: string | null;
   needs_work_hours?: boolean;
   summary?: AuditSummary;
-  error?: string;
+  error?: string | null;
+  error_code?: AuditErrorCode | null;
+  can_retry?: boolean;
+  can_enter_manually?: boolean;
+  warnings?: string[];
+  reading?: Reading | null;
+}
+
+/** The body of POST /audit/manual: what a student types when a file can't be read. */
+export interface ManualAudit {
+  first_name?: string;
+  major: string;
+  track?: string;
+  entry_type: "Transfer" | "First-Time Freshman";
+  residency?: "In-State" | "Out-of-State";
+  credits_required?: number;
+  terms: { label: string; courses?: { id: string; credits: number; grade: string }[]; credits_attempted?: number; credits_earned?: number; withdrawals?: number }[];
+  in_progress?: string[];
+}
+
+/** What the models read from the audit (GET /profiles/{id}/receipt). */
+export interface Receipt {
+  terms: { label: string; attempted: number; earned: number; withdrawals: number; failures?: number | null; gpa?: number | null }[];
+  totals: { credits_earned: number | null; credits_in_progress: number | null; credits_required: number | null; terms_completed: number | null; withdrawals?: number | null; repeats?: number | null };
+  features: { name: string; label: string; value: number | string | null; unit?: string; note?: string }[];
+  tool_result_id?: string;
 }
 export interface CourseStatus {
   course_id: string;
@@ -58,14 +92,42 @@ export interface Myths {
   held_up: { title: string; value: string; evidence: string; tool_result_id: string; computed: boolean }[];
 }
 
-export async function uploadAudit(file: Blob, name = "audit.pdf"): Promise<Call<Intake>> {
+const failed = (code: AuditErrorCode, error: string, retry: boolean): Intake => ({ id: null, source: "unavailable", error, error_code: code, can_retry: retry, can_enter_manually: true });
+
+/** Intake never throws: a network or server failure comes back as an Intake with an error code, like any other failure. */
+async function intake(path: string, init: RequestInit): Promise<Call<Intake>> {
   const t0 = performance.now();
+  const headers = { ...(await authHeaders()), ...(init.headers as Record<string, string> | undefined) };
+  try {
+    const r = await fetch(`${API}${path}`, { ...init, headers });
+    const j = await r.json().catch(() => null);
+    const ms = performance.now() - t0;
+    if (r.ok && j?.data) return { data: j.data, version: j.model_version, ms };
+    if (r.status === 413) return { data: failed("too_large", "That file is over the size limit.", false), version: "", ms };
+    return { data: failed("server", typeof j?.message === "string" ? j.message : `The server answered ${r.status}.`, true), version: "", ms };
+  } catch {
+    return { data: failed("network", "Couldn't reach the COOKED server.", true), version: "", ms: performance.now() - t0 };
+  }
+}
+
+export function uploadAudit(file: Blob, name = "audit.pdf"): Promise<Call<Intake>> {
   const fd = new FormData();
   fd.append("file", file, name);
-  const r = await fetch(`${API}/audit/parse`, { method: "POST", body: fd, headers: await authHeaders() });
-  const j = await r.json();
-  if (!r.ok) throw new Error(j?.message ?? `HTTP ${r.status}`);
-  return { data: j.data, version: j.model_version, ms: performance.now() - t0 };
+  return intake("/audit/parse", { method: "POST", body: fd });
+}
+
+export const manualAudit = (body: ManualAudit): Promise<Call<Intake>> => intake("/audit/manual", { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
+
+/** Null while the endpoint isn't there (older API): the receipt scene then derives what it can and marks the rest unavailable. */
+export async function getReceipt(id: string): Promise<Receipt | null> {
+  try {
+    const r = await fetch(`${API}/profiles/${id}/receipt`, { headers: await authHeaders() });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j?.data?.terms ? (j.data as Receipt) : null;
+  } catch {
+    return null;
+  }
 }
 
 export const sayLine = (line: "greeting" | "thanks" | "ask_work" | "ready" | "listening", name?: string) =>

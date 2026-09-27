@@ -1,6 +1,6 @@
 // Types and pure derivations for the audit journey. Nothing here is fetched or invented: every
 // value is read from an API response or from the synthetic dataset the API itself was built on.
-import type { Answer, Myths } from "@/lib/agentApi";
+import type { Answer, Myths, Reading } from "@/lib/agentApi";
 import type { SampleKey } from "@/lib/commands";
 import type { ServerDrill, ServerRepair, ServerState } from "@/lib/live";
 import type { Alum, Dataset, Student } from "@/lib/types";
@@ -25,7 +25,7 @@ export type DrillFull = ServerDrill & { threshold?: number; probs?: { withdraw: 
 export type RepairLever = NonNullable<ServerRepair["primary"]> & { lever?: string };
 export type RepairFull = Omit<ServerRepair, "primary" | "fallback"> & { primary: RepairLever | null; fallback: RepairLever | null; current_load?: number };
 
-export type DeckScene = "risk" | "timeline" | "twins" | "drill" | "repair" | "careers" | "answer";
+export type DeckScene = "risk" | "timeline" | "twins" | "drill" | "repair" | "careers" | "receipt" | "answer";
 
 // Synthetic students from the pinned dataset, checked against the trained model (none refused).
 export const SAMPLES: { id: string; key: SampleKey; label: string; hint: string }[] = [
@@ -38,7 +38,10 @@ export const SAMPLES: { id: string; key: SampleKey; label: string; hint: string 
 export interface Journey {
   id: string;
   name: string | null;
-  source: "sample" | "gemini";
+  source: "sample" | "gemini" | "parser" | "manual";
+  /** Notes the reader made while reading the audit (e.g. courses without a grade). The receipt scene asks the user to check them. */
+  warnings: string[];
+  reading: Reading | null;
   label: string;
   st: FullState;
   /** Weekly work hours the user gave (an audit cannot say); undefined lets the server use the profile. */

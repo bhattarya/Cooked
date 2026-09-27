@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { extractNumber } from "@/lib/commands";
 import { listen, useCanListen } from "@/lib/listen";
 import { GoldOrb } from "@/components/theatre";
+import type { AuditIssue } from "../audit/issues";
 
 const CHIPS = [0, 10, 15, 20, 25, 30];
 
@@ -102,21 +103,47 @@ export function WorkHoursPanel({ onAnswer, agentConnected }: { onAnswer: (hours:
   );
 }
 
-/** A failed run stays inside the theatre, with the reason and a way out. */
-export function RunErrorPanel({ message, onBack }: { message: string; onBack: () => void }) {
-  const btn = useRef<HTMLButtonElement>(null);
-  useEffect(() => btn.current?.focus(), []);
+export interface IssueActions {
+  onRetry: () => void;
+  onManual: () => void;
+  onSample: () => void;
+  onClose: () => void;
+}
+
+/** A failed audit says exactly why and offers only the ways forward that make sense for that reason. */
+export function UploadIssuePanel({ issue, canRetryNow, actions }: { issue: AuditIssue; canRetryNow: boolean; actions: IssueActions }) {
+  const first = useRef<HTMLButtonElement>(null);
+  useEffect(() => first.current?.focus(), []);
+  const showRetry = issue.canRetry && canRetryNow;
+  const primary = showRetry ? "retry" : issue.canManual ? "manual" : "sample";
+  const cls = (k: string) => (k === primary ? "bg-gold font-medium text-bg hover:bg-gold-hi" : "border border-line-2 text-muted hover:border-gold/50 hover:text-text");
   return (
-    <Veil label="Something went wrong">
-      <div className="label !text-hot">the run stopped</div>
-      <h2 className="display mt-2 text-[2rem] font-extrabold leading-none text-cream">Something went wrong</h2>
+    <Veil label={issue.title}>
+      <div className="label !text-hot">the audit didn&apos;t load</div>
+      <h2 className="display mt-2 text-[2rem] font-extrabold leading-none text-cream sm:text-[2.4rem]">{issue.title}</h2>
       <p role="alert" className="mt-3 text-[15px] leading-relaxed text-muted">
-        {message}
+        {issue.body}
       </p>
-      <p className="mt-2 text-xs text-dim">Nothing was stored. The samples work without Gemini.</p>
-      <button ref={btn} type="button" onClick={onBack} className="mt-6 rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-bg transition hover:bg-gold-hi">
-        Back to the start
-      </button>
+      {issue.detail && <p className="num mt-2 text-[11px] text-dim">reader said: {issue.detail}</p>}
+      <div className="mt-6 flex flex-wrap gap-2">
+        {showRetry && (
+          <button ref={primary === "retry" ? first : undefined} type="button" onClick={actions.onRetry} className={`rounded-full px-5 py-2.5 text-sm transition ${cls("retry")}`}>
+            Retry
+          </button>
+        )}
+        {issue.canManual && (
+          <button ref={primary === "manual" ? first : undefined} type="button" onClick={actions.onManual} className={`rounded-full px-5 py-2.5 text-sm transition ${cls("manual")}`}>
+            Enter my terms by hand
+          </button>
+        )}
+        <button ref={primary === "sample" ? first : undefined} type="button" onClick={actions.onSample} className={`rounded-full px-5 py-2.5 text-sm transition ${cls("sample")}`}>
+          Try a sample
+        </button>
+        <button type="button" onClick={actions.onClose} className="rounded-full px-4 py-2.5 text-sm text-dim transition hover:text-text">
+          Back
+        </button>
+      </div>
+      <p className="mt-4 text-xs text-dim">Nothing was stored. Samples and hand entry never need the reader.</p>
     </Veil>
   );
 }

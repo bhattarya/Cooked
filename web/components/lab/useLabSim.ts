@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ModelLabScenario, SimulateResponse } from "@/lib/arena-types";
-import { DEFAULT_SCENARIO, isAbort, scenarioKey, simulate, withField, type LabField, type NumericField } from "@/lib/labModel";
+import type { FromStudentResponse, ModelLabScenario, SimulateResponse } from "@/lib/arena-types";
+import { DEFAULT_SCENARIO, LabApiError, fromStudent, isAbort, scenarioKey, simulate, withField, type LabField, type NumericField } from "@/lib/labModel";
 
 // Fast enough to feel live while dragging, slow enough to stay polite: a change waits DEBOUNCE ms for
 // company, but never longer than MAX_WAIT ms in total, so a long drag still updates about four times a second.
@@ -10,7 +10,27 @@ const DEBOUNCE = 110;
 const MAX_WAIT = 240;
 const CACHE = 96;
 
+/** The student's own unmodified prediction ("you today"), for the what-if comparison. */
+export interface Baseline {
+  risk: number;
+  time_to_degree: { low: number; mid: number; high: number };
+  salary: { low: number; mid: number; high: number };
+}
+/** Where the sliders started: the audit ("audit"), the default scenario because the audit could not seed it ("fallback"), or nobody loaded ("default"). */
+export interface Seed {
+  kind: "audit" | "fallback" | "default";
+  terms: number | null;
+  note?: string;
+}
+
 export interface LabSim {
+  seed: Seed;
+  /** null until the starting point is known. */
+  baseline: Baseline | null;
+  /** True when the scenario differs from where it started. */
+  changed: boolean;
+  /** Back to the starting scenario (the audit's own values when seeded). */
+  reset: () => void;
   scenario: ModelLabScenario;
   /** The newest answer we have; stays on screen (dimmed by `pending`) while the next one is fetched. */
   result: SimulateResponse | null;
@@ -37,7 +57,7 @@ export interface LabSim {
  * Stale answers never overwrite newer ones: every request carries a sequence number, a superseded
  * request is aborted at the network (AbortController wired into fetch), and repeats are served from a small cache.
  */
-export function useLabSim(): LabSim {
+export function useLabSim(studentId: string | null = null): LabSim {
   const [scenario, setScenario] = useState<ModelLabScenario>(DEFAULT_SCENARIO);
   const [shown, setShown] = useState<{ key: string; result: SimulateResponse } | null>(null);
   const [pending, setPending] = useState(true);
@@ -45,6 +65,9 @@ export function useLabSim(): LabSim {
   const [ms, setMs] = useState<number | null>(null);
   const [calls, setCalls] = useState(0);
   const [edges, setEdges] = useState<Partial<Record<NumericField, number>>>({});
+  const [seed, setSeed] = useState<Seed>({ kind: studentId ? "audit" : "default", terms: null });
+  const [baseline, setBaseline] = useState<Baseline | null>(null);
+  const [start, setStart] = useState<ModelLabScenario>(DEFAULT_SCENARIO);
   const [cloud, setCloud] = useState<SimulateResponse["constellation"]["points"] | null>(null);
 
   const live = useRef({
@@ -56,6 +79,9 @@ export function useLabSim(): LabSim {
     firstAt: 0,
     cache: new Map<string, SimulateResponse>(),
     gone: false,
+    /** Set once the audit seeded the scenario; edits then send only their difference from it. */
+    base: null as ModelLabScenario | null,
+    mode: studentId ? ("seeding" as "seeding" | "student" | "default") : ("default" as "seeding" | "student" | "default"),
   });
 
   const show = useCallback((key: string, result: SimulateResponse) => {
@@ -85,7 +111,12 @@ export function useLabSim(): LabSim {
       const ctrl = new AbortController();
       L.ctrl = ctrl;
       setPending(true);
-      const p: Promise<SimulateResponse> = simulate(scn, ctrl.signal).then(
+      const overrides = () => {
+        const base = L.base as ModelLabScenario;
+        return Object.fromEntries((Object.keys(scn) as LabField[]).filter((k) => scn[k] !== base[k]).map((k) => [k, scn[k]])) as Partial<ModelLabScenario>;
+      };
+      const req = L.mode === "student" && studentId && L.base ? fromStudent(studentId, overrides(), ctrl.signal) : simulate(scn, ctrl.signal);
+      const p: Promise<SimulateResponse> = req.then(
         ({ data, ms: took }) => {
           L.cache.set(key, data);
           if (L.cache.size > CACHE) L.cache.delete(L.cache.keys().next().value as string);
@@ -109,7 +140,7 @@ export function useLabSim(): LabSim {
       L.newest = p;
       return p;
     },
-    [show],
+    [show, studentId],
   );
 
   const schedule = useCallback(
@@ -167,15 +198,58 @@ export function useLabSim(): LabSim {
   useEffect(() => {
     const L = live.current;
     L.gone = false;
-    run(L.scenario).catch(() => undefined);
+    const ctrl = new AbortController();
+    if (!studentId) {
+      run(L.scenario).catch(() => undefined);
+    } else {
+      // Seed from the audit: the API derives the whole scenario from the student's terms, so the sliders start at real values.
+      fromStudent(studentId, {}, ctrl.signal).then(
+        ({ data, ms: took }) => {
+          if (L.gone) return;
+          const start = data.scenario;
+          L.base = start;
+          L.mode = "student";
+          const key = scenarioKey(start);
+          L.cache.set(key, data);
+          commit(start);
+          setStart(start);
+          show(key, data);
+          setMs(took);
+          setCalls((c) => c + 1);
+          setSeed({ kind: "audit", terms: data.derived_from?.terms_used ?? null });
+          setBaseline(baselineOf(data));
+        },
+        (e: unknown) => {
+          if (L.gone || isAbort(e)) return;
+          // The audit could not seed the models (older API, or the profile is unknown): say so and use the default scenario.
+          L.mode = "default";
+          const why = e instanceof LabApiError && e.status === 404 ? "this API has no audit seeding yet" : e instanceof Error ? e.message : "the audit could not be read";
+          setSeed({ kind: "fallback", terms: null, note: why });
+          run(L.scenario).then((d) => !L.gone && setBaseline(baselineOf(d)), () => undefined);
+        },
+      );
+    }
     return () => {
       L.gone = true;
+      ctrl.abort();
       window.clearTimeout(L.timer);
       L.ctrl?.abort();
     };
-  }, [run]);
+  }, [run, commit, show, studentId]);
+
+  const reset = useCallback(() => {
+    const L = live.current;
+    commit(start);
+    window.clearTimeout(L.timer);
+    L.firstAt = 0;
+    run(start).catch(() => undefined);
+  }, [commit, run, start]);
 
   return {
+    seed,
+    baseline,
+    changed: scenarioKey(scenario) !== scenarioKey(start),
+    reset,
     scenario,
     result: shown?.result ?? null,
     fresh: shown?.key === scenarioKey(scenario),
@@ -189,4 +263,9 @@ export function useLabSim(): LabSim {
     apply,
     retry,
   };
+}
+
+function baselineOf(d: FromStudentResponse | SimulateResponse): Baseline {
+  const b = (d as FromStudentResponse).baseline;
+  return b && typeof b.risk === "number" ? b : { risk: d.risk, time_to_degree: d.time_to_degree, salary: { low: d.salary.low, mid: d.salary.mid, high: d.salary.high } };
 }

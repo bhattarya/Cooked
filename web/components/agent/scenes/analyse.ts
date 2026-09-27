@@ -15,7 +15,7 @@ export const auditPipelineSteps = (live: SponsorLive): Step[] => [
   { key: "risk", agent: "Watchtower", task: "scoring your trajectory", sponsor: "model", live: live.model, status: "pending" },
   { key: "drill", agent: "Fire drill", task: "simulating what could go wrong", sponsor: "tiger", live: live.tiger, status: "pending" },
   { key: "fix", agent: "Repair", task: "finding the smallest fix", sponsor: "model", live: live.model, status: "pending" },
-  { key: "voice", agent: "Narrator", task: "writing it up", sponsor: "elevenlabs", live: live.elevenlabs, status: "pending" },
+  { key: "voice", agent: "Narrator", task: "writing it up", sponsor: "gemini", live: live.gemini, status: "pending" },
   { key: "memory", agent: "Memory", task: "remembering this session", sponsor: "backboard", live: live.backboard, status: "pending" },
 ];
 
@@ -72,7 +72,7 @@ export async function analyse(id: string, hours: number | undefined, patch: Patc
   patch("voice", {
     status: "done",
     live: n.data.source !== "template" && live.gemini,
-    result: `${n.data.source === "cache" ? "Gemini script (cached)" : n.data.source.startsWith("template (gemini") ? "template now · Gemini writing its version" : "template"} · ${n.data.provenance.tokens} numbers, every one traced · ${live.elevenlabs ? "ElevenLabs voice" : "browser voice"}`,
+    result: `${n.data.source === "cache" ? "Gemini script (cached)" : n.data.source.startsWith("template (gemini") ? "template now · Gemini writing its version" : "template"} · ${n.data.provenance.tokens} numbers, every one traced`,
     ms: n.ms,
   });
 

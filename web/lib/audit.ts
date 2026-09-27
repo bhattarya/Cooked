@@ -68,3 +68,14 @@ export function auditPdf(lines: string[]): Blob {
   out += `trailer\n<< /Size ${objs.length} /Root 1 0 R >>\nstartxref\n${xrefAt}\n%%EOF`;
   return new Blob([out], { type: "application/pdf" });
 }
+
+export const MAX_AUDIT_BYTES = 8_000_000;
+
+/** Checked in the browser before anything is sent: a wrong file type or an oversized file gets a specific answer immediately. */
+export function validateAuditFile(f: { name: string; size: number; type: string }): { code: "unsupported_type" | "too_large" | "unreadable"; message: string } | null {
+  const okType = /^(application\/pdf|image\/(png|jpe?g|webp|heic|heif))$/i.test(f.type) || /\.(pdf|png|jpe?g|webp|heic|heif)$/i.test(f.name);
+  if (!okType) return { code: "unsupported_type", message: `“${f.name}” isn't a PDF or a photo. Export your degree audit as a PDF (or take a photo of it) and drop that.` };
+  if (f.size === 0) return { code: "unreadable", message: `“${f.name}” is empty (0 bytes). Re-download it and try again.` };
+  if (f.size > MAX_AUDIT_BYTES) return { code: "too_large", message: `“${f.name}” is ${(f.size / 1e6).toFixed(1)} MB and the limit is ${MAX_AUDIT_BYTES / 1e6} MB. Print just the audit pages to a smaller PDF.` };
+  return null;
+}

@@ -1,12 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import type { Dataset } from "@/lib/types";
+import type { SponsorLive } from "../Sponsors";
 import { SAMPLES } from "./model";
 import { useNarrator } from "./narrator";
 import styles from "./home.module.css";
 
-export function Home({ ds, name, hasJourney, onFile, onSample, onGreet, onResume, onManual, onChapter }: { ds: Dataset | null; name: string | null; hasJourney: boolean; onFile: (f: File) => void; onSample: (id: string) => void; onGreet: () => void; onResume: () => void; onManual: () => void; onChapter: (c: "cohort" | "models") => void }) {
+export function Home({ ds, name, error, hasJourney, onFile, onSample, onGreet, onResume, onManual, onChapter }: { ds: Dataset | null; live?: SponsorLive; name: string | null; error?: string | null; hasJourney: boolean; onFile: (f: File) => void; onSample: (id: string) => void; onGreet: () => void; onResume: () => void; onManual?: () => void; onChapter?: (c: "cohort" | "models") => void }) {
   const { caption } = useNarrator();
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -28,7 +30,7 @@ export function Home({ ds, name, hasJourney, onFile, onSample, onGreet, onResume
           <input ref={input} type="file" accept="application/pdf,image/*" hidden onChange={(e) => {const f=e.target.files?.[0];if(f)onFile(f);e.target.value="";}} />
           <span>01 / BRING YOUR AUDIT</span><strong>{over ? "Release to read" : "Read my audit"}</strong><p>PDF or photo, up to 8 MB. The file is never stored.</p><b aria-hidden>↗</b>
         </div>
-        <button type="button" onClick={onManual} className={styles.manual}>Or enter your terms by hand <span aria-hidden>→</span></button>
+        {onManual && <button type="button" onClick={onManual} className={styles.manual}>Or enter your terms by hand <span aria-hidden>→</span></button>}
         </div>
         <div className={styles.samples}>
           <div className={styles.sampleHead}><span>02 / WALK THROUGH A SAMPLE</span><span>SYNTHETIC STUDENTS</span></div>
@@ -38,8 +40,9 @@ export function Home({ ds, name, hasJourney, onFile, onSample, onGreet, onResume
       </div>
       <div className={styles.foot}>
         <span>SIMULATED OUTCOMES / NOT A PREDICTION</span>
-        <nav aria-label="Other ways to explore">{hasJourney && <button type="button" onClick={onResume}>Return to results</button>}<button type="button" onClick={() => onChapter("cohort")}>Explore the cohort</button><button type="button" onClick={() => onChapter("models")}>Build a scenario</button></nav>
+        <nav aria-label="Other ways to explore">{hasJourney && <button type="button" onClick={onResume}>Return to results</button>}{onChapter ? <button type="button" onClick={() => onChapter("cohort")}>Explore the cohort</button> : <Link href="/app/explore">Explore the cohort</Link>}{onChapter ? <button type="button" onClick={() => onChapter("models")}>Build a scenario</button> : <Link href="/app/lab">Build a scenario</Link>}</nav>
       </div>
+      {error && <p role="alert" className={styles.error}>{error}</p>}
     </section>
   );
 }

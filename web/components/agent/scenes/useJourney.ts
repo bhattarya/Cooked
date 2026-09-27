@@ -4,13 +4,14 @@
 // calls (audit intake, the analysis pipeline, questions, work-hours re-runs, the careers scenario)
 // and reports them as awaited steps, so what the theatre shows is what the backend is doing.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { askAgent, getArena, remember, sayLine, setWorkHours, simulateScenario, uploadAudit, type Answer } from "@/lib/agentApi";
-import { auditLines, auditPdf } from "@/lib/audit";
+import { askAgent, getArena, getReceipt, manualAudit, remember, sayLine, setWorkHours, simulateScenario, uploadAudit, type Answer, type Call, type Intake, type ManualAudit, type Receipt, type Reading } from "@/lib/agentApi";
+import { auditLines, auditPdf, validateAuditFile } from "@/lib/audit";
 import { loadDataset } from "@/lib/data";
 import type { Dataset, Student } from "@/lib/types";
 import type { SessionUser } from "@/lib/session";
 import type { Step } from "../Pipeline";
 import type { SponsorLive } from "../Sponsors";
+import { issueFromIntake, issueOf, type AuditIssue } from "../audit/issues";
 import { analyse, auditPipelineSteps } from "./analyse";
 import { narrator } from "./narrator";
 import { SAMPLES, careersInput, type CareersState, type DeckScene, type DrillFull, type Journey, type RepairFull } from "./model";
@@ -29,6 +30,12 @@ export interface AskResult extends RunResult {
   scene?: DeckScene;
 }
 
+/** What the models read from the audit. `derived` = built from the state endpoint because the receipt endpoint isn't available. */
+export type ReceiptState = { status: "idle" | "loading" } | { status: "ready"; data: Receipt; derived: boolean };
+
+export const READ_HOW: Record<Reading["method"], string> = { text: "read directly from the PDF text", vision: "read by Gemini vision", sample: "sample audit · synthetic student", manual: "entered by hand" };
+const secs = (ms: number) => (ms < 950 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`);
+
 export const NO_STUDENT = "No student is loaded yet. Drop a degree audit or load a sample student first.";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const short = (q: string) => (q.length > 48 ? `${q.slice(0, 46)}…` : q);
@@ -37,7 +44,8 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
   const [phase, setPhase] = useState<Phase>("home");
   const [steps, setSteps] = useState<Step[]>([]);
   const [exiting, setExiting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [issue, setIssue] = useState<AuditIssue | null>(null);
+  const [receipt, setReceipt] = useState<ReceiptState>({ status: "idle" });
   const [askingWork, setAskingWork] = useState(false);
   const [journey, setJourney] = useState<Journey | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -50,6 +58,7 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
   const running = useRef(false);
   const workResolve = useRef<((h: number) => void) | null>(null);
   const careersPromise = useRef<Promise<CareersState> | null>(null);
+  const lastAttempt = useRef<(() => Promise<RunResult>) | null>(null);
   const exitTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const onLoaded = useRef<() => void>(() => {});
   useEffect(() => {
@@ -121,39 +130,62 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
     setPhase((p) => (p === "theatre" ? "deck" : p));
   }, []);
 
+  // ---------- the receipt: what the models actually read ----------
+  const loadReceipt = useCallback(async (j: Journey) => {
+    setReceipt({ status: "loading" });
+    const real = await getReceipt(j.id);
+    if (journeyRef.current?.id !== j.id) return;
+    if (real) return setReceipt({ status: "ready", data: real, derived: false });
+    // older API: only what the state endpoint reports; everything else stays unavailable, never guessed
+    const st = j.st;
+    setReceipt({
+      status: "ready",
+      derived: true,
+      data: {
+        terms: st.terms.map((t, i) => ({ label: `Term ${i + 1}`, attempted: t.attempted, earned: t.earned, withdrawals: t.withdrawals })),
+        totals: { credits_earned: st.credits_earned, credits_in_progress: null, credits_required: st.credits_required, terms_completed: st.terms_done.value, withdrawals: st.w_total.value },
+        features: [],
+      },
+    });
+  }, []);
+
   // ---------- the audit pipeline ----------
-  const runAudit = useCallback(
-    async (file: Blob, filename: string, sample: Student | null = null, label = "Your audit"): Promise<RunResult> => {
+  const runPipeline = useCallback(
+    async (getIntake: () => Promise<Call<Intake>>, sample: Student | null, label: string, again: () => Promise<RunResult>): Promise<RunResult> => {
       if (running.current) return { ok: false, message: "Still working on the last audit. One moment." };
       running.current = true;
+      lastAttempt.current = again;
       const lv = liveRef.current;
-      setError(null);
+      setIssue(null);
       setExiting(false);
       setPhase("theatre");
       setSteps(auditPipelineSteps(lv));
       let name: string | null = user.guest ? null : user.firstName;
       void sayServer("thanks", name);
-      const fail = (message: string, keepRunning = true): RunResult => {
-        setError(message);
-        if (keepRunning) setSteps((s) => s.map((x) => (x.status === "running" ? { ...x, status: "error", result: "failed" } : x)));
-        return { ok: false, message };
+      const fail = (i: AuditIssue, keepRunning = true): RunResult => {
+        setIssue(i);
+        if (keepRunning) setSteps((st) => st.map((x) => (x.status === "running" ? { ...x, status: "error", result: "failed" } : x)));
+        return { ok: false, message: `${i.title}. ${i.body}` };
       };
       try {
-        const intake = await uploadAudit(file, filename);
+        const intake = await getIntake();
         const d = intake.data;
         if (!d.id) {
-          patch("read", { status: "error", result: d.error });
-          narrator.say(d.error ?? "I couldn't read that audit.");
-          return fail(d.error ?? "Couldn't read that audit.", false);
+          const i = issueFromIntake(d);
+          patch("read", { status: "error", result: i.title });
+          narrator.say(i.title);
+          return fail(i, false);
         }
         const s = d.summary!;
         if (d.first_name && user.guest) name = d.first_name;
+        const method = d.reading?.method ?? (d.source === "sample" ? "sample" : d.source === "manual" ? "manual" : d.source === "gemini" ? "vision" : "text");
+        const warnings = d.warnings ?? [];
         patch("read", {
-          status: "done",
-          live: d.source === "gemini" && lv.gemini,
-          result: `${d.source === "sample" ? "sample audit · synthetic student" : "read by Gemini"} · ${s.terms} terms · ${s.courses_done} courses done · ${s.in_progress} in progress · ${s.credits_earned}/${s.credits_required} credits`,
+          status: warnings.length ? "warn" : "done",
+          live: method === "vision" && lv.gemini,
+          result: `${READ_HOW[method]} in ${secs(d.reading?.ms ?? intake.ms)} · ${s.terms} terms · ${s.courses_done} courses done · ${s.in_progress} in progress · ${s.credits_earned}/${s.credits_required} credits${warnings.length ? ` · ${warnings.length} ${warnings.length === 1 ? "thing" : "things"} to check` : ""}`,
           tr: s.tool_result_id,
-          ms: intake.ms,
+          ms: d.reading?.ms ?? intake.ms,
         });
 
         let hours: number | undefined;
@@ -175,7 +207,7 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
         const j: Journey = {
           id: d.id,
           name,
-          source: d.source === "gemini" ? "gemini" : "sample",
+          source: d.source === "unavailable" ? "parser" : d.source,
           label,
           st: a.st,
           work: hours,
@@ -186,30 +218,58 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
           headline: a.narration.text,
           alarm: a.alarm,
           sample,
+          warnings,
+          reading: d.reading ?? null,
         };
         commit(j);
         setAnswers([]);
         setOverrides({});
+        void loadReceipt(j);
         onLoaded.current();
         await Promise.race([memory, sleep(1100)]);
         setExiting(true);
         exitTimer.current = setTimeout(finishExit, 4500); // the theatre normally calls back first
         void narrator.say(a.narration.text);
         const twins = a.st.twins.refused ? "Not enough matched alumni to say more, so COOKED refuses to guess." : `${a.st.twins.n} matched alumni.`;
+        const check = warnings.length ? ` The reader flagged ${warnings.length} ${warnings.length === 1 ? "thing" : "things"} to check: ${warnings.join("; ")}.` : "";
         return {
           ok: true,
-          message: `Loaded ${label}. Model risk is ${Math.round(a.st.risk.value * 100)} percent, ${a.st.risk.value >= 0.5 ? "already cooked" : a.st.risk.value >= 0.2 ? "on watch" : "on track"}. ${twins} ${a.narration.text}`,
-          data: { student: d.id, risk_percent: Math.round(a.st.risk.value * 100), twins: a.st.twins.n, twins_refused: a.st.twins.refused },
+          message: `Loaded ${label} (${READ_HOW[method]}). ${a.st.credits_earned} of ${a.st.credits_required} credits earned over ${a.st.terms_done.value} terms. Model risk is ${Math.round(a.st.risk.value * 100)} percent, ${a.st.risk.value >= 0.5 ? "already cooked" : a.st.risk.value >= 0.2 ? "on watch" : "on track"}. ${twins}${check} ${a.narration.text}`,
+          data: { student: d.id, risk_percent: Math.round(a.st.risk.value * 100), twins: a.st.twins.n, twins_refused: a.st.twins.refused, credits_earned: a.st.credits_earned, terms: a.st.terms_done.value, warnings },
         };
       } catch (e) {
-        return fail(e instanceof Error ? e.message : "Something went wrong.");
+        return fail(issueOf("server", { detail: e instanceof Error ? e.message : null, canManual: false }));
       } finally {
         running.current = false;
         workResolve.current = null;
         setAskingWork(false);
       }
     },
-    [commit, finishExit, patch, sayServer, user.firstName, user.guest],
+    [commit, finishExit, loadReceipt, patch, sayServer, user.firstName, user.guest],
+  );
+
+  const runAudit = useCallback(
+    (file: Blob, filename: string, sample: Student | null = null, label = "Your audit"): Promise<RunResult> => {
+      if (!sample) {
+        const bad = validateAuditFile({ name: filename, size: file.size, type: file.type });
+        if (bad) {
+          const i = issueOf(bad.code, { body: bad.message, canRetry: false });
+          setIssue(i);
+          return Promise.resolve({ ok: false, message: bad.message });
+        }
+      }
+      const again = () => runPipeline(() => uploadAudit(file, filename), sample, label, again);
+      return again();
+    },
+    [runPipeline],
+  );
+
+  const runManual = useCallback(
+    (body: ManualAudit): Promise<RunResult> => {
+      const again = () => runPipeline(() => manualAudit(body), null, "Your terms", again);
+      return again();
+    },
+    [runPipeline],
   );
 
   const runSample = useCallback(
@@ -228,6 +288,12 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
     [runAudit],
   );
 
+  const retry = useCallback(() => {
+    const again = lastAttempt.current;
+    if (again) void again();
+  }, []);
+  const dismissIssue = useCallback(() => setIssue(null), []);
+
   const answerWork = useCallback((hours: number) => workResolve.current?.(hours), []);
   const waitingForWork = useCallback(() => workResolve.current !== null, []);
 
@@ -235,6 +301,7 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
     clearTimeout(exitTimer.current);
     setExiting(false);
     setAskingWork(false);
+    setIssue(null);
     setPhase("home");
   }, []);
   const showDeck = useCallback(() => setPhase("deck"), []);
@@ -306,6 +373,7 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
   const scenes = useMemo(
     () => [
       { id: "risk", label: "Verdict" },
+      { id: "receipt", label: "What we read" },
       { id: "timeline", label: "Timeline" },
       { id: "twins", label: "Twins" },
       { id: "drill", label: "Fire drill", disabled: !journey?.drill },
@@ -326,7 +394,8 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
     phase,
     steps,
     exiting,
-    error,
+    issue,
+    receipt,
     askingWork,
     journey,
     answers,
@@ -336,6 +405,9 @@ export function useJourney({ user, live }: { user: SessionUser; live: SponsorLiv
     scenes,
     runAudit,
     runSample,
+    runManual,
+    retry,
+    dismissIssue,
     answerWork,
     waitingForWork,
     backHome,
