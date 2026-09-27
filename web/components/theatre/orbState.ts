@@ -8,6 +8,7 @@ export function orbStateFor(step: Pick<Step, "key" | "sponsor">): OrbState {
   const key = step.key.toLowerCase();
   switch (step.sponsor) {
     case "gemini":
+    case "claude":
       return key === "route" ? "connecting" : "searching"; // wiring a question to a tool vs scanning a document
     case "tiger":
       return key === "drill" ? "solving" : "searching"; // simulating vs looking up alumni / cohorts
@@ -19,6 +20,8 @@ export function orbStateFor(step: Pick<Step, "key" | "sponsor">): OrbState {
     case "backboard":
       return "weaving";
     case "digitalocean":
+      return "breathing";
+    default:
       return "breathing";
   }
 }

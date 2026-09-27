@@ -1,13 +1,13 @@
 // Types and pure derivations for the audit journey. Nothing here is fetched or invented: every
 // value is read from an API response or from the synthetic dataset the API itself was built on.
-import type { Answer, Myths, Reading } from "@/lib/agentApi";
+import type { Answer, Myths } from "@/lib/agentApi";
 import type { SampleKey } from "@/lib/commands";
 import type { ServerDrill, ServerRepair, ServerState } from "@/lib/live";
 import type { Alum, Dataset, Student } from "@/lib/types";
 import type { ModelLabScenario, SimulateResponse } from "@/lib/arena-types";
 
 export type FullState = ServerState & {
-  terms: { attempted: number; earned: number; withdrawals: number }[];
+  terms: { attempted: number; earned: number; withdrawals: number; failures?: number }[];
   courses_done: string[];
   courses_in_progress: string[];
   major: string;
@@ -25,7 +25,7 @@ export type DrillFull = ServerDrill & { threshold?: number; probs?: { withdraw: 
 export type RepairLever = NonNullable<ServerRepair["primary"]> & { lever?: string };
 export type RepairFull = Omit<ServerRepair, "primary" | "fallback"> & { primary: RepairLever | null; fallback: RepairLever | null; current_load?: number };
 
-export type DeckScene = "risk" | "timeline" | "twins" | "drill" | "repair" | "careers" | "receipt" | "answer";
+export type DeckScene = "risk" | "timeline" | "twins" | "drill" | "repair" | "careers" | "answer";
 
 // Synthetic students from the pinned dataset, checked against the trained model (none refused).
 export const SAMPLES: { id: string; key: SampleKey; label: string; hint: string }[] = [
@@ -38,10 +38,7 @@ export const SAMPLES: { id: string; key: SampleKey; label: string; hint: string 
 export interface Journey {
   id: string;
   name: string | null;
-  source: "sample" | "gemini" | "parser" | "manual";
-  /** Notes the reader made while reading the audit (e.g. courses without a grade). The receipt scene asks the user to check them. */
-  warnings: string[];
-  reading: Reading | null;
+  source: "sample" | "gemini" | "claude";
   label: string;
   st: FullState;
   /** Weekly work hours the user gave (an audit cannot say); undefined lets the server use the profile. */
@@ -212,8 +209,8 @@ export function careersInput(st: FullState, sample: Student | null): CareersInpu
     credits_per_term: Math.round(hold("credits per term", attempted / st.terms.length, 3, 18)),
     earned_ratio: Math.round(hold("credits earned", attempted ? earned / attempted : 1, 0.5, 1) * 100) / 100,
     withdrawals: hold("withdrawals", withdrawals, 0, 10),
-    failures: 0,
-    enrollment_gaps: sample ? clamp(sample.gaps, 0, 4) : 0,
+    failures: hold("failures", st.terms.reduce((sum, t) => sum + (t.failures ?? 0), 0), 0, 10),
+    enrollment_gaps: hold("enrollment gaps", st.enrollment_gaps ?? sample?.gaps ?? 0, 0, 4),
     internship_count: sample ? clamp(sample.intern, 0, 4) : ASSUMED.internship_count,
     credential_count: ASSUMED.credential_count,
     engagement_count: ASSUMED.engagement_count,

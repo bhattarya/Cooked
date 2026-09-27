@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useAdvisorSession } from "./AdvisorSession";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppChrome, SceneDeck, useSceneDeck, type SceneDef } from "@/components/scenes";
@@ -40,6 +41,7 @@ interface TheatreState {
 
 /** "Ask the cohort": each answer is a scene, so the arrow keys scrub the conversation like a film strip. */
 export function ExploreWorkspace({ user }: { user: SessionUser }) {
+  const { journey } = useAdvisorSession();
   const router = useRouter();
   const voice = useCookedVoice();
   const health = useApiHealth();
@@ -312,7 +314,7 @@ export function ExploreWorkspace({ user }: { user: SessionUser }) {
           answers_in_strip: entries.length,
         }
       : { answers_in_strip: entries.length },
-    student: false,
+    student: Boolean(journey),
     scenes: ALL_SCENES,
   });
 

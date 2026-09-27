@@ -11,13 +11,47 @@ from __future__ import annotations
 import json
 import re
 import secrets
+from itertools import pairwise
 from typing import Annotated, Literal
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+TERM = re.compile(r"^(Spring|Fall)\s+(\d{4})$")
 COURSE = re.compile(r"^([A-Z]{2,4})\s?(\d{3}[A-Z]?)$")
+FAIL, WITHDRAW = {"F", "FF", "NP", "NC", "U"}, {"W", "WP", "WF"}
+PASS = {"A", "A+", "A-", "B", "B+", "B-", "C", "C+", "C-", "D", "D+", "D-", "P", "S", "CR", "T"}
+
+
+def norm_major(raw: str) -> str:
+    """Map common audit labels onto the two majors represented by the frozen models."""
+    value = re.sub(r"[^a-z]+", " ", str(raw).lower()).strip()
+    if "computer science" in value or re.search(r"\bcs\b", value):
+        return "Computer Science"
+    if "information systems" in value or "infosys" in value or re.search(r"\bis\b", value):
+        return "Information Systems"
+    return "Computer Science"
+
+
+def norm_entry_type(raw: str | None) -> str:
+    """Normalize labels used by different audit templates."""
+    value = re.sub(r"[^a-z]+", " ", str(raw or "").lower()).strip()
+    if "transfer" in value:
+        return "Transfer"
+    if not value or any(term in value for term in ("freshman", "first year", "first time", "new student")):
+        return "First-Time Freshman"
+    raise ValueError("Unsupported entry type")
+
+
+def norm_residency(raw: str | None) -> str:
+    """Normalize residency labels while defaulting when an audit omits the field."""
+    value = re.sub(r"[^a-z]+", " ", str(raw or "").lower()).strip()
+    if "out" in value or "non resident" in value or "nonresident" in value:
+        return "Out-of-State"
+    if not value or "in" in value or "resident" in value:
+        return "In-State"
+    raise ValueError("Unsupported residency")
 
 
 def norm_course(raw: str) -> str:
@@ -31,6 +65,11 @@ class AuditCourse(BaseModel):
     credits: Annotated[float, Field(ge=0, le=8)] = 3
     grade: Annotated[str, Field(max_length=3)] = ""
 
+    @field_validator("grade")
+    @classmethod
+    def _grade(cls, v: str) -> str:
+        return v.strip().upper()
+
     @field_validator("course_id")
     @classmethod
     def _norm(cls, v: str) -> str:
@@ -42,10 +81,18 @@ class AuditTerm(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
     label: Annotated[str, Field(max_length=30)]
-    courses: Annotated[list[AuditCourse], Field(max_length=16)] = Field(default_factory=list)
+    courses: Annotated[list[AuditCourse], Field(max_length=12)] = Field(default_factory=list)
     credits_attempted: Annotated[float, Field(ge=0, le=30)] | None = None
     credits_earned: Annotated[float, Field(ge=0, le=30)] | None = None
     withdrawals: Annotated[int, Field(ge=0, le=8)] | None = None
+
+    @model_validator(mode="after")
+    def consistent_totals(self):
+        if self.credits_earned is not None and self.credits_attempted is not None and self.credits_earned > self.credits_attempted:
+            raise ValueError("Term earned credits exceed attempted credits")
+        if not self.courses and (self.credits_attempted is None or self.credits_earned is None):
+            raise ValueError("A completed term needs courses or both credit totals")
+        return self
 
 
 class AuditProfile(BaseModel):
@@ -58,17 +105,32 @@ class AuditProfile(BaseModel):
     entry_type: Literal["First-Time Freshman", "Transfer"] = "First-Time Freshman"
     residency: Literal["In-State", "Out-of-State"] = "In-State"
     work_hours: Annotated[int, Field(ge=0, le=60)] | None = None
-    credits_earned: Annotated[int, Field(ge=0, le=200)] | None = None
-    credits_required: Annotated[int, Field(ge=60, le=200)] = 120
+    credits_earned: Annotated[float, Field(ge=0, le=200)] | None = None
+    credits_required: Annotated[float, Field(ge=60, le=200)] = 120
     internships: Annotated[int, Field(ge=0, le=10)] = 0
-    terms: Annotated[list[AuditTerm], Field(max_length=32)] = Field(default_factory=list)
+    terms: Annotated[list[AuditTerm], Field(max_length=16)] = Field(default_factory=list)
     in_progress: Annotated[list[AuditCourse], Field(max_length=12)] = Field(default_factory=list)
-    completed_courses: Annotated[list[str], Field(max_length=250)] = Field(default_factory=list)
+    completed_courses: Annotated[list[str], Field(max_length=80)] = Field(default_factory=list)
 
     @field_validator("completed_courses")
     @classmethod
     def _norm_done(cls, v: list[str]) -> list[str]:
         return [norm_course(c) for c in v if c]
+
+    @field_validator("major", mode="before")
+    @classmethod
+    def _major(cls, v: str) -> str:
+        return norm_major(v)
+
+    @field_validator("entry_type", mode="before")
+    @classmethod
+    def _entry_type(cls, v: str | None) -> str:
+        return norm_entry_type(v)
+
+    @field_validator("residency", mode="before")
+    @classmethod
+    def _residency(cls, v: str | None) -> str:
+        return norm_residency(v)
 
     @field_validator("first_name")
     @classmethod
@@ -79,106 +141,50 @@ class AuditProfile(BaseModel):
         return clean.split(" ")[0][:30] or None
 
 
-SEASON = re.compile(
-    r"(spring|summer|fall|winter)\D{0,12}?(\d{4})|(\d{4})\D{0,4}(spring|summer|fall|winter)", re.IGNORECASE
-)
-NOT_A_TERM = re.compile(r"transfer|advanced placement|\bAP\b|exam|test.?out|credit by|prior|exempt|waiv", re.IGNORECASE)
-# Grades that carry no outcome yet: in progress or not yet graded. They never enter a feature.
-PENDING = {"IP", "", "NG", "I", "INC"}
-WITHDRAW = {"W", "WD", "WX"}
-FAIL = {"F", "WF", "U", "NC", "FN"}
-SEASON_ORDER = {"winter": 0, "spring": 1, "summer": 2, "fall": 3}
-
-
-def clean_grade(g: str) -> str:
-    return re.sub(r"[+\-\s]", "", g.upper())
-
-
-def parse_label(label: str) -> tuple[int, str] | None:
-    """(year, season) for labels like 'Fall 2023' or '2023 Fall', else None."""
-    m = SEASON.search(label)
-    if not m:
-        return None
-    season, year = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
-    return int(year), season.lower()
-
-
-def term_rows(p: AuditProfile) -> tuple[np.ndarray, set[str], int]:
-    """Regular terms in time order -> [attempted, earned, W, F, repeats]; passed courses; gaps.
-
-    Same definitions as feat.person_term: only completed Fall/Spring terms are rows (Summer,
-    Winter, transfer/AP blocks and in-progress or ungraded courses never are); a W or F row still
-    counts its attempted credits but earns none; a repeat is any course already taken in an
-    earlier term of ANY season. Terms are ordered chronologically; if a label has no
-    recognisable date the audit's own order is kept and gaps cannot be measured."""
-    listed = [(parse_label(t.label), t) for t in p.terms if not NOT_A_TERM.search(t.label)]
-    dated = all(k for k, _ in listed)
-    if dated:
-        listed = sorted(listed, key=lambda x: (x[0][0], SEASON_ORDER[x[0][1]]))  # stable
+def term_rows(p: AuditProfile) -> tuple[np.ndarray, set[str]]:
+    """Regular terms in time order -> [attempted, earned, W, F, repeats]; plus passed courses.
+    Named Fall/Spring terms are sorted by date; unnamed ones ("Term 1") keep the audit's order;
+    Summer and Winter sessions are excluded, like feat.person_term."""
+    regular = [t for t in p.terms if not re.search(r"summer|winter", t.label, re.IGNORECASE)]
+    dated = [(TERM.match(t.label.strip().title()), i, t) for i, t in enumerate(regular)]
+    if all(m for m, _, _ in dated):
+        ordered = [t for _, _, t in sorted(dated, key=lambda x: int(x[0].group(2)) * 2 + (x[0].group(1) == "Fall"))]
+    else:
+        ordered = regular
     seen: set[str] = set()
     passed: set[str] = set(p.completed_courses)
-    rows: list[list[float]] = []
-    idx: list[int] = []
-    for key, t in listed:
-        regular = key is None or key[1] in ("spring", "fall")
-        graded = [c for c in t.courses if clean_grade(c.grade) not in PENDING]
-        row = None
+    # Summer/Winter do not affect the regular-term model, but still satisfy course prerequisites.
+    passed.update(c.course_id for t in p.terms for c in t.courses if c.grade in PASS)
+    rows = []
+    for t in ordered:
         if not t.courses:  # totals-only term
-            if regular:
-                att = float(t.credits_attempted or t.credits_earned or 0)
-                row = [att, float(t.credits_earned if t.credits_earned is not None else att), float(t.withdrawals or 0), 0.0, 0.0]
-        else:
-            att = earned = w = f = 0.0
-            rep = float(sum(c.course_id in seen for c in graded))
-            for c in graded:
-                g = clean_grade(c.grade)
-                att += c.credits
-                if g in WITHDRAW:
-                    w += 1
-                elif g in FAIL:
-                    f += 1
-                else:
-                    earned += c.credits
-                    passed.add(c.course_id)
-            if regular and graded:
-                row = [att, earned, w, f, rep]
-        seen.update(c.course_id for c in t.courses)
-        if row is not None:
-            rows.append(row)
-            idx.append(2 * key[0] + (key[1] == "fall") if key else len(idx))
-    gaps = int(max(idx) - min(idx) + 1 - len(idx)) if idx and dated else 0
-    return (np.array(rows, dtype=float) if rows else np.zeros((0, 5))), passed, gaps
-
-
-def credits_earned_total(p: AuditProfile) -> int:
-    """Everything passed, Summer and Winter included (what the degree counts), unlike the model rows."""
-    total = 0.0
-    for t in p.terms:
-        if NOT_A_TERM.search(t.label):
+            att = float(t.credits_attempted)
+            rows.append([att, float(t.credits_earned), float(t.withdrawals or 0), 0.0, 0.0])
             continue
-        if t.courses:
-            total += sum(c.credits for c in t.courses if clean_grade(c.grade) not in PENDING | WITHDRAW | FAIL)
-        else:
-            total += t.credits_earned or 0
-    return round(total)
-
-
-def credits_in_progress(p: AuditProfile) -> int:
-    """Credits of courses not yet graded: explicit in_progress plus pending term courses, deduped."""
-    seen: dict[str, float] = {}
-    for c in p.in_progress:
-        seen[c.course_id] = c.credits
-    for t in p.terms:
+        att = earned = w = f = rep = 0.0
         for c in t.courses:
-            if clean_grade(c.grade) in PENDING:
-                seen.setdefault(c.course_id, c.credits)
-    return round(sum(seen.values()))
+            g = c.grade.upper()
+            if g not in PASS | FAIL | WITHDRAW:
+                continue  # IP, incomplete, audit and missing grades never count as completed work.
+            att += c.credits
+            if g in WITHDRAW:
+                w += 1
+            elif g in FAIL:
+                f += 1
+            else:
+                earned += c.credits
+                passed.add(c.course_id)
+            rep += c.course_id in seen
+            seen.add(c.course_id)
+        if att:
+            rows.append([att, earned, w, f, rep])
+    return (np.array(rows, dtype=float) if rows else np.zeros((0, 5))), passed
 
 
 def register(people, pid: str, p: AuditProfile) -> None:
     """Add (or replace) a profile in the loaded People so every tool can use it."""
-    terms, passed, gaps = term_rows(p)
-    earned = p.credits_earned if p.credits_earned is not None else credits_earned_total(p)
+    terms, passed = term_rows(p)
+    earned = p.credits_earned if p.credits_earned is not None else float(terms[:, 1].sum()) if len(terms) else 0
     people.static.loc[pid] = {
         "population": "current",
         "major": p.major,
@@ -191,7 +197,8 @@ def register(people, pid: str, p: AuditProfile) -> None:
         "cooked": None,
     }
     people.terms[pid] = terms
-    people.gaps[pid] = gaps
+    dates = sorted({int(m.group(2)) * 2 + (m.group(1) == "Fall") for t in p.terms if (m := TERM.match(t.label.strip().title()))})
+    people.gaps[pid] = sum(max(0, b - a - 1) for a, b in pairwise(dates))
     people.courses_done[pid] = passed
     people.courses_ip[pid] = [c.course_id for c in p.in_progress]
     people.current_extra.loc[pid] = pd.Series(
@@ -208,11 +215,11 @@ def register(people, pid: str, p: AuditProfile) -> None:
 
 def create(people, conn, p: AuditProfile, source: str) -> str:
     pid = "USR-" + secrets.token_hex(5)
-    register(people, pid, p)
     conn.execute(
         "INSERT INTO app.user_profile(id, display_name, source, profile) VALUES (%s,%s,%s,%s)",
         (pid, p.first_name, source, json.dumps(p.model_dump())),
     )
+    register(people, pid, p)
     return pid
 
 
@@ -230,86 +237,3 @@ def restore(people, conn, pid: str) -> bool:
         return False
     register(people, pid, AuditProfile(**row[0]))
     return True
-
-
-
-# ---------- receipt: what the models actually read ----------
-GRADE_POINTS = {"A": 4.0, "B": 3.0, "C": 2.0, "D": 1.0, "F": 0.0}
-FEATURE_UNITS = {
-    "entry_transfer": ("flag", "1 = transfer, 0 = first-time freshman"),
-    "out_of_state": ("flag", "1 = out-of-state"),
-    "work_hours": ("hours/week", "asked, not on the audit"),
-    "major_cs": ("flag", "1 = Computer Science"),
-    "k": ("terms", "completed Fall/Spring terms (Summer, Winter and in-progress excluded), max 6 used"),
-    "att_mean": ("credits", "mean credits attempted over the terms used"),
-    "earned_mean": ("credits", "mean credits earned over the terms used"),
-    "att_min": ("credits", "smallest attempted load among the terms used"),
-    "att_last": ("credits", "attempted load of the most recent term used"),
-    "low_share": ("share", "terms under 12 attempted credits / terms used"),
-    "w_sum": ("courses", "grades of W in the terms used"),
-    "f_sum": ("courses", "grades of F in the terms used"),
-    "rep_sum": ("courses", "courses already taken in an earlier term (any season)"),
-    "earned_ratio": ("share", "credits earned / credits attempted over the terms used"),
-}
-
-
-def load_profile(conn, people, cid: str) -> AuditProfile | None:
-    """The audit behind an id: the stored profile for USR- ids, or the dataset transcript
-    (rebuilt in the same shape) for sample students. None if unknown."""
-    if cid.startswith("USR-"):
-        row = conn.execute("SELECT profile FROM app.user_profile WHERE id=%s", (cid,)).fetchone()
-        return AuditProfile(**row[0]) if row else None
-    if cid not in people.static.index:
-        return None
-    rows = conn.execute(
-        "SELECT term, course_id, credits_attempted, grade FROM feat.transcripts WHERE campus_id=%s", (cid,)
-    ).fetchall()
-    by_term: dict[str, list[AuditCourse]] = {}
-    for term, course, credits, grade in rows:
-        by_term.setdefault(term, []).append(AuditCourse(course_id=course, credits=credits, grade=grade))
-    s = people.static.loc[cid]
-    extra = people.current_extra.loc[cid] if cid in people.current_extra.index else None
-    return AuditProfile(
-        major=s["major"], track=s["track"], entry_type=s["entry_type"], residency=s["residency"],
-        work_hours=int(s["work_hours"] or 0),
-        credits_earned=int(extra["credits_earned"]) if extra is not None else None,
-        credits_required=int(extra["credits_required"]) if extra is not None else 120,
-        terms=[AuditTerm(label=t, courses=cs) for t, cs in by_term.items()],
-    )
-
-
-def receipt_terms(p: AuditProfile) -> list[dict]:
-    """One line per audit term, in time order, saying whether the models count it."""
-    listed = [(parse_label(t.label), t) for t in p.terms if not NOT_A_TERM.search(t.label)]
-    if all(k for k, _ in listed):
-        listed.sort(key=lambda x: (x[0][0], SEASON_ORDER[x[0][1]]))
-    out = []
-    for key, t in listed:
-        regular = key is None or key[1] in ("spring", "fall")
-        graded = [c for c in t.courses if clean_grade(c.grade) not in PENDING]
-        pending = len(t.courses) - len(graded)
-        if not t.courses:
-            att = float(t.credits_attempted or t.credits_earned or 0)
-            earned = float(t.credits_earned if t.credits_earned is not None else att)
-            w, f, gpa = int(t.withdrawals or 0), 0, None
-        else:
-            gs = [(clean_grade(c.grade), c.credits) for c in graded]
-            att = sum(cr for _, cr in gs)
-            earned = sum(cr for g, cr in gs if g not in WITHDRAW | FAIL)
-            w = sum(g in WITHDRAW for g, _ in gs)
-            f = sum(g in FAIL for g, _ in gs)
-            pts = [(GRADE_POINTS[g[0]], cr) for g, cr in gs if g[:1] in GRADE_POINTS and g not in WITHDRAW]
-            gpa = round(sum(a * cr for a, cr in pts) / sum(cr for _, cr in pts), 2) if pts else None
-        if not regular:
-            note = f"{key[1].title()} session: shown for credits, not used by the models"
-        elif t.courses and not graded:
-            note = "In progress: not used by the models until graded"
-        elif pending:
-            note = f"{pending} ungraded course(s) left out"
-        else:
-            note = None
-        out.append({
-            "label": t.label, "attempted": att, "earned": earned, "withdrawals": w, "failures": f,
-            "gpa": gpa, "counted": regular and (bool(graded) or not t.courses), "note": note,
-        })
-    return out

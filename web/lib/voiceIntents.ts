@@ -2,7 +2,7 @@
 //
 // When the live ElevenLabs agent is unreachable, a spoken or typed line still has to DO something.
 // This maps the fixed commands onto phrases; anything it does not recognise as a control phrase is
-// routed as a free-form question (askAnything, falling back to the older askStudent / exploreCohort). It only ever
+// routed as a free-form question (askStudent for "I / my", exploreCohort otherwise). It only ever
 // picks a command and its arguments: every number the user hears still comes from the handler.
 import { SCENARIO_FIELDS, SCENES, extractNumber, type CommandName, type SceneId } from "./commands";
 
@@ -93,9 +93,12 @@ export function parseIntent(text: string, ctx: IntentContext): Intent | null {
   // A bare scene name ("twins", "the timeline") is a navigation request.
   if (scene && t.split(" ").length <= 3) return { command: "showScene", args: { scene } };
 
-  // Free-form: the Studio host owns the router that picks the chapter; offline we only forward the words.
-  if (t.split(" ").length < 2 && !/cooked/.test(t)) return null;
-  const order: CommandName[] = ["askAnything", "askStudent", "exploreCohort"];
+  // Free-form: personal ("am I cooked", "my plan") versus cohort ("how do internships relate to first jobs").
+  const words = t.split(" ").length;
+  if (words < 2 && !/cooked/.test(t)) return null;
+  const auditQuestion = /audit|credits? (left|remaining|earned|required|completed)|how many credits|degree progress/.test(t);
+  const personal = auditQuestion || /\b(am i|i m|i ve|i d|i ll|i|my|me|mine|myself)\b/.test(t) && !/\b(students?|people|graduates?|alumni|cohort)\b/.test(t);
+  const order: CommandName[] = personal ? ["askStudent", "exploreCohort"] : ["exploreCohort", "askStudent"];
   const pick = order.find((c) => can(c));
   return pick ? { command: pick, args: { question: text.trim() } } : null;
 }

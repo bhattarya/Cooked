@@ -16,18 +16,18 @@ export async function GET(request: Request) {
   if (process.env.DEMO_MODE === "1") return NextResponse.json({ error: "Live voice is disabled in demo mode." }, { status: 503, headers: NO_STORE });
   const agentId = process.env.ELEVENLABS_AGENT_ID;
   const key = process.env.ELEVENLABS_API_KEY;
-  if (!agentId || !key) return NextResponse.json({ error: "ElevenLabs live agent is not configured." }, { status: 503, headers: NO_STORE });
+  if (!agentId || !key) return NextResponse.json({ error: "Live voice is not configured." }, { status: 503, headers: NO_STORE });
   if (new URL(request.url).searchParams.has("probe")) return NextResponse.json({ configured: true }, { headers: NO_STORE });
 
   const url = new URL("https://api.elevenlabs.io/v1/convai/conversation/get-signed-url");
   url.searchParams.set("agent_id", agentId);
   try {
     const response = await fetch(url, { headers: { "xi-api-key": key }, cache: "no-store", signal: AbortSignal.timeout(8000) });
-    if (!response.ok) return NextResponse.json({ error: "ElevenLabs could not start a conversation." }, { status: 502, headers: NO_STORE });
+    if (!response.ok) return NextResponse.json({ error: "The voice advisor could not start a conversation." }, { status: 502, headers: NO_STORE });
     const data = await response.json() as { signed_url?: string };
-    if (!data.signed_url?.startsWith("wss://")) return NextResponse.json({ error: "ElevenLabs returned no signed URL." }, { status: 502, headers: NO_STORE });
+    if (!data.signed_url?.startsWith("wss://")) return NextResponse.json({ error: "The voice session could not be created." }, { status: 502, headers: NO_STORE });
     return NextResponse.json({ signedUrl: data.signed_url }, { headers: NO_STORE });
   } catch {
-    return NextResponse.json({ error: "ElevenLabs is unavailable." }, { status: 502, headers: NO_STORE });
+    return NextResponse.json({ error: "Live voice is unavailable." }, { status: 502, headers: NO_STORE });
   }
 }

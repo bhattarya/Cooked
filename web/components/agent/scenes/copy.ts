@@ -3,7 +3,6 @@
 // is typed by hand: each comes from the API, the models or the synthetic dataset.
 import type { Answer } from "@/lib/agentApi";
 import { money } from "@/components/viz";
-import type { ReceiptState } from "./useJourney";
 import type { CareersState, DeckScene, DrillFull, Journey, RepairFull, TwinFacts } from "./model";
 import { pct, verdictOf, yrs } from "./model";
 
@@ -222,25 +221,6 @@ export function careersVoice(c: CareersState): SceneVoice {
   };
 }
 
-// ---------------------------------------------------------------- receipt
-
-export function receiptVoice(j: Journey, r: ReceiptState): SceneVoice {
-  if (r.status !== "ready") return { title: "What we read from your audit", summary: "The receipt of what the models read is still loading.", facts: {} };
-  const { totals: t, terms } = r.data;
-  const sum = (f: (x: (typeof terms)[number]) => number) => terms.reduce((a, x) => a + f(x), 0);
-  const parts = [
-    `The audit was read into ${terms.length} terms: ${sum((x) => x.attempted)} credits attempted, ${sum((x) => x.earned)} earned, ${sum((x) => x.withdrawals)} withdrawals.`,
-    t.credits_required != null && t.credits_earned != null ? `${t.credits_earned} of ${t.credits_required} credits are earned${t.credits_in_progress != null ? `, ${t.credits_in_progress} in progress` : ""}.` : "",
-    j.warnings.length ? `The reader flagged ${j.warnings.length} ${j.warnings.length === 1 ? "thing" : "things"} to check: ${j.warnings.join("; ")}.` : "The reader had nothing to flag.",
-    r.data.features.length ? `The model inputs shown are ${r.data.features.map((f) => `${f.label} ${f.value}${f.unit ? ` ${f.unit}` : ""}`).join(", ")}.` : "This server does not report the individual model inputs yet.",
-  ];
-  return {
-    title: "What we read from your audit",
-    summary: parts.filter(Boolean).join(" "),
-    facts: { terms_read: terms.length, credits_attempted: sum((x) => x.attempted), credits_earned_in_terms: sum((x) => x.earned), withdrawals: sum((x) => x.withdrawals), warnings: j.warnings.length, credits_earned: t.credits_earned, credits_required: t.credits_required },
-  };
-}
-
 // ---------------------------------------------------------------- answer
 
 export function answerTitle(a: Answer): { title: string; accent: string; kicker: string } {
@@ -263,13 +243,12 @@ export function answerVoice(a: Answer): SceneVoice {
 }
 
 /** Which bus scene ids the deck scenes correspond to (the answer scene has no equivalent). */
-export const BUS_SCENE: Record<DeckScene, "risk" | "timeline" | "twins" | "drill" | "repair" | "careers" | "receipt" | null> = {
+export const BUS_SCENE: Record<DeckScene, "risk" | "timeline" | "twins" | "drill" | "repair" | "careers" | null> = {
   risk: "risk",
   timeline: "timeline",
   twins: "twins",
   drill: "drill",
   repair: "repair",
   careers: "careers",
-  receipt: "receipt",
   answer: null,
 };

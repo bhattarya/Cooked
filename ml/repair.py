@@ -12,7 +12,7 @@ import pandas as pd
 
 from ml.fire_drill import _row
 from ml.model_interface import Models
-from ml.snapshots import FEATURES, People
+from ml.snapshots import FEATURES, People, stage_features
 from ml.twins import MIN_SUPPORT, TwinIndex
 
 NEXT_TERM = ("Spring 2027", "Spring")
@@ -181,7 +181,7 @@ def run_repair(
     k = len(base)
     current = round(float(base[:, 0].mean())) if k else 15
     extra = people.current_extra.loc[cid]
-    remaining = max(0, int(extra["credits_required"]) - int(extra["credits_earned"]))
+    remaining = max(0, float(extra["credits_required"]) - float(extra["credits_earned"]))
     need = math.ceil(remaining / max(1, 10 - k))
     start = max(current + 1, min(need, 17))
 
@@ -231,7 +231,7 @@ def run_repair(
         lower = max(0.0, work - 10)
         s = static.copy()
         s["work_hours"] = lower
-        alt = index.find(index.features(s, base), k)
+        alt = index.find(stage_features(s, base, k), k)
         if not alt.refused:
             now = people.static.loc[twin_ids]
             then = people.static.loc[alt.ids]

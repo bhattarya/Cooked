@@ -13,9 +13,7 @@
 //  - the latest ScreenContext (published by scenes) is what `describeScreen` reads back.
 import catalogue from "./voice-commands.json";
 
-export type SceneId =
-  | "home" | "risk" | "timeline" | "twins" | "drill" | "repair" | "careers" | "receipt"
-  | "models" | "constellation" | "arena" | "cards" | "explore" | "advisor";
+export type SceneId = "risk" | "timeline" | "twins" | "drill" | "repair" | "careers" | "models" | "explore" | "advisor" | "audit";
 export type SampleKey = "working" | "cooked" | "on_track";
 export type ScenarioField =
   | "major" | "entry_type" | "residency" | "work_hours" | "completed_terms" | "credits_per_term"
@@ -24,7 +22,6 @@ export type ScenarioField =
 
 export interface CommandArgs {
   describeScreen: Record<string, never>;
-  askAnything: { question: string };
   askStudent: { question: string };
   exploreCohort: { question: string };
   showScene: { scene: SceneId };
@@ -121,7 +118,7 @@ export const fieldSpec = (name: ScenarioField) => SCENARIO_FIELDS.find((f) => f.
 
 // Catch catalogue/type drift while developing; production trusts the JSON.
 if (process.env.NODE_ENV !== "production") {
-  const expected: CommandName[] = ["describeScreen", "askAnything", "askStudent", "exploreCohort", "showScene", "nextScene", "previousScene", "setScenario", "runStressTest", "findRepair", "loadSampleStudent"];
+  const expected: CommandName[] = ["describeScreen", "askStudent", "exploreCohort", "showScene", "nextScene", "previousScene", "setScenario", "runStressTest", "findRepair", "loadSampleStudent"];
   const drift = [...expected.filter((n) => !COMMAND_NAMES.includes(n)), ...COMMAND_NAMES.filter((n) => !expected.includes(n))];
   if (drift.length) console.error(`voice-commands.json and commands.ts disagree on: ${drift.join(", ")}`);
 }
@@ -221,7 +218,6 @@ function readString(raw: Record<string, unknown>, key: string): string {
 export function normalizeArgs(name: CommandName, input: unknown): Normalized<CommandName> {
   const raw = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
   switch (name) {
-    case "askAnything":
     case "askStudent":
     case "exploreCohort": {
       const question = readString(raw, "question").slice(0, 600);
@@ -307,9 +303,10 @@ const emitRegistry = () => bus.registryListeners.forEach((fn) => fn());
  * Register the commands a scene can perform. Later registrations win per command, and
  * unregistering restores the previous handler, so a new scene can mount before the old one leaves.
  */
-export function registerCommands(handlers: Partial<CommandHandlers>): () => void {
+export function registerCommands(handlers: Partial<CommandHandlers>, fallback = false): () => void {
   const slot: Slot = { id: ++bus.slotId, handlers };
-  bus.slots.push(slot);
+  if (fallback) bus.slots.unshift(slot);
+  else bus.slots.push(slot);
   emitRegistry();
   return () => {
     bus.slots = bus.slots.filter((s) => s.id !== slot.id);

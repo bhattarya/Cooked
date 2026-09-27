@@ -2,10 +2,11 @@
 // cancellation), the scenario definition, family and class identities, and the sentences the
 // voice handlers and the narrator say. Every sentence is assembled from a response, never invented.
 import { authHeaders } from "./auth";
-import type { ArenaReport, CareerClass, Envelope, Family, FromStudentResponse, ModelLabScenario, SimulateResponse, TaskId } from "./arena-types";
+import type { ArenaReport, CareerClass, Envelope, Family, ModelLabScenario, SimulateResponse, TaskId } from "./arena-types";
 import { fieldSpec, type ScenarioField } from "./commands";
 
-const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+// The browser uses this origin; Next routes to the configured API server.
+const API = "/backend";
 
 export type LabField = keyof ModelLabScenario;
 export type NumericField = Exclude<LabField, "major" | "entry_type" | "residency">;
@@ -57,9 +58,6 @@ async function call<T>(path: string, init: { method: "GET" | "POST"; body?: unkn
 }
 
 export const simulate = (scenario: ModelLabScenario, signal?: AbortSignal) => call<SimulateResponse>("/model-lab/simulate", { method: "POST", body: scenario, signal });
-/** The scenario is derived server-side from the audit; only the fields in `overrides` differ from it. */
-export const fromStudent = (studentId: string, overrides: Partial<ModelLabScenario>, signal?: AbortSignal) =>
-  call<FromStudentResponse>("/model-lab/from-student", { method: "POST", body: { student_id: studentId, overrides }, signal });
 export const fetchArena = (signal?: AbortSignal) => call<ArenaReport>("/model-lab/arena", { method: "GET", signal });
 
 // ---------------------------------------------------------------------------- identities

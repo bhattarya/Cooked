@@ -138,6 +138,7 @@ export function AnswerVisual({ a, j, ds }: { a: Answer; j: Journey; ds: Dataset 
 }
 
 export const TOOL_LABEL: Record<Answer["tool"], string> = {
+  audit_summary: "Your degree audit",
   what_if: "What-if agent",
   course_plan: "Course planner",
   stress_test: "Fire-drill agent",

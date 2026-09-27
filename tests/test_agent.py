@@ -55,10 +55,7 @@ def test_sample_audit_and_questions_end_to_end(db, engine_client):
 
 @pytest.mark.db
 def test_real_audit_without_gemini_is_an_honest_error(db, engine_client):
-    # engine_client blocks outbound calls; this file has no readable text layer either, so
-    # neither the deterministic parser nor the (unavailable) vision fallback can read it
+    # engine_client blocks outbound calls, so Gemini is unavailable here even if keys are set
     body = engine_client.post("/audit/parse", files={"file": ("x.pdf", io.BytesIO(b"%PDF real"), "application/pdf")})
     data = body.json()["data"]
-    assert data["id"] is None
-    assert data["error_code"] in {"unreadable", "no_courses_found", "reader_unavailable"}
-    assert data["can_enter_manually"]
+    assert data["id"] is None and "Gemini" in data["error"]

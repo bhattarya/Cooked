@@ -465,10 +465,3 @@ export interface SimulateResponse {
   tool_result_id: string;
   disclaimer: string;
 }
-
-/** POST /model-lab/from-student: the same answer as simulate, for a scenario derived from the student's own audit. */
-export interface FromStudentResponse extends SimulateResponse {
-  derived_from: { student_id: string; terms_used: number; source: string };
-  /** The student's own unmodified prediction; only present once the API ships it. */
-  baseline?: { risk: number; time_to_degree: { low: number; mid: number; high: number }; salary: { low: number; mid: number; high: number } };
-}

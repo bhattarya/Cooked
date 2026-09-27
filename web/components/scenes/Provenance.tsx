@@ -11,7 +11,7 @@ const TONE: Record<Tone, string> = {
 /** A small mono chip for the receipts under a headline: sample size, evidence id, source, caveat. */
 export function Chip({ children, tone = "dim", title }: { children: ReactNode; tone?: Tone; title?: string }) {
   return (
-    <span title={title} className={`num inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] ${TONE[tone]}`}>
+    <span title={title} className={`num inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] ${TONE[tone]}`}>
       {children}
     </span>
   );

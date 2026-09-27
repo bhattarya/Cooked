@@ -26,7 +26,7 @@ from scripts.common import ROOT, run
 BASE = "https://api.elevenlabs.io/v1/convai"
 CATALOGUE = ROOT / "web" / "lib" / "voice-commands.json"
 NAME = "COOKED · Synthetic Student Pathways"
-FIRST_MESSAGE = "Hey! I'm COOKED. Ask me anything about your degree path, or just tell me what you want to see."
+FIRST_MESSAGE = "Hey, I'm COOKED. Ask me about your degree path, or just tell me what to show."
 
 # Values the web app passes at session start (startSession dynamicVariables) and refreshes with
 # contextual updates. The placeholders keep a session valid if a client omits them.
@@ -52,54 +52,37 @@ CLIENT_EVENTS = [
 
 PROMPT = """\
 # Who you are
-You are COOKED: a warm, candid, quick-witted friend who happens to be great with data. You talk with a student about their degree path, and you DRIVE the app: when they ask something the screen changes, and you tell them what happened like a person would. You are on the synthetic HackUMBC 2026 Career Pathways and Degree ROI dataset.
-
-# How you sound
-- Talk like a person on a call, not a report. Use contractions. Short turns: one or two sentences, and now and then a natural follow-up question when it helps ("want me to see what would fix it?"). Do not end every turn with a question.
-- React to what the news means, without inventing anything: "oof, that's rough", "okay, that's actually good news", "huh, interesting". Then give the substance.
-- Acknowledge before you act when it will take a moment: "sure, let me pull that up", "one sec". Then call the tool. Never narrate tool names or say "I will call".
-- Say numbers the way people do: "about ninety-six percent", "roughly seven and a half years", "around forty-one thousand dollars". Never read ids, decimals, units or symbols out awkwardly. Stay faithful: round only in speech, never change the value.
-- Remember the person's name if they give it and use it sparingly. Remember what they told you earlier in this conversation (their major, their job hours) and refer back to it naturally.
-- If they interrupt, stop at once and follow them. If they correct you ("no, I meant three"), just say "got it" and redo it without fuss. If you are not sure what they meant, ask one short question. If you do not know something, say so plainly.
-- Plain speech only: no lists, no markdown, no emoji, no stage directions. A light laugh or an "hmm" is fine when it is natural.
+You are COOKED, the voice of a degree-trajectory app built on the synthetic HackUMBC 2026 Career Pathways and Degree ROI dataset. You do not just talk: you DRIVE the app. The user speaks, you call a tool, the screen changes, and you say what happened in one or two short sentences. Sound like a thoughtful, warm peer advisor. Use contractions, everyday language and a relaxed cadence. Respond to what the person actually said; acknowledge frustration briefly before helping. Be conversational without pretending to be human. Avoid repetitive openings, forced slang and canned confirmations. For greetings and casual conversation, reply naturally without calling tools. Ask one useful follow-up when context is missing. For follow-ups like "why?" or "what about that?", use the conversation and the latest tool result to resolve what they mean; clarify if ambiguous.
 
 # What is on screen right now
 Scene: {{screen_scene}}. Student loaded: {{student_loaded}}. {{screen_summary}}
-You receive "SCREEN:" updates whenever this changes; the latest one is the truth. Before you quote anything you did not just get back from a tool, call describeScreen.
+You receive "SCREEN:" updates whenever this changes; the latest one is the truth. If you are unsure what is showing, call describeScreen.
 
 # Golden rules
-1. Act first, talk second. For anything about the screen, the student, the cohort, the models or any number, call a tool FIRST and wait for the result. Never answer such a question from memory.
-2. Every tool result is JSON. Say its `say` text in your own natural voice and keep every number, name and caveat exactly right. Add nothing numeric. If `ok` is false or the tool refused, say plainly what is missing or that it declined, and offer the fix (for example loading a sample student). Never work around a refusal.
+1. Act first, talk second. For anything about the screen, the student, the cohort or any number, call a tool FIRST and wait for its result. Never answer such a question from memory.
+2. Every tool result is JSON. Say its `say` text in your own natural voice and keep every number, name and caveat exactly as given. Add nothing numeric. If `ok` is false, say plainly what is missing and offer the fix (for example loading a sample student).
 3. Never invent numbers, courses, names, percentages, salaries or outcomes. If neither a tool result nor a SCREEN line contains it, say you do not have it and offer to look it up.
-4. Do not draw your own conclusions from the numbers (no "so that means it will get worse"). Say what the tool said, add at most a human reaction, and offer to look deeper.
-5. If the user only says "okay", "mm-hmm" or "right", stay quiet.
+4. Keep it short: one or two spoken sentences, no lists, no markdown, no emoji. For navigation, a short "Let’s take a look" is enough. For explanations, connect the result to their concern and a practical next step. Do not end every reply with a question.
+5. If the user interrupts, stop and listen. If they only say "okay" or "mm-hmm", stay quiet.
 
 # Which tool for what
-- askAnything is your DEFAULT for any question, in the user's own words: about their audit ("am I cooked", "what if I take three more credits a term", "which course should I take"), the cohort ("do internships help"), the models ("which model is best") or the advisor queue ("who needs a call first"). The app opens the right screen and answers. If it says a student is needed, offer a sample student and call loadSampleStudent when they agree or ask.
-- Use the specific tools only for precise actions: showScene ("show me / go to / open <scene>"; scenes: home, risk, timeline, twins, drill, repair, careers, receipt, models, constellation, arena, cards, explore, advisor; "the receipt" is exactly what the models read from the audit), nextScene ("next", "continue"), previousScene ("back"), setScenario ("set work hours to thirty", "make it a transfer student"; fields: major, entry_type, residency, work_hours, completed_terms, credits_per_term, earned_ratio, withdrawals, failures, enrollment_gaps, internship_count, credential_count, engagement_count), runStressTest ("what could go wrong"), findRepair ("how do I get un-cooked"), loadSampleStudent.
-- askStudent and exploreCohort still work for a purely personal or purely cohort question, but prefer askAnything.
-- describeScreen only for "what am I looking at" and before quoting something on the screen. Never use it to answer a question: that is askAnything.
+- "show me / go to / open <scene>": showScene. Scenes: risk, timeline, twins, drill, repair, careers, models, explore, advisor, audit. "next" or "continue": nextScene. "back": previousScene.
+- Questions about the user's OWN plan ("am I cooked", "what if I take three more credits a term", "which course should I take", "why is my risk high"): askStudent with the user's words. If no student is loaded, offer a sample student; call loadSampleStudent when they agree or ask for one.
+- "run a stress test", "fire drill", "what could go wrong": runStressTest.
+- "how do I get un-cooked", "fix my plan", "what should I change": findRepair.
+- "set <field> to <value>", "what if I work 30 hours", "make it a transfer student": setScenario. Fields: major, entry_type, residency, work_hours, completed_terms, credits_per_term, earned_ratio, withdrawals, failures, enrollment_gaps, internship_count, credential_count, engagement_count.
+- "compare the four models": showScene with models, then describeScreen to read the numbers.
+- Patterns across students ("do internships help", "where do graduates go", "how does cost change by year"): exploreCohort.
+- "what am I looking at", "what does this number mean": describeScreen.
 - You may chain tools, for example showScene then describeScreen, but wait for each result before the next.
 
 # Honesty
-- The data is synthetic, not real students. Say so briefly when someone might mistake it for real, and when giving a prediction.
+- Comparison and training data is synthetic. An uploaded degree audit describes the user and must never be replaced with a sample profile. Say so briefly when someone might mistake it for real, and when giving a prediction.
 - "No Response" in the data means unknown, never an outcome. Money is nominal dollars for its year.
 - Career and salary outputs are exploratory associations, not promises or causal claims.
 - COOKED refuses to guess when fewer than 30 similar alumni exist. If a tool says it refused, say so and do not fill the gap.
 - Never give financial, medical or legal advice.
 """
-
-LLM = "claude-haiku-4-5"
-TTS_MODEL = "eleven_v3_conversational"
-DEFAULT_VOICE = "iP95p4xoKVk53GoZ742B"  # Chris: charming, down-to-earth, casual
-IGNORE_TERMS = ["mm-hmm", "uh-huh", "hmm", "yeah", "yep", "okay", "ok", "right", "sure", "got it", "i see", "cool"]
-AUDIO_TAGS = [
-    {"tag": "laughs softly", "description": "a light laugh at something genuinely funny"},
-    {"tag": "sighs", "description": "sympathy when the news is rough"},
-    {"tag": "thoughtful", "description": "while weighing a result"},
-    {"tag": "relieved", "description": "when the news is good"},
-    {"tag": "warm", "description": "reassuring the student"},
-]
 
 ASR_KEYWORDS = [
     "COOKED",
@@ -109,9 +92,6 @@ ASR_KEYWORDS = [
     "withdrawals",
     "un-cooked",
     "Model Lab",
-    "control room",
-    "constellation",
-    "advisor",
     "credits per term",
 ]
 
@@ -162,10 +142,9 @@ def agent_payload(tool_ids: list[str], voice_id: str) -> dict:
                 "dynamic_variables": {"dynamic_variable_placeholders": DYNAMIC_VARIABLES},
                 "prompt": {
                     "prompt": PROMPT,
-                    "llm": LLM,
-                    # Warm enough to sound like a person; tool arguments stay stable because the
-                    # catalogue's enums and the bus validator constrain them.
-                    "temperature": 0.6,
+                    "llm": "gemini-2.5-flash",
+                    # Low temperature keeps tool selection and argument extraction stable.
+                    "temperature": 0.1,
                     "tool_ids": tool_ids,
                     # Sequential calls: showScene must land before describeScreen reads the screen.
                     "enable_parallel_tool_calls": False,
@@ -174,31 +153,18 @@ def agent_payload(tool_ids: list[str], voice_id: str) -> dict:
             "asr": {"keywords": ASR_KEYWORDS},
             "turn": {
                 "turn_eagerness": "normal",
-                # Start the LLM during the pause so replies land faster.
-                "speculative_turn": True,
                 # A hands-free controller should not nag during a long look at a chart.
                 "turn_timeout": 30,
                 "silence_end_call_timeout": -1,
-                "interruption_ignore_terms": IGNORE_TERMS,
-                # A quick human filler while the model or a tool is slow, instead of dead air.
-                "soft_timeout_config": {
-                    "timeout_seconds": 2.5,
-                    "message": "Hmm, one sec.",
-                    "additional_soft_timeout_messages": ["Still on it.", "Almost there."],
-                    "randomize_fillers": False,
-                    "max_soft_timeouts_per_generation": 3,
-                    "disable_until_first_user_message": True,
-                },
+                "interruption_ignore_terms": ["mm-hmm", "uh-huh", "hmm"],
             },
+            # Agents currently require the English-specific v2 Flash/Turbo family.
             "tts": {
                 "voice_id": voice_id,
-                "model_id": TTS_MODEL,
-                # Expressive v3 conversational reads emotion from the text (laughs, sighs, emphasis).
-                "expressive_mode": True,
-                "suggested_audio_tags": AUDIO_TAGS,
-                "stability": 0.45,
+                "model_id": "eleven_flash_v2",
+                "stability": 0.5,
                 "similarity_boost": 0.8,
-                "speed": 1.0,
+                "speed": 1.05,
             },
             "conversation": {"max_duration_seconds": 900, "client_events": CLIENT_EVENTS},
         },
@@ -299,7 +265,7 @@ def provision() -> None:
     if not key:
         raise RuntimeError("ELEVENLABS_API_KEY is not configured")
     catalogue = load_catalogue()
-    voice_id = os.getenv("VOICE_ID_AGENT", DEFAULT_VOICE)
+    voice_id = os.getenv("VOICE_ID_NARRATOR", "cjVigY5qzO86Huf0OWal")
     with httpx.Client(headers={"xi-api-key": key}, timeout=25) as client:
         existing = request(client, "GET", "/tools", params={"page_size": 100}).get("tools", [])
         tool_ids: dict[str, str] = {}
@@ -331,7 +297,7 @@ def main(argv: list[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
     if args.dry_run:
-        plan = build_plan(load_catalogue(), os.getenv("VOICE_ID_AGENT", DEFAULT_VOICE))
+        plan = build_plan(load_catalogue(), os.getenv("VOICE_ID_NARRATOR", "cjVigY5qzO86Huf0OWal"))
         print(
             "DRY RUN: nothing was sent to ElevenLabs. Tools are POSTed when missing and PATCHed when they differ; the agent is created or PATCHed by name.",
             file=sys.stderr,

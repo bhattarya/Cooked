@@ -8,8 +8,6 @@ import { AnswerScene } from "./scenes/AnswerScene";
 import { CareersScene } from "./scenes/CareersScene";
 import { DrillScene } from "./scenes/DrillScene";
 import type { CareersState, DeckScene, Journey, TwinFacts } from "./scenes/model";
-import { ReceiptScene } from "./scenes/ReceiptScene";
-import type { ReceiptState } from "./scenes/useJourney";
 import { RepairScene } from "./scenes/RepairScene";
 import { RiskScene } from "./scenes/RiskScene";
 import { TimelineScene } from "./scenes/TimelineScene";
@@ -24,11 +22,10 @@ export interface DeckActions {
   canHear: boolean;
   go: (scene: DeckScene) => void;
   selectAnswer: (i: number) => void;
-  fixTerms: () => void;
 }
 
 /** The scene deck: exactly one hero visualisation on screen, each written from the loaded student's real data. */
-export function Dashboard({ deck, j, tw, ds, live, careers, receipt, answers, answerIndex, overrides, actions }: { deck: SceneDeckState; j: Journey; tw: TwinFacts | null; ds: Dataset | null; live: SponsorLive; careers: CareersState; receipt: ReceiptState; answers: Answer[]; answerIndex: number; overrides: { drill?: Answer; repair?: Answer }; actions: DeckActions }) {
+export function Dashboard({ deck, j, tw, ds, live, careers, answers, answerIndex, overrides, actions }: { deck: SceneDeckState; j: Journey; tw: TwinFacts | null; ds: Dataset | null; live: SponsorLive; careers: CareersState; answers: Answer[]; answerIndex: number; overrides: { drill?: Answer; repair?: Answer }; actions: DeckActions }) {
   const next = () => void deck.next();
 
   const scene = (id: DeckScene) => {
@@ -45,8 +42,6 @@ export function Dashboard({ deck, j, tw, ds, live, careers, receipt, answers, an
         return j.repair ? <RepairScene j={j} r={j.repair} answer={overrides.repair} live={live} onNext={next} onAskAbout={actions.askAbout} /> : null;
       case "careers":
         return <CareersScene state={careers} live={live} onNext={() => actions.go("answer")} />;
-      case "receipt":
-        return <ReceiptScene j={j} receipt={receipt} onFix={actions.fixTerms} onNext={next} />;
       case "answer":
         return <AnswerScene answers={answers} index={answerIndex} onSelect={actions.selectAnswer} j={j} ds={ds} live={live} onAsk={actions.ask} onGo={actions.go} onAskAbout={actions.askAbout} />;
     }
@@ -55,7 +50,8 @@ export function Dashboard({ deck, j, tw, ds, live, careers, receipt, answers, an
   return (
     <SceneDeck
       deck={deck}
-      render={(id) => <div className="h-full">{scene(id as DeckScene)}</div>}
+      // the deck reserves room for its left rail with padding that its absolutely-positioned scenes ignore, so each scene keeps clear of the rail itself
+      render={(id) => <div className="h-full w-full">{scene(id as DeckScene)}</div>}
     />
   );
 }

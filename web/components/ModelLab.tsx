@@ -1,5 +1,8 @@
 "use client";
 
+import { useAdvisorSession } from "./agent/AdvisorSession";
+import { careersInput } from "./agent/scenes/model";
+import { routeToScene } from "./agent/explore/sceneRoutes";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -30,7 +33,9 @@ const FIRST_METRIC = Object.fromEntries((Object.keys(METRICS) as TaskId[]).map((
 
 /** The Model Arena: shape a scenario, watch four models answer, then see how far to trust them. */
 export function ModelLab({ user }: { user: SessionUser }) {
-  const sim = useLabSim();
+  const { journey } = useAdvisorSession();
+  const auditInput = journey ? careersInput(journey.st, journey.sample) : null;
+  const sim = useLabSim(auditInput?.scenario);
   const { arena, error: arenaError, retry: retryArena } = useArena();
   const deck = useSceneDeck(SCENES);
   const router = useRouter();
@@ -69,8 +74,7 @@ export function ModelLab({ user }: { user: SessionUser }) {
         router.push("/app/explore");
         return "Opening the cohort explorer.";
       }
-      router.push("/app");
-      return "Opening the audit workspace. That scene needs a student loaded first, so ask me to load a sample student once you are there.";
+      return routeToScene(to, router.push);
     },
     nextScene: () => move(1),
     previousScene: () => move(-1),
@@ -94,7 +98,9 @@ export function ModelLab({ user }: { user: SessionUser }) {
   });
 
   // publish only settled answers so the agent is not re-briefed on every step of a drag
-  useVoiceScreen(sim.result && !sim.pending ? screenContext(scene, view) : null);
+  useVoiceScreen(sim.result && !sim.pending
+    ? { ...screenContext(scene, view), student: Boolean(journey) }
+    : { scene: "models", title: "What-if", summary: "The model workspace is calculating the current scenario.", student: Boolean(journey) });
 
   const tabs = (
     <nav aria-label="Lab scenes" className="relative hidden items-center gap-0.5 lg:flex">
@@ -112,6 +118,7 @@ export function ModelLab({ user }: { user: SessionUser }) {
 
   return (
     <AppChrome user={user} active="lab" heat={sim.result?.risk ?? 0} right={tabs}>
+      {auditInput && <p className="px-6 py-2 text-xs text-muted">Based on your audit · scenario changes are exploratory. Assumed: {auditInput.assumed.join(", ") || "none"}.{auditInput.clamped.length ? ` Limited to training range: ${auditInput.clamped.join(", ")}.` : ""}</p>}
       <SceneDeck
         deck={deck}
         className={DECK_CLASS}

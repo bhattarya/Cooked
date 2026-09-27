@@ -6,6 +6,14 @@ import { fileURLToPath } from "node:url";
 const root = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: process.env.COOKED_ENV_FILE || path.join(root, "../.env") });
 
-const nextConfig = { poweredByHeader: false };
+const backend = (process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+const nextConfig = {
+  poweredByHeader: false,
+  // PDF reading can retry a slow provider; the default proxy deadline is only 30s.
+  experimental: { proxyTimeout: 180_000 },
+  async rewrites() {
+    return [{ source: "/backend/:path*", destination: `${backend}/:path*` }];
+  },
+};
 
 export default nextConfig;

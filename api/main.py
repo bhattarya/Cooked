@@ -11,7 +11,7 @@ from starlette.exceptions import HTTPException
 from api import auth
 from api.engine import NotFound, NotReady, model_dir
 from api.health import database_kind, dependency_status
-from api.providers import backboard, elevenlabs, gemini, net
+from api.providers import backboard, claude, elevenlabs, gemini, net
 from api.routes.product import router
 from api.schemas import ErrorResponse, HealthResponse
 from ml.model_interface import ArtifactError, verify
@@ -116,7 +116,7 @@ async def http_error(request, exc):
         status_code=exc.status_code,
         content={
             "error": "http_error",
-            "message": "The requested resource is unavailable.",
+            "message": exc.detail if request.url.path.endswith("/audit/parse") and isinstance(exc.detail, str) else "The requested resource is unavailable.",
             "needs": [],
         },
     )
@@ -142,11 +142,13 @@ def healthz(response: Response):
         status="ok" if ready else "degraded",
         mode="models" if version else "scaffold",
         model_version=version,
+        audit_reader_model=((claude.audit_model_name() if os.getenv("AUDIT_PROVIDER", "").lower() == "claude" or (net.key("ANTHROPIC_API_KEY") and not net.key("GEMINI_API_KEY")) else gemini.audit_model_name()) or None),
         demo_mode=not net.enabled(),
         database_kind=database_kind(),
         voice_usage=dict(elevenlabs.usage),
         providers={
             "gemini": gemini.configured(),
+            "claude": bool(net.key("ANTHROPIC_API_KEY")),
             "elevenlabs": elevenlabs.configured("narrator"),
             "backboard": backboard.configured(),
             "firebase_auth": auth.enabled(),

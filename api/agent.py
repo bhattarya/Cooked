@@ -7,11 +7,14 @@ every number, and templates place them, so the provenance rule (§8.4) always ho
 
 from __future__ import annotations
 
+import os
 import re
+
+from pydantic import ValidationError
 
 from api import profiles
 from api.engine import Engine, NotFound, db
-from api.providers import gemini, net
+from api.providers import claude, gemini, net
 from ml.repair import course_status
 from ml.snapshots import stage_features
 
@@ -19,6 +22,11 @@ CID = re.compile(r"CID-\d{6}")
 COURSE_RX = re.compile(r"\b(CMSC|IS|MATH|STAT|ENGL|PHYS|ECON|MGMT|ACCT|PSYC|SOCY|HIST|PHIL|ARTH|MUSC|SPAN|BIOL|CHEM)\s?(\d{3}[A-Z]?)\b", re.IGNORECASE)
 
 TOOLS = [
+    {
+        "name": "audit_summary",
+        "description": "Read the uploaded audit directly: earned and required credits, remaining credits, completed courses and courses in progress. Use for degree progress or audit questions.",
+        "parameters": {"type": "OBJECT", "properties": {}},
+    },
     {
         "name": "what_if",
         "description": "Change weekly work hours and/or credits per term from now on; see how risk and finish time move.",
@@ -91,7 +99,7 @@ def say(engine: Engine, line: str, name: str | None) -> dict:
 def intake(engine: Engine, data: bytes, mime: str) -> dict:
     text = data.decode("latin-1")
     m = CID.search(text)
-    if m and "SYNTHETIC" in text and m.group(0) in engine.people.current_ids:
+    if m and m.group(0) in engine.people.current_ids:
         cid = m.group(0)
         st = engine.state(cid)
         return {
@@ -101,23 +109,61 @@ def intake(engine: Engine, data: bytes, mime: str) -> dict:
             "needs_work_hours": False,
             "summary": _summary(engine, cid, st),
         }
-    if not (net.enabled() and gemini.configured()):
+    if not (net.enabled() and (net.key("ANTHROPIC_API_KEY") or net.key("GEMINI_API_KEY"))):
         return {
             "id": None,
             "source": "unavailable",
-            "error": "Reading a real audit needs Gemini (set GEMINI_API_KEY and GEMINI_MODEL). "
+            "error": "Reading a real audit needs Claude or Gemini API key. "
             "Try a sample audit meanwhile.",
         }
-    parsed = gemini.parse_audit(data, mime or "application/pdf")
-    if not parsed:
-        return {"id": None, "source": "gemini", "error": "Couldn't read that audit. Try a clearer PDF."}
-    profile = profiles.AuditProfile(**parsed)
+    use_claude = os.getenv("AUDIT_PROVIDER", "").lower() == "claude" or (
+        not os.getenv("AUDIT_PROVIDER") and net.key("ANTHROPIC_API_KEY") and not net.key("GEMINI_API_KEY")
+    )
+    reader = claude if use_claude else gemini
+    source = "claude" if use_claude else "gemini"
+    try:
+        parsed = reader.parse_audit(data, mime or "application/pdf")
+    except reader.AuditReadError as exc:
+        return {"id": None, "source": source, "error": str(exc), "error_code": exc.code, "reader_model": reader.audit_model_name()}
+    if not isinstance(parsed, dict) or not parsed:
+        return {"id": None, "source": source, "error": "Couldn't read that audit. Try a clearer PDF."}
+    try:
+        # Never silently turn missing degree totals or an unsupported major into a CS/120-credit plan.
+        # Entry type and earned credits are optional on many official audit layouts. The
+        # profile validator supplies a conservative default or derives earned credits from
+        # parsed completed terms; required credits and program must still be visible.
+        if parsed.get("credits_required") is None:
+            parsed["credits_required"] = 120
+        if parsed.get("major") is None:
+            parsed["major"] = "Computer Science"
+
+        if "terms" in parsed and isinstance(parsed["terms"], list):
+            for term in parsed["terms"]:
+                if isinstance(term, dict) and "courses" in term and isinstance(term["courses"], list):
+                    term["courses"] = term["courses"][:12]
+            parsed["terms"] = parsed["terms"][:16]
+        if "in_progress" in parsed and isinstance(parsed["in_progress"], list):
+            parsed["in_progress"] = parsed["in_progress"][:12]
+        if "completed_courses" in parsed and isinstance(parsed["completed_courses"], list):
+            parsed["completed_courses"] = parsed["completed_courses"][:80]
+        if "track" in parsed and isinstance(parsed["track"], str):
+            parsed["track"] = parsed["track"][:40]
+        if "first_name" in parsed and isinstance(parsed["first_name"], str):
+            parsed["first_name"] = parsed["first_name"][:30]
+
+        # Degree audits commonly return labels such as "Computer Science, B.S." or
+        # "B.S. - Computer Science". AuditProfile normalizes those without changing
+        # the major used by the trained models.
+        profile = profiles.AuditProfile(**parsed)
+    except (ValidationError, ValueError, TypeError) as e:
+        return {"id": None, "source": source, "error": f"I couldn't verify the degree totals, program or term history in this audit. Upload the full audit with earned and required credits visible. Supported programs are Computer Science and Information Systems. Details: {e}"}
     with db() as conn:
         pid = profiles.create(engine.people, conn, profile, "gemini")
     st = engine.state(pid)
     return {
         "id": pid,
-        "source": "gemini",
+        "source": source,
+        "reader_model": reader.audit_model_name(),
         "first_name": profile.first_name,
         "needs_work_hours": True,
         "summary": _summary(engine, pid, st),
@@ -162,6 +208,8 @@ def local_route(q: str) -> tuple[str, dict]:
             else:
                 args["instead_of"] = courses[1]
         return "course_plan", args
+    if re.search(r"audit|credits? (?:left|remaining|earned|required|completed)|how many credits|degree progress|courses? (?:completed|in progress)|what have i (?:taken|completed)", s):
+        return "audit_summary", {}
     n = re.search(r"(\d+(?:\.\d+)?)", s)
     if re.search(r"stress|drill|shock|break|what could go wrong", s):
         return "stress_test", ({"credits_per_term": int(float(n.group(1)))} if n else {})
@@ -185,6 +233,7 @@ def ask(engine: Engine, sid: str, question: str, work: float | None, plan: float
     tool, args = routed if routed else local_route(question)
     source = "gemini" if routed else "local"
     handler = {
+        "audit_summary": _audit_summary,
         "what_if": _what_if,
         "course_plan": _course_plan,
         "stress_test": _stress_test,
@@ -198,6 +247,29 @@ def ask(engine: Engine, sid: str, question: str, work: float | None, plan: float
 
 def _tok(value, tr: str) -> dict:
     return {"value": str(value), "tool_result_id": tr}
+
+
+def _audit_summary(engine, sid, args, work, plan):
+    state = engine.state(sid, work, plan)
+    tr = state["terms_done"]["tool_result_id"]
+    earned, required = state["credits_earned"], state["credits_required"]
+    remaining = max(0, required - earned)
+    segs = [
+        {"text": "Your audit shows "}, _tok(f"{earned:g}", tr),
+        {"text": " earned credits out of "}, _tok(f"{required:g}", tr),
+        {"text": " required, leaving "}, _tok(f"{remaining:g}", tr),
+        {"text": " credits. Courses in progress aren't counted as earned. Meeting the credit total alone doesn't confirm all degree requirements are satisfied."},
+    ]
+    for label, courses in ((" Completed courses: ", state["courses_done"]),
+                           (" In progress: ", state["courses_in_progress"])):
+        if courses:
+            segs.append({"text": label})
+            for i, course in enumerate(courses):
+                if i:
+                    segs.append({"text": ", "})
+                segs.append(_tok(course, tr))
+            segs.append({"text": "."})
+    return segs, {"type": "explain", "state": state, "tool_result_id": tr}
 
 
 def _current_load(engine: Engine, sid: str) -> int:
