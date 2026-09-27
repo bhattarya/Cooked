@@ -1,7 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { finishRedirect, signInWithGoogle } from "@/lib/auth";
+import type { SignInMethod } from "@/lib/session";
 import { Flame } from "./brand";
 import { CrowdCanvas } from "./ui/skiper39";
 
@@ -28,8 +30,10 @@ function GoogleG() {
   );
 }
 
-export function Landing({ googleReady, signedIn, error }: { googleReady: boolean; signedIn: string | null; error?: string }) {
+export function Landing({ method, signedIn, error }: { method: SignInMethod; signedIn: { firstName: string; guest: boolean } | null; error?: string }) {
   const [leaving, setLeaving] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(error ? (ERRORS[error] ?? null) : null);
   const go = (href: string, post = false) => {
     setLeaving(true);
     setTimeout(() => {
@@ -42,6 +46,34 @@ export function Landing({ googleReady, signedIn, error }: { googleReady: boolean
       } else window.location.href = href;
     }, 450);
   };
+
+  // Coming back from a redirect sign-in (used when the popup was blocked).
+  useEffect(() => {
+    if (method !== "firebase") return;
+    finishRedirect().then((r) => {
+      if (r?.ok) go("/app");
+      else if (r) setProblem(r.error);
+    });
+  }, [method]);
+
+  const google = async () => {
+    if (method === "google") return go("/auth/google");
+    setBusy(true);
+    setProblem(null);
+    const r = await signInWithGoogle();
+    if (r.ok) return go("/app");
+    setBusy(false);
+    setProblem(r.error);
+  };
+
+  const googleButton = (
+    <button onClick={google} disabled={busy} className="flex items-center gap-3 rounded-full bg-[#07080b] px-7 py-3.5 text-[15px] font-medium text-[#f4f1ea] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] transition hover:scale-[1.03] disabled:cursor-wait disabled:opacity-80">
+      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white">
+        {busy ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-black/15 border-t-black/70" aria-hidden /> : <GoogleG />}
+      </span>
+      {busy ? "Waiting for Google…" : "Continue with Google"}
+    </button>
+  );
 
   return (
     <main className="relative h-dvh min-h-[640px] w-full overflow-hidden bg-[#f4f1ea] text-[#07080b]">
@@ -63,17 +95,19 @@ export function Landing({ googleReady, signedIn, error }: { googleReady: boolean
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="pointer-events-auto mt-8 flex flex-col items-center gap-3">
           {signedIn ? (
-            <button onClick={() => go("/app")} className="rounded-full bg-[#07080b] px-7 py-3.5 text-[15px] font-medium text-[#f4f1ea] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] transition hover:scale-[1.03]">
-              Continue as {signedIn} →
-            </button>
-          ) : googleReady ? (
             <>
-              <button onClick={() => go("/auth/google")} className="flex items-center gap-3 rounded-full bg-[#07080b] px-7 py-3.5 text-[15px] font-medium text-[#f4f1ea] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] transition hover:scale-[1.03]">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white">
-                  <GoogleG />
-                </span>
-                Continue with Google
+              <button onClick={() => go("/app")} className="rounded-full bg-[#07080b] px-7 py-3.5 text-[15px] font-medium text-[#f4f1ea] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] transition hover:scale-[1.03]">
+                {signedIn.guest ? "Continue as guest →" : `Continue as ${signedIn.firstName} →`}
               </button>
+              {signedIn.guest && method && (
+                <button onClick={google} disabled={busy} className="text-sm text-black/45 underline-offset-4 hover:text-black/70 hover:underline disabled:cursor-wait">
+                  {busy ? "Waiting for Google…" : "or sign in with Google"}
+                </button>
+              )}
+            </>
+          ) : method ? (
+            <>
+              {googleButton}
               <button onClick={() => go("/auth/guest", true)} className="text-sm text-black/45 underline-offset-4 hover:text-black/70 hover:underline">
                 or continue as a guest
               </button>
@@ -84,11 +118,11 @@ export function Landing({ googleReady, signedIn, error }: { googleReady: boolean
                 Continue as guest →
               </button>
               <span className="flex items-center gap-2 text-xs text-black/40">
-                <GoogleG /> Google sign-in turns on once AUTH_GOOGLE_ID is set
+                <GoogleG /> Google sign-in turns on once Firebase (or AUTH_GOOGLE_ID) is set
               </span>
             </>
           )}
-          {error && ERRORS[error] && <p className="max-w-xs text-sm text-[#c2410c]">{ERRORS[error]}</p>}
+          {problem && <p role="alert" className="max-w-xs text-sm text-[#c2410c]">{problem}</p>}
         </motion.div>
       </div>
 

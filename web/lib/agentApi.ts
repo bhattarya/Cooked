@@ -1,6 +1,7 @@
 "use client";
 
 // Typed calls for the voice agent. Every number in these responses carries a tool_result_id.
+import { authHeaders } from "./auth";
 import { api, type Call, type ServerDrill, type ServerNarration, type ServerRepair, type ServerState } from "./live";
 
 const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
@@ -60,7 +61,7 @@ export async function uploadAudit(file: Blob, name = "audit.pdf"): Promise<Call<
   const t0 = performance.now();
   const fd = new FormData();
   fd.append("file", file, name);
-  const r = await fetch(`${API}/audit/parse`, { method: "POST", body: fd });
+  const r = await fetch(`${API}/audit/parse`, { method: "POST", body: fd, headers: await authHeaders() });
   const j = await r.json();
   if (!r.ok) throw new Error(j?.message ?? `HTTP ${r.status}`);
   return { data: j.data, version: j.model_version, ms: performance.now() - t0 };

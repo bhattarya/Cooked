@@ -12,10 +12,11 @@ import { Counter, Loading, Nav, PATTERN_COLOR, PatternChip, StatusBadge, riskCol
 const PATTERNS: PatternName[] = ["part-time grind", "withdrawal spiral", "rough patch", "stop-out", "smooth"];
 
 // Advisor view: every current student with 2+ completed terms, ranked by risk.
-export function Queue() {
+export function Queue({ canSeeRows }: { canSeeRows: boolean }) {
   const ds = useDataset();
   const [rows, setRows] = useState<QueueRow[] | null>(null);
-  const [staff, setStaff] = useState(false);
+  const [staffWanted, setStaff] = useState(false);
+  const staff = staffWanted && canSeeRows;
   const [cls, setCls] = useState("All");
   const [pat, setPat] = useState<PatternName | "All">("All");
   const [show, setShow] = useState(40);
@@ -25,7 +26,7 @@ export function Queue() {
 
   useEffect(() => {
     if (!ds || health === null) return;
-    if (!live) {
+    if (!live || !canSeeRows) {
       const id = setTimeout(() => setRows(institutionQueue(ds)), 50);
       return () => clearTimeout(id);
     }
@@ -53,7 +54,7 @@ export function Queue() {
     return () => {
       on = false;
     };
-  }, [ds, health, live]);
+  }, [ds, health, live, canSeeRows]);
 
   const filtered = useMemo(
     () => (rows ?? []).filter((r) => (cls === "All" || r.student.cls === cls) && (pat === "All" || r.student.pattern === pat) && r.status !== "fine"),
@@ -84,9 +85,15 @@ export function Queue() {
               {rows.length.toLocaleString()} current students with 2+ completed terms, {live ? `scored by the trained model (${health?.version})` : "scored against matched alumni"}. It prompts advisors; it never acts on its own.
             </p>
           </div>
-          <button onClick={() => setStaff((s) => !s)} className={`rounded-full border px-4 py-2 text-sm transition ${staff ? "border-heat/60 bg-heat/10 text-text" : "border-line text-muted"}`}>
-            {staff ? "Staff view · per-student rows" : "Public view · counts only"}
-          </button>
+          {canSeeRows ? (
+            <button onClick={() => setStaff((s) => !s)} className={`rounded-full border px-4 py-2 text-sm transition ${staff ? "border-heat/60 bg-heat/10 text-text" : "border-line text-muted"}`}>
+              {staff ? "Staff view · per-student rows" : "Public view · counts only"}
+            </button>
+          ) : (
+            <Link href="/" className="rounded-full border border-line px-4 py-2 text-sm text-muted transition hover:text-text">
+              Public view · sign in with Google for rows
+            </Link>
+          )}
         </div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.6fr)]">
@@ -176,7 +183,11 @@ export function Queue() {
             </motion.section>
           )}
         </AnimatePresence>
-        {!staff && <p className="mt-6 text-center text-xs text-dim">Per-student rows sit behind the staff toggle. The public view shows counts only.</p>}
+        {!staff && (
+          <p className="mt-6 text-center text-xs text-dim">
+            {canSeeRows ? "Per-student rows sit behind the staff toggle. The public view shows counts only." : "Per-student rows are for advisors signed in with Google. Guests see counts only."}
+          </p>
+        )}
       </main>
     </div>
   );
