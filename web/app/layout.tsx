@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Big_Shoulders, Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
 // next/font downloads these at build time and serves them from our own origin,
 // so the running app needs no network for fonts.
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
-const grotesk = Space_Grotesk({ variable: "--font-grotesk", subsets: ["latin"], display: "swap" });
-const mono = JetBrains_Mono({ variable: "--font-jetbrains", subsets: ["latin"], display: "swap" });
+//   display  Big Shoulders  — condensed, athletic; echoes the lettering on the COOKED emblem
+//   sans     Geist          — clean UI/body text
+//   mono     Geist Mono     — every number, tabular
+//   serif    Instrument Serif italic — the occasional editorial line
+const display = Big_Shoulders({ variable: "--f-display", subsets: ["latin"], display: "swap" });
+const sans = Geist({ variable: "--f-sans", subsets: ["latin"], display: "swap" });
+const mono = Geist_Mono({ variable: "--f-mono", subsets: ["latin"], display: "swap" });
+const serif = Instrument_Serif({ variable: "--f-serif", subsets: ["latin"], weight: "400", style: ["normal", "italic"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "COOKED — know before it's too late",
@@ -15,7 +20,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${grotesk.variable} ${mono.variable} h-full antialiased`}>
+    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable} ${serif.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

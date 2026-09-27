@@ -1,20 +1,51 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #07080b;
-  --panel: #0c0e13;
-  --panel-2: #11141b;
-  --line: rgba(255, 255, 255, 0.07);
-  --line-2: rgba(255, 255, 255, 0.13);
-  --text: #eef0f5;
-  --muted: #8b90a0;
-  --dim: #555a68;
-  --heat: #ff5a1f;
-  --hot: #ff2e4d;
-  --amber: #ffb020;
-  --cool: #2dd4bf;
-  --ice: #7cc4ff;
-  --violet: #a78bfa;
+  /* surfaces: warm black, sampled from the COOKED emblem's background */
+  --bg: #0a0805;
+  --bg-2: #0f0c07;
+  --panel: #13100a;
+  --panel-2: #1a150d;
+  --line: rgba(255, 220, 140, 0.08);
+  --line-2: rgba(255, 220, 140, 0.16);
+  --text: #f8f1e1;
+  --muted: #a89f8a;
+  --dim: #6f6858;
+
+  /* brand: the dog's gold, the flame's orange, the chef hat's cream */
+  --gold: #f6b41a;
+  --gold-hi: #ffd15c;
+  --gold-lo: #b97a06;
+  --ember: #ff7a1a;
+  --cream: #fff8e7;
+
+  /* semantic. `heat` is the primary accent (gold); `hot` is danger/risk */
+  --heat: var(--gold);
+  --hot: #ff4a3d;
+  --amber: var(--ember);
+  --cool: #3ddbb4;
+  --ice: #7fb8ff;
+  --violet: #b7a1ff;
+  --rose: #ff6b9a;
+
+  /* data-viz: eight categorical hues that stay distinct on warm black, in assignment order */
+  --viz-1: #f6b41a;
+  --viz-2: #3ddbb4;
+  --viz-3: #b7a1ff;
+  --viz-4: #7fb8ff;
+  --viz-5: #ff7a1a;
+  --viz-6: #ff6b9a;
+  --viz-7: #b5e05a;
+  --viz-8: #e8d9b0;
+  /* sequential (low -> high) and diverging (good <- 0 -> bad) ramps */
+  --seq-1: #2a1f0a;
+  --seq-2: #6b4a0a;
+  --seq-3: #b97a06;
+  --seq-4: #f6b41a;
+  --seq-5: #ffe08a;
+  --div-good: #3ddbb4;
+  --div-mid: #f6b41a;
+  --div-bad: #ff4a3d;
 }
 
 @theme inline {
@@ -26,15 +57,23 @@
   --color-text: var(--text);
   --color-muted: var(--muted);
   --color-dim: var(--dim);
+  --color-gold: var(--gold);
+  --color-gold-hi: var(--gold-hi);
+  --color-gold-lo: var(--gold-lo);
+  --color-ember: var(--ember);
+  --color-cream: var(--cream);
+  --color-rose: var(--rose);
+  --color-bg-2: var(--bg-2);
   --color-heat: var(--heat);
   --color-hot: var(--hot);
   --color-amber: var(--amber);
   --color-cool: var(--cool);
   --color-ice: var(--ice);
   --color-violet: var(--violet);
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-grotesk);
-  --font-mono: var(--font-jetbrains);
+  --font-sans: var(--f-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--f-display), "Arial Narrow", sans-serif;
+  --font-mono: var(--f-mono), ui-monospace, monospace;
+  --font-serif: var(--f-serif), Georgia, serif;
 }
 
 html {
@@ -44,27 +83,53 @@ html {
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--f-sans), system-ui, sans-serif;
 }
 
 ::selection {
-  background: rgba(255, 90, 31, 0.35);
+  background: rgba(246, 180, 26, 0.35);
 }
 
 .num {
-  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-family: var(--f-mono), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
 }
 
+/* headlines and hero numbers: Big Shoulders, tall and tight */
 .display {
-  font-family: var(--font-grotesk), var(--font-inter), sans-serif;
-  letter-spacing: -0.02em;
+  font-family: var(--f-display), "Arial Narrow", sans-serif;
+  letter-spacing: 0.005em;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+/* the occasional editorial line: Instrument Serif italic */
+.serif {
+  font-family: var(--f-serif), Georgia, serif;
+  font-style: italic;
+  letter-spacing: -0.01em;
+}
+
+/* molten gold text, top-lit like the emblem lettering */
+.text-gold-grad {
+  background: linear-gradient(180deg, var(--gold-hi) 0%, var(--gold) 48%, var(--gold-lo) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .panel {
-  background: var(--panel);
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
   border: 1px solid var(--line);
   border-radius: 16px;
+}
+
+/* frosted overlay surface for docks, HUDs and floating controls */
+.glass {
+  background: rgba(19, 16, 10, 0.62);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border: 1px solid var(--line-2);
 }
 
 .label {
@@ -81,8 +146,8 @@ body {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(60% 40% at 50% -10%, rgba(255, 90, 31, calc(0.05 + var(--heat-level, 0) * 0.22)), transparent 70%),
-    radial-gradient(40% 30% at 100% 0%, rgba(255, 46, 77, calc(var(--heat-level, 0) * 0.12)), transparent 70%);
+    radial-gradient(60% 40% at 50% -10%, rgba(246, 180, 26, calc(0.06 + var(--heat-level, 0) * 0.2)), transparent 70%),
+    radial-gradient(40% 30% at 100% 0%, rgba(255, 74, 61, calc(var(--heat-level, 0) * 0.14)), transparent 70%);
   transition: background 1.2s ease;
 }
 
@@ -138,7 +203,7 @@ input[type="range"].slider::-webkit-slider-thumb {
   background: var(--text);
   border: 3px solid var(--heat);
   cursor: grab;
-  box-shadow: 0 0 0 4px rgba(255, 90, 31, 0.15);
+  box-shadow: 0 0 0 4px rgba(246, 180, 26, 0.16);
 }
 input[type="range"].slider::-moz-range-thumb {
   width: 12px;
