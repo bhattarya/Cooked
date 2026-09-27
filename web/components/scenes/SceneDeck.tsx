@@ -80,7 +80,7 @@ export function SceneDeck({ deck, render, className = "" }: { deck: SceneDeckSta
         })}
       </nav>
 
-      <div className="relative min-h-0 flex-1 lg:pl-28" onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => (start.current = null)}>
+      <div className="relative min-h-0 flex-1 lg:ml-28" onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => (start.current = null)}>
         <AnimatePresence mode="wait" initial={false} custom={dir}>
           {id && (
             <motion.div
