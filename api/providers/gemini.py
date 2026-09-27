@@ -28,12 +28,27 @@ SYSTEM = (
 )
 
 
+DEFAULT_MODELS = "gemini-3.6-flash,gemini-3.5-flash,gemini-3-flash-preview,gemini-3.1-flash-lite"
+
+
 def configured() -> bool:
     return bool(net.key("GEMINI_API_KEY") and os.getenv("GEMINI_MODEL"))
 
 
 def model_name() -> str:
     return os.getenv("GEMINI_MODEL", "")
+
+
+def model_chain() -> list[str]:
+    """GEMINI_MODEL first, then GEMINI_MODELS (comma list), deduped, falling back to defaults."""
+    primary = model_name()
+    extra = [m.strip() for m in os.getenv("GEMINI_MODELS", DEFAULT_MODELS).split(",") if m.strip()]
+    seen, out = set(), []
+    for m in ([primary] if primary else []) + extra:
+        if m and m not in seen:
+            seen.add(m)
+            out.append(m)
+    return out
 
 
 def _post(body: dict, timeout: float = 60, attempts: int = 3) -> dict | None:
@@ -55,6 +70,42 @@ def _post(body: dict, timeout: float = 60, attempts: int = 3) -> dict | None:
         r.raise_for_status()
         return r.json()
     return None
+
+
+def _post_model(model: str, body: dict, timeout: float) -> tuple[dict | None, str | None]:
+    """One attempt against one model. Returns (json, None) or (None, reason) where reason is
+    'retry' (try the next model / caller may retry same request), 'timeout' or None (hard fail,
+    don't bother with the rest of the chain)."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{quote(model, safe='')}:generateContent"
+    try:
+        r = net.request("POST", url, headers={"x-goog-api-key": net.key("GEMINI_API_KEY")}, json=body, timeout=timeout)
+    except Exception as exc:  # noqa: BLE001 -- includes httpx timeouts
+        return None, "timeout" if "imeout" in type(exc).__name__ else "retry"
+    if r.status_code == 429 or r.status_code >= 500 or r.status_code == 404:
+        return None, "retry"
+    try:
+        r.raise_for_status()
+    except Exception:  # noqa: BLE001
+        return None, None
+    return r.json(), None
+
+
+def _post_chain(body: dict, per_attempt_timeout: float = 25, total_budget: float = 45) -> tuple[dict | None, str | None]:
+    """Try each model in `model_chain()` in order, advancing on 429/404/5xx/timeout, until the
+    total time budget runs out. Returns (json, None) or (None, 'timeout'|'busy'|'unreadable')."""
+    import time
+
+    deadline = time.monotonic() + total_budget
+    last_reason = "unreadable"
+    for model in model_chain():
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None, "timeout"
+        out, reason = _post_model(model, body, timeout=min(per_attempt_timeout, remaining))
+        if out is not None:
+            return out, None
+        last_reason = "timeout" if reason == "timeout" else "busy" if reason == "retry" else "unreadable"
+    return None, last_reason
 
 
 def write(kind: str, facts: str, slots: dict[str, str]) -> str | None:
@@ -139,44 +190,56 @@ AUDIT_SCHEMA = {
 }
 
 
-def parse_audit(data: bytes, mime: str) -> dict | None:
-    """Degree audit (PDF or image) -> AuditProfile-shaped dict. Never asked for ids or addresses."""
+AUDIT_PROMPT = (
+    "Extract this university degree audit. Give only the student's first "
+    "name (no id numbers, emails or addresses), major, track or concentration, "
+    "whether they entered as a transfer student, residency if stated, total "
+    "credits earned and required, and courses in progress. List every completed "
+    "term in order: with its courses (course id like 'CMSC 201', credits, grade) "
+    "when shown, otherwise with the term's credits attempted, credits earned and "
+    "withdrawals. Keep numbered terms as 'Term 1', 'Term 2'. Also list every course "
+    "the audit marks complete anywhere (for example a checked requirement)."
+)
+
+
+def parse_audit_ex(data: bytes, mime: str) -> tuple[dict | None, str | None]:
+    """Degree audit (PDF or image) -> (AuditProfile-shaped dict, None) or (None, reason), where
+    reason is 'timeout' | 'busy' | 'unreadable'. Falls back across `model_chain()`; thinking is
+    disabled (extraction needs no chain-of-thought and it only adds latency/quota use)."""
     if not configured():
-        return None
+        return None, "unconfigured"
     import base64
 
-    content = _call(
-        {
-            "contents": [
-                {
-                    "parts": [
-                        {"inline_data": {"mime_type": mime, "data": base64.b64encode(data).decode()}},
-                        {
-                            "text": "Extract this university degree audit. Give only the student's first "
-                            "name (no id numbers, emails or addresses), major, track or concentration, "
-                            "whether they entered as a transfer student, residency if stated, total "
-                            "credits earned and required, and courses in progress. List every completed "
-                            "term in order: with its courses (course id like 'CMSC 201', credits, grade) "
-                            "when shown, otherwise with the term's credits attempted, credits earned and "
-                            "withdrawals. Keep numbered terms as 'Term 1', 'Term 2'. Also list every course "
-                            "the audit marks complete anywhere (for example a checked requirement)."
-                        },
-                    ]
-                }
-            ],
-            "generationConfig": {
-                "temperature": 0,
-                "responseMimeType": "application/json",
-                "responseSchema": AUDIT_SCHEMA,
-            },
-        }
-    )
-    if not content:
-        return None
+    body = {
+        "contents": [
+            {
+                "parts": [
+                    {"inline_data": {"mime_type": mime, "data": base64.b64encode(data).decode()}},
+                    {"text": AUDIT_PROMPT},
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0,
+            "responseMimeType": "application/json",
+            "responseSchema": AUDIT_SCHEMA,
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
+    }
+    out, reason = _post_chain(body, per_attempt_timeout=25, total_budget=45)
+    if out is None:
+        return None, reason
     try:
-        return json.loads("".join(p.get("text", "") for p in content["parts"] if not p.get("thought")))
+        content = out["candidates"][0]["content"]
+        return json.loads("".join(p.get("text", "") for p in content["parts"] if not p.get("thought"))), None
     except Exception:  # noqa: BLE001
-        return None
+        return None, "unreadable"
+
+
+def parse_audit(data: bytes, mime: str) -> dict | None:
+    """Back-compat wrapper over `parse_audit_ex` for other callers (routing, narration tests)."""
+    parsed, _ = parse_audit_ex(data, mime)
+    return parsed
 
 
 def route(question: str, context: str, tools: list[dict]) -> tuple[str, dict] | None:
