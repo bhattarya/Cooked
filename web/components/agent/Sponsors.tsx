@@ -7,7 +7,8 @@ export type SponsorKey = "gemini" | "elevenlabs" | "backboard" | "tiger" | "digi
 
 export const SPONSORS: Record<SponsorKey, { label: string; color: string; role: string }> = {
   gemini: { label: "Gemini", color: "#8ab4f8", role: "reads audits, routes questions" },
-  elevenlabs: { label: "ElevenLabs", color: "#f4f1ea", role: "speaks every answer" },
+  // Key kept for the theatre; the label is neutral on purpose (no third-party voice branding in the UI).
+  elevenlabs: { label: "Voice", color: "#f4f1ea", role: "speaks every answer" },
   backboard: { label: "Backboard", color: "#c4b5fd", role: "remembers your decisions" },
   tiger: { label: "Tiger Data", color: "#fbbf24", role: "3,200 alumni + drill simulations" },
   digitalocean: { label: "DigitalOcean", color: "#3b82f6", role: "hosts the agents" },
@@ -58,9 +59,9 @@ export function SponsorChip({ k, live, compact = false }: { k: SponsorKey; live:
   );
 }
 
-const ORDER: SponsorKey[] = ["gemini", "elevenlabs", "backboard", "tiger", "model", "digitalocean"];
+const ORDER: SponsorKey[] = ["gemini", "backboard", "tiger", "model", "digitalocean"];
 
-/** Six quiet dots for the header: lit when that service is live, dim when its fallback is running. Hover for which. */
+/** Five quiet dots for the header: lit when that service is live, dim when its fallback is running. Hover for which. */
 export function SponsorDots({ live }: { live: SponsorLive }) {
   return (
     <span role="group" aria-label="Which sponsor services are live" className="hidden items-center gap-1.5 xl:flex">

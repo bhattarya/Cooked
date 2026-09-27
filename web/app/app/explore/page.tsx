@@ -1,12 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ExploreWorkspace } from "@/components/agent/ExploreWorkspace";
 import { SESSION_COOKIE, readSession } from "@/lib/session";
 
-export const metadata = { title: "Ask the cohort · COOKED" };
-
-export default async function ExplorePage() {
+// The screens are chapters of the one workspace now; old links keep working.
+export default async function Page() {
   const user = await readSession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!user) redirect("/");
-  return <ExploreWorkspace user={user} />;
+  redirect("/app?c=cohort");
 }
