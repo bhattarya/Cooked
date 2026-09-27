@@ -22,13 +22,13 @@ export function AppChrome({ user, active, right, heat = 0, children }: { user: S
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden" style={{ ["--heat-level" as string]: heat } as CSSProperties}>
       <div className="haze" />
-      <header className="relative z-40 flex h-16 shrink-0 items-center gap-2 border-b border-line-2 bg-bg px-4 sm:gap-4 sm:px-6">
+      <header className="relative z-40 flex h-16 shrink-0 items-center gap-2 border-b border-[#d3d5ca] bg-[#f8f6ef] px-4 sm:gap-4 sm:px-6">
         <Link href="/app" aria-label="COOKED home" className="shrink-0">
           <Wordmark size={15} />
         </Link>
         <nav aria-label="Sections" className="ml-1 flex min-w-0 gap-0.5 overflow-x-auto sm:ml-4">
           {NAV.map((n) => (
-            <Link key={n.key} href={n.href} aria-current={n.key === active ? "page" : undefined} className={`relative shrink-0 border-b-2 px-3 py-4 text-xs transition ${n.key === active ? "border-gold text-text" : "border-transparent text-muted hover:text-text"}`}>
+            <Link key={n.key} href={n.href} aria-current={n.key === active ? "page" : undefined} className={`relative shrink-0 border-b-2 px-3 py-4 text-xs transition ${n.key === active ? "border-[#c29b35] text-[#171a15]" : "border-transparent text-[#646b60] hover:text-[#171a15]"}`}>
               <span className="relative">{n.label}</span>
             </Link>
           ))}
@@ -50,7 +50,7 @@ export function AppChrome({ user, active, right, heat = 0, children }: { user: S
               void signOutOfGoogle().finally(() => form.submit());
             }}
           >
-            <button className="text-xs text-muted hover:text-text">Sign out</button>
+            <button className="text-xs text-[#646b60] hover:text-[#171a15]">Sign out</button>
           </form>
         </div>
       </header>

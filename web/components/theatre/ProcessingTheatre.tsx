@@ -1,9 +1,9 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
 import type { Step } from "@/components/agent/Pipeline";
-import { Mark, Wordmark } from "@/components/brand";
+import { Wordmark } from "@/components/brand";
 import { SPONSORS } from "@/components/agent/Sponsors";
 import { fmtMs, isFinished } from "./format";
 import { useElapsed } from "./hooks";
@@ -19,13 +19,15 @@ export interface ProcessingTheatreProps {
   className?: string;
 }
 
-const label: Record<Step["status"], string> = { pending: "Queued", running: "In progress", done: "Complete", warn: "Check", error: "Failed" };
+const statusLabel: Record<Step["status"], string> = { pending: "Queued", running: "Working", done: "Complete", warn: "Review", error: "Failed" };
 
 export function ProcessingTheatre({ steps, title, subtitle, exiting = false, onExited, className = "" }: ProcessingTheatreProps) {
   const reduced = !!useReducedMotion();
-  const finished = steps.filter((step) => isFinished(step.status)).length;
+  const finished = steps.filter((step) => isFinished(step.status));
   const current = steps.find((step) => step.status === "running");
-  const elapsed = useElapsed(steps.some((step) => step.status !== "pending") && finished !== steps.length);
+  const active = current ?? steps.find((step) => step.status === "pending");
+  const index = active ? steps.indexOf(active) : steps.length - 1;
+  const elapsed = useElapsed(steps.some((step) => step.status !== "pending") && finished.length !== steps.length);
   const called = useRef(false);
   useEffect(() => {
     if (!exiting) { called.current = false; return; }
@@ -37,32 +39,43 @@ export function ProcessingTheatre({ steps, title, subtitle, exiting = false, onE
 
   return (
     <div className={`${styles.page} ${className}`}>
-      <header className={styles.top}><Wordmark size={16} /><span>DEGREE AUDIT / ANALYSIS IN PROGRESS</span><span className={styles.clock}>{fmtMs(elapsed)}</span></header>
-      <main className={styles.main}>
-        <section className={styles.intro}>
-          <div className={styles.kicker}>AUDIT / {String(finished).padStart(2,"0")} OF {String(steps.length).padStart(2,"0")}</div>
-          <h1>{title}</h1>
-          <p>{subtitle ?? "Following each step from source to result."}</p>
-          <div className={styles.progress} role="progressbar" aria-valuenow={finished} aria-valuemin={0} aria-valuemax={steps.length} aria-label="Audit progress"><span style={{ width: `${steps.length ? finished / steps.length * 100 : 0}%` }} /></div>
-          <div className={styles.now}><span className={styles.nowLabel}>CURRENT STEP</span><strong>{current ? current.agent : finished === steps.length ? "Analysis complete" : "Getting ready"}</strong><p>{current ? current.task : finished === steps.length ? "Your results are ready." : "The first agent will start shortly."}</p></div>
-          <div className={styles.brandArt} aria-hidden><Mark width={430} /></div>
-        </section>
-        <section className={styles.list} aria-label="Analysis steps">
-          <div className={styles.listHead}><span>THE PROCESS</span><span>{finished} / {steps.length} COMPLETE</span></div>
-          <ol>
-            {steps.map((step, i) => (
-              <li key={step.key} className={`${styles.step} ${styles[step.status]}`}>
-                <div className={styles.number}>{String(i + 1).padStart(2, "0")}</div>
-                <div className={styles.stepText}><div className={styles.stepTop}><h2>{step.agent}</h2><span>{label[step.status]}</span></div><p>{step.task}</p>{step.result && <div className={styles.result}>{step.result}{step.tr && <small>↳ {step.tr}</small>}</div>}</div>
-                <div className={styles.source}><span>{SPONSORS[step.sponsor].label}</span><small>{step.live ? "LIVE" : "CACHED"}</small>{step.ms !== undefined && <small>{fmtMs(step.ms)}</small>}</div>
-              </li>
-            ))}
-          </ol>
-          <p className={styles.note}>Each result is tied to the service and data that produced it. You can inspect the findings after the analysis finishes.</p>
-        </section>
-      </main>
-      <div className={styles.sr} role="status" aria-live="polite">{current ? `${current.agent}: ${current.task}` : finished === steps.length ? "Analysis complete" : "Preparing analysis"}</div>
-      {exiting && <motion.div className={styles.exit} initial={{opacity:0}} animate={{opacity:1}} transition={{duration: reduced ? .2 : .6}} aria-hidden />}
+      <header className={styles.header}>
+        <Wordmark size={16} />
+        <span>THE AUDIT / IN PROGRESS</span>
+        <span className={styles.elapsed}>{fmtMs(elapsed)}</span>
+      </header>
+      <div className={styles.body}>
+        <main className={styles.stage}>
+          <p className={styles.eyebrow}>{title} / {String(Math.max(0, index + 1)).padStart(2,"0")} OF {String(steps.length).padStart(2,"0")}</p>
+          <span className={styles.stageNumber} aria-hidden>{String(Math.max(0, index + 1)).padStart(2,"0")}</span>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div key={active?.key ?? "complete"} initial={reduced ? false : {opacity:0,y:14}} animate={{opacity:1,y:0}} exit={reduced ? undefined : {opacity:0,y:-10}} transition={{duration:.3}}>
+              <h1>{current ? current.agent : finished.length === steps.length ? "The picture is clear." : active?.agent ?? "Getting ready."}</h1>
+              <p className={styles.task}>{current ? current.task : finished.length === steps.length ? "Your results are coming into view." : active?.task ?? subtitle ?? "Preparing the analysis."}</p>
+            </motion.div>
+          </AnimatePresence>
+          <div className={styles.stageFoot}>
+            <div className={styles.progressLabel}><span>{finished.length} steps complete</span><span>{steps.length} total</span></div>
+            <div className={styles.progress} role="progressbar" aria-label="Audit progress" aria-valuenow={finished.length} aria-valuemin={0} aria-valuemax={steps.length}><span style={{width:`${steps.length ? finished.length / steps.length * 100 : 0}%`}} /></div>
+            <p>{subtitle ?? "Following the evidence behind every finding."}</p>
+          </div>
+        </main>
+        <aside className={styles.evidence} aria-label="Evidence as it arrives">
+          <div className={styles.evidenceHead}><span>FIELD NOTES</span><span>{String(finished.length).padStart(2,"0")} / {String(steps.length).padStart(2,"0")}</span></div>
+          <div className={styles.notes}>
+            {finished.length === 0 && <p className={styles.waiting}>The first result will appear here.</p>}
+            {finished.slice(-4).reverse().map((step) => <article key={step.key} className={styles.note}>
+              <div><span>{step.agent}</span><span>{statusLabel[step.status]}</span></div>
+              <p>{step.result ?? step.task}</p>
+              <small>{SPONSORS[step.sponsor].label} / {step.live ? "LIVE" : "CACHED"}{step.ms !== undefined ? ` / ${fmtMs(step.ms)}` : ""}</small>
+            </article>)}
+          </div>
+          <p className={styles.evidenceFoot}>Every finding can be traced to its source in your results.</p>
+        </aside>
+      </div>
+      <nav className={styles.sequence} aria-label="Analysis sequence"><ol>{steps.map((step,i) => <li key={step.key} className={`${styles.step} ${styles[step.status]}`} aria-current={step.status === "running" ? "step" : undefined}><span>{String(i+1).padStart(2,"0")}</span><strong>{step.agent}</strong><small>{statusLabel[step.status]}</small></li>)}</ol></nav>
+      <p role="status" aria-live="polite" className={styles.sr}>{current ? `${current.agent}: ${current.task}` : finished.length === steps.length ? "Analysis complete" : "Preparing analysis"}</p>
+      {exiting && <motion.div className={styles.exit} initial={{opacity:0}} animate={{opacity:1}} transition={{duration:reduced?.2:.6}} aria-hidden />}
     </div>
   );
 }

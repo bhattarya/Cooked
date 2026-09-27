@@ -1,12 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { finishRedirect, signInWithGoogle } from "@/lib/auth";
 import type { SignInMethod } from "@/lib/session";
-import { Emblem, Wordmark } from "./brand";
-import { SignIn } from "./landing/SignIn";
-import { Stats } from "./landing/Stats";
+import { GoogleG } from "./landing/SignIn";
 import styles from "./landing/landing.module.css";
 
 const ERRORS: Record<string, string> = {
@@ -22,6 +21,7 @@ export function Landing({ method, signedIn, error }: { method: SignInMethod; sig
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(error ? ERRORS[error] ?? null : null);
+
   useEffect(() => {
     if (method !== "firebase") return;
     finishRedirect().then((result) => {
@@ -47,37 +47,30 @@ export function Landing({ method, signedIn, error }: { method: SignInMethod; sig
     form.submit();
   };
 
+  const primary = signedIn ? () => router.push("/app") : method ? google : guest;
+  const primaryLabel = signedIn ? (signedIn.guest ? "Continue as guest" : `Continue as ${signedIn.firstName}`) : method ? (busy ? "Connecting…" : "Get started with Google") : "Get started";
+
   return (
     <main className={styles.page}>
-      <header className={styles.header}>
-        <Wordmark size={16} />
-        <span className={styles.headerNote}>Degree clarity, before the deadline.</span>
-      </header>
-      <div className={styles.main}>
-        <section className={styles.intro} aria-labelledby="landing-title">
-          <div className={styles.eyebrow}><span className={styles.rule} /> AN EARLY WARNING SYSTEM FOR STUDENTS</div>
-          <h1 id="landing-title">Know where<br />you <em>stand.</em></h1>
-          <p className={styles.lede}>Your degree audit tells you what you have done. COOKED helps you see what comes next, what could go wrong, and what you can change.</p>
-          <div className={styles.steps} aria-label="How COOKED works">
-            <div><span>01</span><strong>Bring your audit</strong><p>Upload a PDF or start with a sample student.</p></div>
-            <div><span>02</span><strong>See the evidence</strong><p>Follow the analysis from source to conclusion.</p></div>
-            <div><span>03</span><strong>Make a plan</strong><p>Stress test scenarios and find a way forward.</p></div>
+      <div className={styles.topline}><span>COOKED / DEGREE PLANNING</span><span>BUILT FOR HACKUMBC 2026</span></div>
+      <section className={styles.hero} aria-labelledby="landing-title">
+        <div className={styles.figure}>
+          <Image src="/brand/cooked-emblem-cutout.png" alt="COOKED chef dog emblem" width={530} height={562} priority unoptimized className={styles.logo} />
+        </div>
+        <div className={styles.copy}>
+          <p className={styles.eyebrow}><span aria-hidden /> YOUR DEGREE, IN FOCUS</p>
+          <h1 id="landing-title">COOKED<span className={styles.dot}>.</span></h1>
+          <div className={styles.rule} />
+          <p className={styles.lede}>See where your degree plan gets stuck.<br /><strong>Find a better way forward.</strong></p>
+          <div className={styles.actions}>
+            <button type="button" onClick={primary} disabled={busy} className={styles.primary}>{!signedIn && method && <GoogleG />}{primaryLabel}<span aria-hidden>↗</span></button>
+            {!signedIn && method && <button type="button" onClick={guest} className={styles.guest}>Or explore as a guest <span aria-hidden>→</span></button>}
           </div>
-        </section>
-        <aside className={styles.side} aria-label="Start using COOKED">
-          <div className={styles.emblem}><Emblem width={240} priority /></div>
-          <div className={styles.signin}>
-            <p className={styles.sideLabel}>YOUR STARTING POINT</p>
-            <h2>Let&apos;s look at the full picture.</h2>
-            <p>Explore with a sample, or bring your own audit once you&apos;re in.</p>
-            <SignIn method={method} signedIn={signedIn} busy={busy} problem={problem} onGoogle={google} onGuest={guest} onContinue={() => router.push("/app")} />
-          </div>
-        </aside>
-      </div>
-      <footer className={styles.footer}>
-        <Stats reduced />
-        <span className={styles.footerMark}>COOKED / HACKUMBC 2026</span>
-      </footer>
+          {problem && <p role="alert" className={styles.error}>{problem}</p>}
+          <p className={styles.summary}>Bring your audit or try a sample. See the evidence, test a change, and make your next move with more clarity.</p>
+        </div>
+      </section>
+      <footer className={styles.footer}><span>UPLOAD → UNDERSTAND → ADJUST</span><span>Synthetic HackUMBC 2026 data · Demo, not a prediction about real students.</span></footer>
     </main>
   );
 }
