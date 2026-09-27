@@ -1,0 +1,95 @@
+{
+ "first_name": "Alex",
+ "major": "Computer Science",
+ "track": null,
+ "entry_type": "First-Time Freshman",
+ "residency": "In-State",
+ "credits_required": 120,
+ "credits_earned": 33,
+ "terms": [
+  {
+   "label": "Term 1",
+   "courses": [
+    {
+     "course_id": "CMSC201",
+     "credits": 4.0,
+     "grade": "C"
+    },
+    {
+     "course_id": "MATH151",
+     "credits": 4.0,
+     "grade": "D"
+    },
+    {
+     "course_id": "ENGL100",
+     "credits": 3.0,
+     "grade": "B"
+    }
+   ],
+   "attempted": 11.0,
+   "earned": 11.0,
+   "withdrawals": 0,
+   "failures": 0
+  },
+  {
+   "label": "Term 2",
+   "courses": [
+    {
+     "course_id": "CMSC201",
+     "credits": 4.0,
+     "grade": "B-"
+    },
+    {
+     "course_id": "MATH151",
+     "credits": 4.0,
+     "grade": "C"
+    },
+    {
+     "course_id": "PSYC100",
+     "credits": 3.0,
+     "grade": "W"
+    },
+    {
+     "course_id": "HIST101",
+     "credits": 3.0,
+     "grade": "B"
+    }
+   ],
+   "attempted": 14.0,
+   "earned": 11.0,
+   "withdrawals": 1,
+   "failures": 0
+  },
+  {
+   "label": "Term 3",
+   "courses": [
+    {
+     "course_id": "CMSC202",
+     "credits": 4.0,
+     "grade": "C+"
+    },
+    {
+     "course_id": "MATH152",
+     "credits": 4.0,
+     "grade": "C-"
+    },
+    {
+     "course_id": "CMSC203",
+     "credits": 3.0,
+     "grade": "B"
+    }
+   ],
+   "attempted": 11.0,
+   "earned": 11.0,
+   "withdrawals": 0,
+   "failures": 0
+  }
+ ],
+ "in_progress": [
+  "CMSC341",
+  "CMSC313"
+ ],
+ "completed_courses": [],
+ "method": "text",
+ "min_confidence": 0.6
+}
