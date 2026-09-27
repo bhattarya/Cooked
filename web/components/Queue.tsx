@@ -1,194 +1,91 @@
 "use client";
 
-import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
-import { useDataset } from "@/lib/data";
-import { institutionQueue, statusOf, type QueueRow } from "@/lib/engine";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { routeToScene } from "@/components/agent/explore/sceneRoutes";
+import { AppChrome } from "@/components/scenes";
+import { GoldOrb } from "@/components/theatre";
+import { fromApi, fromLocal, levelOf, type AlarmsPayload, type QueuePayload, type Snapshot } from "@/components/queue/model";
+import { Watchtower } from "@/components/queue/Watchtower";
+import { loadDataset } from "@/lib/data";
+import { institutionQueue } from "@/lib/engine";
 import { api, useApiHealth } from "@/lib/live";
-import type { PatternName } from "@/lib/types";
-import { Counter, Loading, Nav, PATTERN_COLOR, PatternChip, StatusBadge, riskColor } from "./ui";
+import type { SessionUser } from "@/lib/session";
+import { useVoiceCommands, useVoiceScreen } from "@/lib/voiceAgent";
+import { int, pct } from "@/components/viz";
 
-const PATTERNS: PatternName[] = ["part-time grind", "withdrawal spiral", "rough patch", "stop-out", "smooth"];
-
-// Advisor view: every current student with 2+ completed terms, ranked by risk.
-export function Queue({ canSeeRows }: { canSeeRows: boolean }) {
-  const ds = useDataset();
-  const [rows, setRows] = useState<QueueRow[] | null>(null);
-  const [staffWanted, setStaff] = useState(false);
-  const staff = staffWanted && canSeeRows;
-  const [cls, setCls] = useState("All");
-  const [pat, setPat] = useState<PatternName | "All">("All");
-  const [show, setShow] = useState(40);
-
+/**
+ * Advisor view: every current student with a completed term, scored by the trained model (Watchtower).
+ * `canSeeRows` is the same gate the API enforces: per-student rows only for people signed in with Google once Firebase is on.
+ */
+export function Queue({ user, canSeeRows }: { user: SessionUser; canSeeRows: boolean }) {
+  const router = useRouter();
   const health = useApiHealth();
-  const live = !!health?.live;
+  const [snap, setSnap] = useState<Snapshot | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [staffWanted, setStaffWanted] = useState(false);
+  const staff = staffWanted && canSeeRows;
 
   useEffect(() => {
-    if (!ds || health === null) return;
-    if (!live || !canSeeRows) {
-      const id = setTimeout(() => setRows(institutionQueue(ds)), 50);
-      return () => clearTimeout(id);
-    }
-    // live: every current student scored by the trained model (the Watchtower's view)
+    if (health === null) return;
     let on = true;
-    type Item = { campus_id: string; risk: number; k: number; avg_credits: number; lead_time_terms: number; pattern: string | null };
-    api<{ items: Item[] }>("/institution/queue?staff=true&limit=2000")
-      .then((c) => {
-        if (!on) return;
-        const byId = new Map(ds.current.map((x) => [x.id, x]));
-        setRows(
-          c.data.items
-            .filter((i) => byId.has(i.campus_id))
-            .map((i) => ({
-              student: { ...byId.get(i.campus_id)!, pattern: (i.pattern ?? byId.get(i.campus_id)!.pattern) as PatternName | null },
-              risk: i.risk,
-              n: 0,
-              status: statusOf(i.risk),
-              avgCredits: i.avg_credits,
-              lead: i.lead_time_terms,
-            })),
-        );
-      })
-      .catch(() => on && setRows(institutionQueue(ds)));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const local = () => {
+      // the engine scores every student against matched alumni in the browser: give the loading state a paint first
+      timer = setTimeout(() => {
+        loadDataset()
+          .then((ds) => on && setSnap(fromLocal(institutionQueue(ds), canSeeRows)))
+          .catch(() => on && setFailed(true));
+      }, 50);
+    };
+    if (!health.live) {
+      local();
+    } else {
+      Promise.all([api<QueuePayload>(canSeeRows ? "/institution/queue?staff=true&limit=2000" : "/institution/queue"), api<AlarmsPayload>("/alarms?status=open").then((a) => a.data, () => null)])
+        .then(([q, alarms]) => on && setSnap(fromApi(q.data, alarms, canSeeRows)))
+        .catch(local);
+    }
     return () => {
       on = false;
+      clearTimeout(timer);
     };
-  }, [ds, health, live, canSeeRows]);
+  }, [health, canSeeRows]);
 
-  const filtered = useMemo(
-    () => (rows ?? []).filter((r) => (cls === "All" || r.student.cls === cls) && (pat === "All" || r.student.pattern === pat) && r.status !== "fine"),
-    [rows, cls, pat],
-  );
-
-  if (!ds || !rows)
-    return (
-      <div className="min-h-screen">
-        <Nav />
-        <Loading label="Watchtower scoring every current student" />
-      </div>
-    );
-
-  const counts = { cooked: rows.filter((r) => r.status === "cooked").length, watch: rows.filter((r) => r.status === "watch").length, fine: rows.filter((r) => r.status === "fine").length };
-  const byPattern = PATTERNS.map((p) => ({ p, n: rows.filter((r) => r.student.pattern === p && r.status !== "fine").length }));
-  const maxP = Math.max(...byPattern.map((x) => x.n), 1);
+  // what the voice agent may say about this screen: only numbers the snapshot carries
+  const facts = snap
+    ? {
+        current_students_scored: snap.scored,
+        at_or_over_line: snap.atRisk,
+        line: snap.threshold,
+        open_alarms: snap.openAlarms,
+        model_version: snap.version ?? "local engine",
+        view: staff ? "student rows" : "counts only",
+        ...Object.fromEntries(snap.patterns.map((p) => [`pattern ${p.name}`, `${p.atRisk} of ${p.scored} over the line, average risk ${pct(p.avgRisk)}`])),
+        ...(staff && snap.students ? { students_at_50_percent_or_more: snap.students.filter((s) => levelOf(s.risk) === "cooked").length } : {}),
+      }
+    : undefined;
+  const summary = snap
+    ? `The Watchtower${snap.source === "model" ? ` (model ${snap.version})` : " (local engine, the API is offline)"} scored ${int(snap.scored)} current students. ${int(snap.atRisk)} are at or above the ${snap.threshold.toFixed(2)} line${snap.openAlarms !== null ? ` and ${int(snap.openAlarms)} alarms are open` : ""}. ${canSeeRows ? "Student rows are behind the Student rows toggle." : "Student rows need a Google sign-in, so only counts are shown."}`
+    : "The Watchtower is still scoring the current students.";
+  useVoiceScreen({ scene: null, title: "Watchtower", summary, facts, student: false, scenes: ["explore", "models", "risk", "timeline", "twins", "drill", "repair", "careers"] });
+  useVoiceCommands({
+    describeScreen: () => ({ message: summary, data: { scene: "advisor", ...facts } }),
+    showScene: ({ scene }) => routeToScene(scene, router.push),
+  });
 
   return (
-    <div className="relative min-h-screen">
-      <Nav />
-      <main className="mx-auto max-w-[1400px] px-4 pb-24 pt-10 sm:px-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="label !text-amber">Institution queue · Fall 2026</div>
-            <h1 className="display mt-2 text-4xl font-semibold sm:text-5xl">Who needs a conversation this term</h1>
-            <p className="mt-3 max-w-2xl text-muted">
-              {rows.length.toLocaleString()} current students with 2+ completed terms, {live ? `scored by the trained model (${health?.version})` : "scored against matched alumni"}. It prompts advisors; it never acts on its own.
-            </p>
-          </div>
-          {canSeeRows ? (
-            <button onClick={() => setStaff((s) => !s)} className={`rounded-full border px-4 py-2 text-sm transition ${staff ? "border-heat/60 bg-heat/10 text-text" : "border-line text-muted"}`}>
-              {staff ? "Staff view · per-student rows" : "Public view · counts only"}
-            </button>
-          ) : (
-            <Link href="/" className="rounded-full border border-line px-4 py-2 text-sm text-muted transition hover:text-text">
-              Public view · sign in with Google for rows
-            </Link>
-          )}
-        </div>
-
-        <div className="mt-8 grid gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.6fr)]">
-          {(["cooked", "watch", "fine"] as const).map((k, i) => (
-            <motion.div key={k} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} className="panel p-5">
-              <StatusBadge status={k} />
-              <div className="display mt-3 text-4xl font-semibold" style={{ color: k === "fine" ? "var(--text)" : riskColor(k === "cooked" ? 0.9 : 0.3) }}>
-                <Counter value={counts[k]} />
-              </div>
-              <div className="mt-1 text-xs text-muted">{((counts[k] / rows.length) * 100).toFixed(1)}% of scored students</div>
-            </motion.div>
-          ))}
-          <div className="panel p-5">
-            <div className="label">Flagged, by pattern</div>
-            <div className="mt-3 space-y-2">
-              {byPattern.map((b, i) => (
-                <button key={b.p} onClick={() => setPat(pat === b.p ? "All" : b.p)} className="flex w-full items-center gap-3 text-left">
-                  <span className={`w-32 shrink-0 text-xs ${pat === b.p ? "text-text" : "text-muted"}`}>{b.p}</span>
-                  <div className="h-2 flex-1 rounded-full bg-white/[0.04]">
-                    <motion.div className="h-full rounded-full" style={{ background: PATTERN_COLOR[b.p] }} initial={{ width: 0 }} animate={{ width: `${(b.n / maxP) * 100}%` }} transition={{ delay: 0.2 + i * 0.08, duration: 0.8 }} />
-                  </div>
-                  <span className="num w-8 text-right text-xs">{b.n}</span>
-                </button>
-              ))}
-            </div>
+    <AppChrome user={user} active="advisor" heat={snap && snap.atRisk > 0 ? 0.3 : 0}>
+      {snap ? (
+        <Watchtower snap={snap} canSeeRows={canSeeRows} staff={staff} onStaff={setStaffWanted} />
+      ) : (
+        <div className="grid flex-1 place-items-center px-6 text-center" role="status">
+          <div className="flex flex-col items-center gap-4">
+            <GoldOrb state={failed ? "breathing" : "searching"} size={110} paused={failed} aria-label="Watchtower scoring" />
+            <div className="display text-3xl font-extrabold text-cream">{failed ? "No data to score" : "Scoring every current student"}</div>
+            <p className="serif max-w-sm text-lg text-muted">{failed ? "Neither the API nor the local dataset could be read." : "The Watchtower is running the trained model over the current cohort."}</p>
           </div>
         </div>
-
-        <AnimatePresence>
-          {staff && (
-            <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }} className="panel mt-6 overflow-hidden">
-              <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
-                <span className="label mr-2">Filter</span>
-                {["All", "Freshman", "Sophomore", "Junior", "Senior"].map((c) => (
-                  <button key={c} onClick={() => setCls(c)} className={`rounded-full px-3 py-1 text-xs ${cls === c ? "bg-white/10 text-text" : "text-muted hover:text-text"}`}>
-                    {c}
-                  </button>
-                ))}
-                <span className="num ml-auto text-xs text-dim">{filtered.length} flagged</span>
-              </div>
-              <div className="num grid grid-cols-[110px_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.3fr)_70px_70px_70px_90px] gap-3 border-b border-line px-5 py-2.5 text-[10.5px] uppercase tracking-wider text-dim">
-                <span>Student</span>
-                <span>Program</span>
-                <span>Pattern</span>
-                <span>Risk</span>
-                <span className="text-right">cr/term</span>
-                <span className="text-right">h/week</span>
-                <span className="text-right">lead</span>
-                <span />
-              </div>
-              {filtered.slice(0, show).map((r, i) => (
-                <motion.div
-                  key={r.student.id}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: Math.min(i, 20) * 0.025 }}
-                  className="grid grid-cols-[110px_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.3fr)_70px_70px_70px_90px] items-center gap-3 border-b border-line px-5 py-3 text-sm transition hover:bg-white/[0.02]"
-                >
-                  <span className="num text-xs text-muted">{r.student.id}</span>
-                  <span className="truncate">
-                    {r.student.major} <span className="text-muted">· {r.student.cls}</span>
-                  </span>
-                  <span>
-                    <PatternChip pattern={r.student.pattern} />
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="h-1.5 flex-1 rounded-full bg-white/[0.05]">
-                      <span className="block h-full rounded-full" style={{ width: `${r.risk * 100}%`, background: riskColor(r.risk) }} />
-                    </span>
-                    <span className="num w-10 text-right text-xs" style={{ color: riskColor(r.risk) }}>
-                      {Math.round(r.risk * 100)}%
-                    </span>
-                  </span>
-                  <span className={`num text-right text-xs ${r.avgCredits < 12 ? "text-heat" : ""}`}>{r.avgCredits.toFixed(1)}</span>
-                  <span className={`num text-right text-xs ${r.student.work >= 20 ? "text-heat" : ""}`}>{r.student.work}</span>
-                  <span className="num text-right text-xs text-muted">{r.lead}t</span>
-                  <Link href={`/s/${r.student.id}`} className="text-right text-xs text-heat hover:underline">
-                    Open →
-                  </Link>
-                </motion.div>
-              ))}
-              {show < filtered.length && (
-                <button onClick={() => setShow((s) => s + 40)} className="w-full py-3 text-xs text-muted hover:text-text">
-                  Show more ({filtered.length - show} left)
-                </button>
-              )}
-            </motion.section>
-          )}
-        </AnimatePresence>
-        {!staff && (
-          <p className="mt-6 text-center text-xs text-dim">
-            {canSeeRows ? "Per-student rows sit behind the staff toggle. The public view shows counts only." : "Per-student rows are for advisors signed in with Google. Guests see counts only."}
-          </p>
-        )}
-      </main>
-    </div>
+      )}
+    </AppChrome>
   );
 }

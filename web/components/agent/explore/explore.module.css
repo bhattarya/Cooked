@@ -1,0 +1,60 @@
+/* Long API titles shrink the SceneFrame headline a notch so the text column never overflows the viewport. */
+.t2 h2 {
+  font-size: 2.9rem;
+}
+.t3 h2 {
+  font-size: 2.6rem;
+}
+@media (min-width: 1024px) {
+  .t2 h2 {
+    font-size: 3.7rem;
+  }
+  .t3 h2 {
+    font-size: 3.2rem;
+  }
+}
+@media (min-width: 1280px) {
+  .t2 h2 {
+    font-size: 4.3rem;
+  }
+  .t3 h2 {
+    font-size: 3.7rem;
+  }
+}
+
+/* the ask scene: a headline that scales with the stage height as well as its width */
+.askTitle {
+  font-size: clamp(2.4rem, min(9vw, 9.8vh), 5.6rem);
+}
+
+@keyframes ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+.micRing {
+  animation: ring 1.4s ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .micRing {
+    animation: none;
+    opacity: 0.4;
+  }
+}
+
+/* the filmstrip replaces the deck's own rail and pill strip */
+.deck nav {
+  display: none !important;
+}
+
+/* phones: the receipts and actions move under the chart (see AnswerScene), so their empty slots in the header collapse */
+@media (max-width: 1023px) {
+  .frame header > div:nth-of-type(n + 2) {
+    display: none;
+  }
+}
