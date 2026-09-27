@@ -2,34 +2,396 @@
   "$comment": "Single source of truth for the voice command catalogue. web/lib/commands.ts validates arguments against it at runtime; scripts/provision_elevenlabs_agent.py turns it into the ElevenLabs client tools. Edit here, then re-run the provisioning script.",
   "version": 1,
   "scenes": [
-    { "id": "risk", "label": "Risk", "blurb": "the risk gauge and 'am I cooked'", "aliases": ["risk", "gauge", "dashboard", "verdict", "home", "overview"] },
-    { "id": "timeline", "label": "Timeline", "blurb": "projected time to degree", "aliases": ["timeline", "time to degree", "graduation", "path", "trajectory"] },
-    { "id": "twins", "label": "Twins", "blurb": "alumni with a similar profile", "aliases": ["twins", "twin", "alumni like me", "alumni", "lookalikes", "similar students", "matches"] },
-    { "id": "drill", "label": "Fire drill", "blurb": "the stress test of realistic shocks", "aliases": ["drill", "fire drill", "stress test", "shocks", "what could go wrong"] },
-    { "id": "repair", "label": "Repair", "blurb": "the smallest change that gets you un-cooked", "aliases": ["repair", "fix", "the fix", "un-cooked", "uncooked", "get un cooked", "plan b"] },
-    { "id": "careers", "label": "Careers", "blurb": "first destination and salary outlook (exploratory)", "aliases": ["careers", "career", "jobs", "job", "salary", "destinations", "outcomes", "roi"] },
-    { "id": "models", "label": "Model Lab", "blurb": "the four models side by side", "aliases": ["models", "model lab", "the lab", "lab", "four models", "compare the models", "compare the four models", "scenario"] },
-    { "id": "explore", "label": "Cohort explorer", "blurb": "patterns across the synthetic cohort", "aliases": ["explore", "explorer", "cohort", "the cohort", "patterns"] }
+    {
+      "id": "home",
+      "label": "Home",
+      "blurb": "the start screen of the audit",
+      "aliases": [
+        "home",
+        "start",
+        "overview",
+        "main screen",
+        "the beginning"
+      ]
+    },
+    {
+      "id": "risk",
+      "label": "Risk",
+      "blurb": "the risk gauge and 'am I cooked'",
+      "aliases": [
+        "risk",
+        "gauge",
+        "dashboard",
+        "verdict",
+        "am i cooked"
+      ]
+    },
+    {
+      "id": "timeline",
+      "label": "Timeline",
+      "blurb": "projected time to degree",
+      "aliases": [
+        "timeline",
+        "time to degree",
+        "graduation",
+        "path",
+        "trajectory"
+      ]
+    },
+    {
+      "id": "twins",
+      "label": "Twins",
+      "blurb": "alumni with a similar profile",
+      "aliases": [
+        "twins",
+        "twin",
+        "alumni like me",
+        "alumni",
+        "lookalikes",
+        "similar students",
+        "matches"
+      ]
+    },
+    {
+      "id": "drill",
+      "label": "Fire drill",
+      "blurb": "the stress test of realistic shocks",
+      "aliases": [
+        "drill",
+        "fire drill",
+        "stress test",
+        "shocks",
+        "what could go wrong"
+      ]
+    },
+    {
+      "id": "repair",
+      "label": "Repair",
+      "blurb": "the smallest change that gets you un-cooked",
+      "aliases": [
+        "repair",
+        "fix",
+        "the fix",
+        "un-cooked",
+        "uncooked",
+        "get un cooked",
+        "plan b"
+      ]
+    },
+    {
+      "id": "careers",
+      "label": "Careers",
+      "blurb": "first destination and salary outlook (exploratory)",
+      "aliases": [
+        "careers",
+        "career",
+        "jobs",
+        "job",
+        "salary",
+        "destinations",
+        "outcomes",
+        "roi"
+      ]
+    },
+    {
+      "id": "receipt",
+      "label": "Receipt",
+      "blurb": "what the models actually read from the audit",
+      "aliases": [
+        "receipt",
+        "what you read",
+        "what did you read",
+        "audit receipt",
+        "the numbers you read",
+        "inputs"
+      ]
+    },
+    {
+      "id": "models",
+      "label": "Control room",
+      "blurb": "the model control room: scenario sliders and the four models",
+      "aliases": [
+        "models",
+        "model lab",
+        "the lab",
+        "lab",
+        "four models",
+        "compare the models",
+        "compare the four models",
+        "scenario",
+        "control room"
+      ]
+    },
+    {
+      "id": "constellation",
+      "label": "Constellation",
+      "blurb": "the alumni constellation of the model space",
+      "aliases": [
+        "constellation",
+        "stars",
+        "alumni map",
+        "map"
+      ]
+    },
+    {
+      "id": "arena",
+      "label": "Arena",
+      "blurb": "the four models head to head",
+      "aliases": [
+        "arena",
+        "head to head",
+        "battle",
+        "model arena",
+        "versus"
+      ]
+    },
+    {
+      "id": "cards",
+      "label": "Model cards",
+      "blurb": "how each model was built and how it scored",
+      "aliases": [
+        "cards",
+        "model cards",
+        "model card",
+        "scorecards"
+      ]
+    },
+    {
+      "id": "explore",
+      "label": "Cohort explorer",
+      "blurb": "patterns across the synthetic cohort",
+      "aliases": [
+        "explore",
+        "explorer",
+        "cohort",
+        "the cohort",
+        "patterns"
+      ]
+    },
+    {
+      "id": "advisor",
+      "label": "Advisor queue",
+      "blurb": "the advisor's queue of students to reach out to",
+      "aliases": [
+        "advisor",
+        "advisor queue",
+        "queue",
+        "who to call",
+        "outreach"
+      ]
+    }
   ],
   "samples": [
-    { "key": "working", "label": "Working 22 h/week", "blurb": "the alarm fires early" },
-    { "key": "cooked", "label": "Light load, heavy job", "blurb": "already cooked" },
-    { "key": "on_track", "label": "Full loads", "blurb": "on track" }
+    {
+      "key": "working",
+      "label": "Working 22 h/week",
+      "blurb": "the alarm fires early"
+    },
+    {
+      "key": "cooked",
+      "label": "Light load, heavy job",
+      "blurb": "already cooked"
+    },
+    {
+      "key": "on_track",
+      "label": "Full loads",
+      "blurb": "on track"
+    }
   ],
   "scenario_fields": [
-    { "name": "major", "label": "major", "kind": "enum", "options": ["Computer Science", "Information Systems"], "aliases": ["major", "degree", "program"] },
-    { "name": "entry_type", "label": "entry type", "kind": "enum", "options": ["First-Time Freshman", "Transfer"], "aliases": ["entry type", "entry", "admission", "start type"] },
-    { "name": "residency", "label": "residency", "kind": "enum", "options": ["In-State", "Out-of-State"], "aliases": ["residency", "residence", "tuition status"] },
-    { "name": "work_hours", "label": "work hours per week", "kind": "int", "min": 0, "max": 50, "unit": "h/week", "aliases": ["work hours", "hours of work", "hours a week", "hours per week", "job hours", "working hours", "work", "working", "job"] },
-    { "name": "completed_terms", "label": "completed terms", "kind": "int", "min": 0, "max": 6, "unit": "terms", "aliases": ["completed terms", "terms completed", "terms done", "semesters done", "semesters completed", "terms", "semesters"] },
-    { "name": "credits_per_term", "label": "credits per term", "kind": "int", "min": 3, "max": 18, "unit": "credits", "aliases": ["credits per term", "credits a term", "credits per semester", "credits a semester", "course load", "credit load", "load", "credits"] },
-    { "name": "earned_ratio", "label": "share of attempted credits earned", "kind": "float", "min": 0.5, "max": 1, "aliases": ["earned ratio", "pass rate", "credits earned ratio", "earned"] },
-    { "name": "withdrawals", "label": "withdrawals", "kind": "int", "min": 0, "max": 10, "aliases": ["withdrawals", "withdrawal", "withdraws", "drops", "dropped courses"] },
-    { "name": "failures", "label": "failed courses", "kind": "int", "min": 0, "max": 10, "aliases": ["failures", "failed courses", "fails", "failed classes", "f grades"] },
-    { "name": "enrollment_gaps", "label": "enrollment gaps", "kind": "int", "min": 0, "max": 4, "aliases": ["enrollment gaps", "enrolment gaps", "gaps", "stop outs", "gap terms"] },
-    { "name": "internship_count", "label": "internships", "kind": "int", "min": 0, "max": 4, "aliases": ["internships", "internship", "internship count"] },
-    { "name": "credential_count", "label": "credentials", "kind": "int", "min": 0, "max": 8, "aliases": ["credentials", "credential", "certifications", "certificates", "certs"] },
-    { "name": "engagement_count", "label": "campus engagements", "kind": "int", "min": 0, "max": 20, "aliases": ["engagement", "engagements", "campus engagement", "clubs", "activities", "extracurriculars"] }
+    {
+      "name": "major",
+      "label": "major",
+      "kind": "enum",
+      "options": [
+        "Computer Science",
+        "Information Systems"
+      ],
+      "aliases": [
+        "major",
+        "degree",
+        "program"
+      ]
+    },
+    {
+      "name": "entry_type",
+      "label": "entry type",
+      "kind": "enum",
+      "options": [
+        "First-Time Freshman",
+        "Transfer"
+      ],
+      "aliases": [
+        "entry type",
+        "entry",
+        "admission",
+        "start type"
+      ]
+    },
+    {
+      "name": "residency",
+      "label": "residency",
+      "kind": "enum",
+      "options": [
+        "In-State",
+        "Out-of-State"
+      ],
+      "aliases": [
+        "residency",
+        "residence",
+        "tuition status"
+      ]
+    },
+    {
+      "name": "work_hours",
+      "label": "work hours per week",
+      "kind": "int",
+      "min": 0,
+      "max": 50,
+      "unit": "h/week",
+      "aliases": [
+        "work hours",
+        "hours of work",
+        "hours a week",
+        "hours per week",
+        "job hours",
+        "working hours",
+        "work",
+        "working",
+        "job"
+      ]
+    },
+    {
+      "name": "completed_terms",
+      "label": "completed terms",
+      "kind": "int",
+      "min": 0,
+      "max": 6,
+      "unit": "terms",
+      "aliases": [
+        "completed terms",
+        "terms completed",
+        "terms done",
+        "semesters done",
+        "semesters completed",
+        "terms",
+        "semesters"
+      ]
+    },
+    {
+      "name": "credits_per_term",
+      "label": "credits per term",
+      "kind": "int",
+      "min": 3,
+      "max": 18,
+      "unit": "credits",
+      "aliases": [
+        "credits per term",
+        "credits a term",
+        "credits per semester",
+        "credits a semester",
+        "course load",
+        "credit load",
+        "load",
+        "credits"
+      ]
+    },
+    {
+      "name": "earned_ratio",
+      "label": "share of attempted credits earned",
+      "kind": "float",
+      "min": 0.5,
+      "max": 1,
+      "aliases": [
+        "earned ratio",
+        "pass rate",
+        "credits earned ratio",
+        "earned"
+      ]
+    },
+    {
+      "name": "withdrawals",
+      "label": "withdrawals",
+      "kind": "int",
+      "min": 0,
+      "max": 10,
+      "aliases": [
+        "withdrawals",
+        "withdrawal",
+        "withdraws",
+        "drops",
+        "dropped courses"
+      ]
+    },
+    {
+      "name": "failures",
+      "label": "failed courses",
+      "kind": "int",
+      "min": 0,
+      "max": 10,
+      "aliases": [
+        "failures",
+        "failed courses",
+        "fails",
+        "failed classes",
+        "f grades"
+      ]
+    },
+    {
+      "name": "enrollment_gaps",
+      "label": "enrollment gaps",
+      "kind": "int",
+      "min": 0,
+      "max": 4,
+      "aliases": [
+        "enrollment gaps",
+        "enrolment gaps",
+        "gaps",
+        "stop outs",
+        "gap terms"
+      ]
+    },
+    {
+      "name": "internship_count",
+      "label": "internships",
+      "kind": "int",
+      "min": 0,
+      "max": 4,
+      "aliases": [
+        "internships",
+        "internship",
+        "internship count"
+      ]
+    },
+    {
+      "name": "credential_count",
+      "label": "credentials",
+      "kind": "int",
+      "min": 0,
+      "max": 8,
+      "aliases": [
+        "credentials",
+        "credential",
+        "certifications",
+        "certificates",
+        "certs"
+      ]
+    },
+    {
+      "name": "engagement_count",
+      "label": "campus engagements",
+      "kind": "int",
+      "min": 0,
+      "max": 20,
+      "aliases": [
+        "engagement",
+        "engagements",
+        "campus engagement",
+        "clubs",
+        "activities",
+        "extracurriculars"
+      ]
+    }
   ],
   "commands": [
     {
@@ -37,7 +399,29 @@
       "toast": "Read the screen",
       "slow": false,
       "description": "Read what is on screen right now: which scene is showing, the exact numbers and labels the user can see, and which scenes are reachable. Call this whenever the user asks what they are looking at, and before quoting any number you have not just received from another tool. Never guess a number.",
-      "parameters": { "type": "object", "required": [], "properties": {} }
+      "parameters": {
+        "type": "object",
+        "required": [],
+        "properties": {}
+      }
+    },
+    {
+      "name": "askAnything",
+      "toast": "Looking that up",
+      "slow": true,
+      "description": "DEFAULT tool for any question in natural language. The app decides whether it is about the user's own audit, the cohort, the models or the advisor queue, opens the right screen and returns an answer in `say` built from real app numbers. Pass the user's full question in their own words. Use the specific tools only for precise actions (set a slider, run the stress test, change scene).",
+      "parameters": {
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "The user's full question, in their words."
+          }
+        }
+      }
     },
     {
       "name": "askStudent",
@@ -46,9 +430,14 @@
       "description": "Answer a question about the USER'S OWN degree plan: am I cooked, my risk, a what-if (work hours, course load), which course to take, prerequisites, a stress test, how to get un-cooked. Needs a loaded student (an uploaded audit or a sample student; if none is loaded the result says so). Pass the user's full question in their own words. The app computes the answer from the trained model, moves the screen to the matching scene and returns provenance-checked text in `say`.",
       "parameters": {
         "type": "object",
-        "required": ["question"],
+        "required": [
+          "question"
+        ],
         "properties": {
-          "question": { "type": "string", "description": "The user's full question about their own plan, in their words, e.g. 'am I cooked' or 'what if I take 3 more credits a term'." }
+          "question": {
+            "type": "string",
+            "description": "The user's full question about their own plan, in their words, e.g. 'am I cooked' or 'what if I take 3 more credits a term'."
+          }
         }
       }
     },
@@ -59,9 +448,14 @@
       "description": "Answer a question about PATTERNS across the synthetic cohort, not about the user personally: majors, work hours, course load, internships, first destinations, degree cost by year. Pass the full question. The app queries the database, moves the screen to the resulting chart and returns provenance-checked text in `say` with sample sizes.",
       "parameters": {
         "type": "object",
-        "required": ["question"],
+        "required": [
+          "question"
+        ],
         "properties": {
-          "question": { "type": "string", "description": "The user's full question about cohort patterns, in their words." }
+          "question": {
+            "type": "string",
+            "description": "The user's full question about cohort patterns, in their words."
+          }
         }
       }
     },
@@ -69,12 +463,33 @@
       "name": "showScene",
       "toast": "Show {scene}",
       "slow": false,
-      "description": "Move the screen to one scene. Use for 'show me...', 'go to...', 'open...'. risk = the risk gauge and verdict; timeline = projected time to degree; twins = alumni with a similar profile; drill = the stress test of realistic shocks; repair = the smallest change that gets the user un-cooked; careers = first destination and salary outlook (exploratory, not a promise); models = the Model Lab comparing the four models; explore = the cohort explorer.",
+      "description": "Move the screen to one scene. Use for 'show me...', 'go to...', 'open...'. home = the audit start screen; risk = the risk gauge and verdict; timeline = projected time to degree; twins = alumni with a similar profile; drill = the stress test of realistic shocks; repair = the smallest change that gets the user un-cooked; careers = first destination and salary outlook (exploratory); receipt = exactly what the models read from the audit; models = the model control room; constellation = alumni constellation; arena = the four models head to head; cards = model cards; explore = the cohort explorer; advisor = the advisor queue.",
       "parameters": {
         "type": "object",
-        "required": ["scene"],
+        "required": [
+          "scene"
+        ],
         "properties": {
-          "scene": { "type": "string", "enum": ["risk", "timeline", "twins", "drill", "repair", "careers", "models", "explore"], "description": "Which scene to show." }
+          "scene": {
+            "type": "string",
+            "enum": [
+              "home",
+              "risk",
+              "timeline",
+              "twins",
+              "drill",
+              "repair",
+              "careers",
+              "receipt",
+              "models",
+              "constellation",
+              "arena",
+              "cards",
+              "explore",
+              "advisor"
+            ],
+            "description": "Which scene to show."
+          }
         }
       }
     },
@@ -83,14 +498,22 @@
       "toast": "Next scene",
       "slow": false,
       "description": "Advance to the next scene. Use for 'next', 'continue', 'go on', 'what else'.",
-      "parameters": { "type": "object", "required": [], "properties": {} }
+      "parameters": {
+        "type": "object",
+        "required": [],
+        "properties": {}
+      }
     },
     {
       "name": "previousScene",
       "toast": "Previous scene",
       "slow": false,
       "description": "Go back to the previous scene. Use for 'back', 'previous', 'go back'.",
-      "parameters": { "type": "object", "required": [], "properties": {} }
+      "parameters": {
+        "type": "object",
+        "required": [],
+        "properties": {}
+      }
     },
     {
       "name": "setScenario",
@@ -99,10 +522,34 @@
       "description": "Change one input of the scenario the user is exploring (the Model Lab controls, or the what-if on their own plan) and re-run the models. Use for 'set internships to three', 'what if I work 30 hours', 'make it a transfer student'. Numbers outside the allowed range are clamped and the result says so. Numeric fields: work_hours 0-50, completed_terms 0-6, credits_per_term 3-18, earned_ratio 0.5-1 (a fraction of attempted credits earned, 0.9 for ninety percent), withdrawals 0-10, failures 0-10, enrollment_gaps 0-4, internship_count 0-4, credential_count 0-8, engagement_count 0-20. Option fields: major (Computer Science or Information Systems), entry_type (First-Time Freshman or Transfer), residency (In-State or Out-of-State).",
       "parameters": {
         "type": "object",
-        "required": ["field", "value"],
+        "required": [
+          "field",
+          "value"
+        ],
         "properties": {
-          "field": { "type": "string", "enum": ["major", "entry_type", "residency", "work_hours", "completed_terms", "credits_per_term", "earned_ratio", "withdrawals", "failures", "enrollment_gaps", "internship_count", "credential_count", "engagement_count"], "description": "Which input to change." },
-          "value": { "type": "string", "description": "The new value as text: digits for numeric fields (for example 30, or 0.9 for earned_ratio), or the option name for major, entry_type and residency." }
+          "field": {
+            "type": "string",
+            "enum": [
+              "major",
+              "entry_type",
+              "residency",
+              "work_hours",
+              "completed_terms",
+              "credits_per_term",
+              "earned_ratio",
+              "withdrawals",
+              "failures",
+              "enrollment_gaps",
+              "internship_count",
+              "credential_count",
+              "engagement_count"
+            ],
+            "description": "Which input to change."
+          },
+          "value": {
+            "type": "string",
+            "description": "The new value as text: digits for numeric fields (for example 30, or 0.9 for earned_ratio), or the option name for major, entry_type and residency."
+          }
         }
       }
     },
@@ -111,14 +558,22 @@
       "toast": "Run the stress test",
       "slow": true,
       "description": "Run the fire drill: apply a sequence of realistic shocks to the plan and show how many it takes to get cooked. Use for 'run a stress test', 'fire drill', 'what could go wrong'. Returns provenance-checked text in `say`.",
-      "parameters": { "type": "object", "required": [], "properties": {} }
+      "parameters": {
+        "type": "object",
+        "required": [],
+        "properties": {}
+      }
     },
     {
       "name": "findRepair",
       "toast": "Find the smallest fix",
       "slow": true,
       "description": "Find the smallest change to the plan that gets the user un-cooked, backed by alumni evidence. Use for 'how do I get un-cooked', 'fix my plan', 'what should I change'. Returns provenance-checked text in `say`.",
-      "parameters": { "type": "object", "required": [], "properties": {} }
+      "parameters": {
+        "type": "object",
+        "required": [],
+        "properties": {}
+      }
     },
     {
       "name": "loadSampleStudent",
@@ -129,7 +584,15 @@
         "type": "object",
         "required": [],
         "properties": {
-          "which": { "type": "string", "enum": ["working", "cooked", "on_track"], "description": "Which synthetic sample student to load. Optional." }
+          "which": {
+            "type": "string",
+            "enum": [
+              "working",
+              "cooked",
+              "on_track"
+            ],
+            "description": "Which synthetic sample student to load. Optional."
+          }
         }
       }
     }

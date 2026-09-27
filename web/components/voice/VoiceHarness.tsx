@@ -145,7 +145,7 @@ function Harness({ onPreview, previewing }: { onPreview: (p: DockPreview | null)
           <p className="label !text-gold">Dev harness · FAKE data</p>
           <h1 className="display mt-2 text-[44px] font-black sm:text-[64px]">Voice controller</h1>
           <p className="mt-2 max-w-[60ch] text-[15px] text-muted">
-            The dock below talks to the real ElevenLabs agent when the server is configured (and you are signed in), and to browser push-to-talk otherwise. Either way, commands land on this fake scene.
+            The dock below talks to the live voice agent when the server is configured (and you are signed in), and to browser push-to-talk otherwise. Either way, commands land on this fake scene.
           </p>
         </div>
         <label className="flex items-center gap-2 text-[13px] text-muted">
@@ -245,7 +245,7 @@ function FireControls() {
   const [toolReply, setToolReply] = useState<string>("");
   const voice = useCookedVoice();
   const tools = useMemo(() => makeClientTools(), []);
-  // Calls the same client-tool function the ElevenLabs SDK calls, so this is the exact string the agent would read back.
+  // Calls the same client-tool function the voice SDK calls, so this is the exact string the agent would read back.
   const asAgent = async (name: CommandName, args: Record<string, unknown>) => setToolReply(`${name}(${JSON.stringify(args)}) →\n${await tools[name](args)}`);
   const fire = (name: CommandName, args?: unknown) => void runCommand(name, args, { source: "dev" });
   const parsed = useMemo(() => parseIntent(phrase, { scene: null, hasStudent: false, available: availableCommands() }), [phrase]);

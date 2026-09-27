@@ -157,7 +157,7 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
   const muted = connected && !voice.micOpen && state !== "speaking" && state !== "thinking";
   const label = muted ? "Muted · hold Space to talk" : STATE_LABEL[state];
   const engineLabel =
-    voice.engine === "elevenlabs" || (!connected && voice.support === "elevenlabs") ? "ElevenLabs agent" : voice.support === "text" ? "Typing only" : "Browser speech";
+    voice.engine === "elevenlabs" || (!connected && voice.support === "elevenlabs") ? "Voice agent" : voice.support === "text" ? "Typing only" : "Browser voice";
   const idleHint = hints[hint % hints.length]?.text;
 
   const submit = async (e: React.FormEvent) => {
@@ -227,7 +227,9 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className={`label ${state === "error" ? "!text-hot" : muted ? "" : connected ? "!text-gold" : ""}`}>{label}</span>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span key={label} initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -3 }} transition={{ duration: 0.16 }} className={`label ${state === "error" ? "!text-hot" : muted ? "" : connected ? "!text-gold" : ""}`}>{label}</motion.span>
+              </AnimatePresence>
               <span className="hidden items-center gap-1.5 text-[10.5px] text-dim sm:flex">
                 <span aria-hidden className={`size-1.5 rounded-full ${voice.engine === "none" && !connected ? "bg-dim" : "bg-gold"}`} />
                 {engineLabel}
@@ -253,9 +255,12 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
                 </button>
               </form>
             ) : voice.error ? (
-              <button type="button" onClick={voice.clearError} role="alert" className="mt-0.5 block w-full truncate text-left text-[13.5px] text-hot">
-                {voice.error}
-              </button>
+              <div role="alert" className="mt-0.5 flex items-center gap-2">
+                <button type="button" onClick={voice.clearError} className="min-w-0 flex-1 truncate text-left text-[13.5px] text-hot">{voice.error}</button>
+                {/microphone|listen/i.test(voice.error) && (
+                  <button type="button" onClick={() => { voice.clearError(); setTyping(true); }} className="h-7 shrink-0 rounded-full border border-gold/50 px-3 text-[12px] text-gold outline-none hover:bg-gold/10 focus-visible:ring-2 focus-visible:ring-gold">Type instead</button>
+                )}
+              </div>
             ) : (
               <div role="log" aria-live="polite" className="mt-0.5 min-h-[38px]">
                 <AnimatePresence mode="popLayout" initial={false}>
@@ -305,6 +310,14 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
             >
               <svg aria-hidden viewBox="0 0 20 20" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="5" width="15" height="10" rx="2.5" /><path d="M6 8.5h.01M9 8.5h.01M12 8.5h.01M14.5 8.5h.01M6.5 11.5h7" /></svg>
             </button>
+            <AnimatePresence initial={false}>
+              {connected && state === "speaking" && (
+                <motion.button key="barge" type="button" aria-label="Interrupt and talk (Escape)" onClick={interrupt} initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.85 }} transition={{ duration: 0.15 }} className="flex h-9 items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 text-[12px] font-medium text-gold outline-none transition hover:bg-gold/20 focus-visible:ring-2 focus-visible:ring-gold">
+                  <svg aria-hidden viewBox="0 0 20 20" className="size-3.5" fill="currentColor"><rect x="4" y="4" width="4.2" height="12" rx="1.2" /><rect x="11.8" y="4" width="4.2" height="12" rx="1.2" /></svg>
+                  <span className="hidden sm:inline">Interrupt</span>
+                </motion.button>
+              )}
+            </AnimatePresence>
             {connected && (
               <button type="button" aria-label="End voice session" onClick={stop} className="grid size-9 place-items-center rounded-full border border-line-2 text-muted outline-none transition hover:border-hot/50 hover:text-hot focus-visible:ring-2 focus-visible:ring-gold">
                 <svg aria-hidden viewBox="0 0 20 20" className="size-4" fill="currentColor"><rect x="5" y="5" width="10" height="10" rx="2" /></svg>

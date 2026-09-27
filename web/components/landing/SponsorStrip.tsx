@@ -1,6 +1,5 @@
-// The five sponsors whose services run inside COOKED, with what each one does here.
+// The sponsors whose services run inside COOKED, with what each one does here.
 const SPONSORS = [
-  { name: "ElevenLabs", role: "voice" },
   { name: "Gemini", role: "reads & routes" },
   { name: "Backboard", role: "memory" },
   { name: "Tiger Data", role: "Postgres" },

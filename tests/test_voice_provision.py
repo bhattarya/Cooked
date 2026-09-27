@@ -155,3 +155,25 @@ def test_dry_run_prints_valid_json_and_never_contacts_anything(monkeypatch, caps
 def test_slow_commands_get_a_longer_timeout(name):
     cfg = TOOLS[name]
     assert cfg["response_timeout_secs"] == (30 if COMMANDS[name]["slow"] else 10)
+
+
+def test_ask_anything_is_the_default_tool_and_scenes_cover_the_studio():
+    assert COMMANDS["askAnything"]["parameters"]["required"] == ["question"]
+    scenes = {s["id"] for s in CATALOGUE["scenes"]}
+    assert scenes == {
+        "home", "risk", "timeline", "twins", "drill", "repair", "careers", "receipt",
+        "models", "constellation", "arena", "cards", "explore", "advisor",
+    }  # fmt: skip
+    prompt = PLAN["agent"]["conversation_config"]["agent"]["prompt"]["prompt"]
+    assert "askAnything is your DEFAULT" in prompt
+    source = (prov.ROOT / "web" / "lib" / "commands.ts").read_text()
+    for scene in scenes:
+        assert f'"{scene}"' in source, f"SceneId lacks {scene}"
+
+
+def test_agent_is_conversational():
+    cfg = PLAN["agent"]["conversation_config"]
+    assert cfg["tts"]["model_id"] == "eleven_v3_conversational"
+    assert cfg["agent"]["prompt"]["temperature"] >= 0.5
+    assert cfg["turn"]["soft_timeout_config"]["timeout_seconds"] > 0
+    assert "ElevenLabs" not in cfg["agent"]["first_message"]
