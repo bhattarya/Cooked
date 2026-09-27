@@ -36,25 +36,6 @@
   animation: flicker 2.9s linear infinite;
 }
 
-/* a slow glint that crosses the artwork every so often */
-@keyframes glint {
-  0%, 62% { background-position: 170% 0; }
-  100% { background-position: -70% 0; }
-}
-.glint {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  mix-blend-mode: soft-light;
-  background: linear-gradient(112deg, transparent 38%, rgba(255, 244, 214, 0.9) 50%, transparent 62%) 170% 0 / 260% 100% no-repeat;
-  animation: glint 9s ease-in-out infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-.spinCw { transform-origin: 50% 50%; animation: spin 240s linear infinite; }
-.spinCcw { transform-origin: 50% 50%; animation: spin 150s linear infinite reverse; }
-.spinFast { transform-origin: 50% 50%; animation: spin 34s linear infinite; }
-
 /* molten gold headline with a highlight that sweeps across it now and then */
 @keyframes sheen {
   0%, 58% { background-position: 140% 0, 0 0; }
@@ -205,18 +186,6 @@
 }
 .link:hover { color: var(--gold-hi); text-decoration-color: var(--gold-hi); }
 
-@keyframes caret { 50% { opacity: 0; } }
-.caret {
-  display: inline-block;
-  width: 2px;
-  height: 1em;
-  margin-left: 3px;
-  vertical-align: -0.12em;
-  background: var(--gold-hi);
-  box-shadow: 0 0 10px rgba(255, 209, 92, 0.8);
-  animation: caret 1.05s steps(1) infinite;
-}
-
 @keyframes dot { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
 .live { animation: dot 2.4s ease-in-out infinite; }
 
@@ -230,8 +199,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .float, .glow, .flame, .glint, .sheen, .spinCw, .spinCcw, .spinFast, .cta::after, .caret, .live { animation: none; }
+  .float, .glow, .flame, .sheen, .cta::after, .live { animation: none; }
   .flame { opacity: 0.6; }
-  .glint { display: none; }
   .cta, .ghost { transition: none; }
 }

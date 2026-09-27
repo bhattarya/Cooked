@@ -70,8 +70,8 @@ export function sceneSentence(scene: LabScene, v: LabView): string {
   if (scene === "lab") return r ? `Shape a future. ${headline(r)}` : "Shape a future. The models are still answering.";
   if (scene === "constellation") {
     const f = constellationFacts(v.sim, v.arena);
-    if (!f) return "The constellation is still loading.";
-    return f.pattern ? `Constellation: your scenario follows the ${f.pattern} pattern, shared by ${pct0(f.share)} of ${f.n} sampled alumni${f.alumni ? ` out of ${f.alumni.toLocaleString("en-US")}` : ""}.${f.off ? " It is more extreme than any sampled alumnus, so the dot is pinned to the map edge." : ""}` : "Constellation: with no completed terms there is no history to place.";
+    if (!f) return "The trajectory sample is still loading.";
+    return f.pattern ? `Trajectory: your scenario follows the ${f.pattern} pattern, shared by ${pct0(f.share)} of ${f.n} sampled alumni${f.alumni ? ` out of ${f.alumni.toLocaleString("en-US")}` : ""}.` : "Trajectory: with no completed terms there is no history to classify.";
   }
   if (scene === "arena") return v.arena ? arenaSentences(v.arena, v.task, v.metricId, v.stage) : "The arena report is still loading.";
   return v.arena ? cardsSentences(v.arena) : "The model cards are still loading.";
@@ -79,11 +79,11 @@ export function sceneSentence(scene: LabScene, v: LabView): string {
 
 export function screenContext(scene: LabScene, v: LabView): ScreenContext {
   const r = v.sim.result;
-  const title = { lab: "Shape a future", constellation: "Trajectory constellation", arena: `The arena: ${taskLabel(v.task)}`, cards: "Model cards" }[scene];
+  const title = { lab: "Shape a future", constellation: "Trajectory patterns", arena: `The arena: ${taskLabel(v.task)}`, cards: "Model cards" }[scene];
   const base: ScreenContext = {
     scene: "models",
     title,
-    summary: `Model Lab, lab scene "${title}". ${scene === "lab" && r ? labSentences(r, v.arena) : sceneSentence(scene, v)} The four lab scenes, reached with next and previous, are: Shape a future, Trajectory constellation, The arena, Model cards. Synthetic data; associations, not promises.`,
+    summary: `Model Lab, lab scene "${title}". ${scene === "lab" && r ? labSentences(r, v.arena) : sceneSentence(scene, v)} The four lab scenes, reached with next and previous, are: Shape a future, Trajectory patterns, The arena, Model cards. Synthetic data; associations, not promises.`,
     student: false,
     scenes: ["models", "explore"],
   };

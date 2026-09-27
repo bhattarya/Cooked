@@ -77,7 +77,7 @@ export function Leaderboard({ board, metricId, onMetric, stage, onStage, arena }
                   <div className="relative h-[11px] flex-1 rounded-full bg-line">
                     <div
                       className="absolute top-0 h-full rounded-full transition-[left,width] duration-700 ease-[cubic-bezier(.16,1,.3,1)]"
-                      style={{ left: `${left}%`, width: `${width}%`, minWidth: 2, background: r.champion ? "linear-gradient(90deg, var(--gold-lo), var(--gold), var(--gold-hi))" : col, opacity: r.champion ? 1 : 0.85, boxShadow: r.champion ? "0 0 18px rgba(246,180,26,.5)" : undefined }}
+                      style={{ left: `${left}%`, width: `${width}%`, minWidth: 2, background: r.champion ? "var(--gold)" : col, opacity: r.champion ? 1 : 0.85 }}
                     />
                   </div>
                   <CountUp value={r.value} format={metric.format} duration={600} className={`num text-right text-[14px] ${r.champion ? "text-gold-hi" : "text-text"}`} style={{ width: VALUE_W }} />

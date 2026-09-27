@@ -2,28 +2,24 @@
 
 import { useRouter } from "next/navigation";
 import { useAdvisorSession } from "./AdvisorSession";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppChrome, SceneDeck, useSceneDeck, type SceneDef } from "@/components/scenes";
-import { ProcessingTheatre, type OrbState } from "@/components/theatre";
 import type { CommandHandlers, SceneId } from "@/lib/commands";
 import { api, useApiHealth } from "@/lib/live";
 import { listen, useCanListen } from "@/lib/listen";
 import type { SessionUser } from "@/lib/session";
 import { speak, type Speaking } from "@/lib/voice";
 import { useCookedVoice, useVoiceCommands, useVoiceScreen } from "@/lib/voiceAgent";
-import { AnswerScene } from "./explore/AnswerScene";
+import { CohortAnswerView } from "./explore/CohortAnswerView";
 import { AskScene } from "./explore/AskScene";
 import styles from "./explore/explore.module.css";
 import { Filmstrip } from "./explore/Filmstrip";
-import { KIND_LABEL, SUGGESTIONS, fmtN, groupsText, norm, read, shortQuestion, smallNote, spokenAnswer, type CohortAnswer, type Entry } from "./explore/model";
+import { SUGGESTIONS, groupsText, norm, shortQuestion, smallNote, spokenAnswer, type CohortAnswer, type Entry } from "./explore/model";
 import { Prompt } from "./explore/Prompt";
 import { routeToScene } from "./explore/sceneRoutes";
 import { currentHistory, useHistory, useNarratePref } from "./explore/store";
-import type { Step } from "./Pipeline";
 
 const MAX_ENTRIES = 12;
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 // every scene the voice agent may name; the journey ones live on /app
 const ALL_SCENES: SceneId[] = ["explore", "risk", "timeline", "twins", "drill", "repair", "careers", "models"];
 
@@ -33,19 +29,12 @@ const typing = (t: EventTarget | null) => {
   return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
 };
 
-interface TheatreState {
-  question: string;
-  steps: Step[];
-  exiting: boolean;
-}
-
 /** "Ask the cohort": each answer is a scene, so the arrow keys scrub the conversation like a film strip. */
 export function ExploreWorkspace({ user }: { user: SessionUser }) {
   const { journey } = useAdvisorSession();
   const router = useRouter();
   const voice = useCookedVoice();
   const health = useApiHealth();
-  const reduced = !!useReducedMotion();
   const canMic = useCanListen();
 
   const [entries, updateEntries] = useHistory();
@@ -53,31 +42,34 @@ export function ExploreWorkspace({ user }: { user: SessionUser }) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [theatre, setTheatre] = useState<TheatreState | null>(null);
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
-  const [rawLevel, setRawLevel] = useState(0);
 
   // mirrors so async flows and voice handlers always read the newest state
   const busyRef = useRef(false);
   const narrateRef = useRef(narrate);
   const connectedRef = useRef(voice.connected);
-  const levelsRef = useRef(voice.levels);
   const lastError = useRef("");
   const seq = useRef(0);
   const clip = useRef<Speaking | null>(null);
   const narratedFor = useRef<string | null>(null);
   const stopListen = useRef<(() => void) | null>(null);
-  const exited = useRef<(() => void) | null>(null);
   const promptRef = useRef<HTMLInputElement>(null);
+  const pendingAnswer = useRef<string | null>(null);
+  const pendingNarration = useRef<{ id: string; answer: CohortAnswer } | null>(null);
   useEffect(() => {
     narrateRef.current = narrate;
     connectedRef.current = voice.connected;
-    levelsRef.current = voice.levels;
   });
 
   const scenes = useMemo<SceneDef[]>(() => [{ id: "ask", label: "Ask" }, ...entries.map((e) => ({ id: e.id, label: shortQuestion(e.answer.question) }))], [entries]);
   const deck = useSceneDeck(scenes, "ask");
+  useEffect(() => {
+    if (pendingAnswer.current && scenes.some(scene => scene.id === pendingAnswer.current)) {
+      deck.go(pendingAnswer.current);
+      pendingAnswer.current = null;
+    }
+  }, [scenes, deck]);
 
   // ---------------------------------------------------------------- speech out (only when the live agent is not talking)
   const stopSpeech = () => {
@@ -103,6 +95,13 @@ export function ExploreWorkspace({ user }: { user: SessionUser }) {
   };
   useEffect(() => stopSpeech, []);
   useEffect(() => {
+    const next = pendingNarration.current;
+    if (next && next.id === deck.id) {
+      pendingNarration.current = null;
+      speakAnswer(next.id, next.answer);
+    }
+  }, [deck.id]);
+  useEffect(() => {
     // leaving the answer that is being read (or the agent taking over) cuts the narration
     if (deck.id !== narratedFor.current || voice.connected) stopSpeech();
   }, [deck.id, voice.connected]);
@@ -115,10 +114,7 @@ export function ExploreWorkspace({ user }: { user: SessionUser }) {
     if (voice.connected) stopMic();
   }, [voice.connected]);
 
-  // ---------------------------------------------------------------- the visible flow: prompt -> theatre -> scene
-  const patch = (key: string, p: Partial<Step>) => setTheatre((t) => t && { ...t, steps: t.steps.map((s) => (s.key === key ? { ...s, ...p } : s)) });
-  const pace = (ms: number) => sleep(reduced ? Math.min(ms, 120) : ms);
-
+  // A question resolves directly to the SQL-backed answer.
   async function ask(raw: string, via: "ui" | "voice"): Promise<Entry | null> {
     const q = raw.trim().slice(0, 500);
     if (!q) return null;
@@ -138,67 +134,17 @@ export function ExploreWorkspace({ user }: { user: SessionUser }) {
     setError("");
     lastError.current = "";
 
-    const geminiOn = !!health?.providers?.gemini;
-    const geminiOff = health !== null && !geminiOn;
-    const tigerOn = health?.database_kind === "tiger-cloud";
-    setTheatre({
-      question: q,
-      exiting: false,
-      steps: [
-        { key: "route", agent: "Orchestrator", task: "picking one of the six fixed cohort queries", sponsor: "gemini", live: geminiOn, status: "running" },
-        { key: "query", agent: "Evidence", task: "computing the groups in the database, no model-written SQL", sponsor: "tiger", live: tigerOn, status: "pending" },
-        { key: "chart", agent: "Visualizer", task: "choosing the chart and the one-line takeaway", sponsor: "model", live: true, status: "pending" },
-      ],
-    });
-
     try {
       const call = await api<CohortAnswer>("/explore", { question: q });
       const a = call.data;
-      const routed = a.router === "gemini";
-      // The API answers in one round trip, so the steps below light up as their results become known. `ms` is that whole
-      // round trip on the query step; the route step shows how long it waited (the client-side timer).
-      patch("route", {
-        status: routed || geminiOff ? "done" : "warn",
-        live: routed,
-        result: routed ? `the router chose the “${a.topic}” query` : geminiOff ? `keyword router chose “${a.topic}” (the AI router isn't configured)` : `the router returned no answer, so the keyword fallback chose “${a.topic}”`,
-      });
-      await pace(360);
-      patch("query", { status: "running" });
-      await pace(300);
-      const total = a.rows.reduce((s, r) => s + r.n, 0);
-      patch("query", { status: "done", result: `${a.rows.length} ${a.rows.length === 1 ? "group" : "groups"} · ${fmtN(total)} alumni`, tr: a.tool_result_id, ms: Math.round(call.ms) });
-      patch("chart", { status: "running" });
-      const t0 = performance.now();
-      const reading = read(a);
-      const readMs = Math.max(1, Math.round(performance.now() - t0));
-      const ok = a.narration.provenance?.ok !== false;
-      await pace(300);
-      patch("chart", {
-        status: ok && reading.kind !== "refusal" && reading.kind !== "empty" ? "done" : "warn",
-        result: `${KIND_LABEL[reading.kind]}${reading.small.length ? ` · ${reading.small.length} small ${reading.small.length === 1 ? "group" : "groups"} greyed` : ""}${ok ? "" : " · narration failed its provenance check, using the query description"}`,
-        ms: readMs,
-      });
-
       const entry: Entry = { id: `a${++seq.current}`, answer: a };
+      pendingAnswer.current = entry.id;
       updateEntries((old) => [...old, entry].slice(-MAX_ENTRIES));
-      await pace(700);
-      setTheatre((t) => t && { ...t, exiting: true });
-      await new Promise<void>((resolve) => {
-        exited.current = resolve;
-        setTimeout(resolve, 4500); // a hidden tab may never finish the exit animation
-      });
-      exited.current = null;
-      // the new scene has been in the deck since the chart step; this only retries if that render is somehow still pending
-      for (let i = 0; i < 6 && !deck.go(entry.id); i++) await sleep(60);
-      setTheatre(null);
       setDraft("");
-      if (via === "ui" && narrateRef.current) speakAnswer(entry.id, a);
+      if (via === "ui" && narrateRef.current) pendingNarration.current = { id: entry.id, answer: a };
       return entry;
     } catch (e) {
       const msg = e instanceof Error && e.message ? e.message : "Could not reach the cohort API.";
-      setTheatre((t) => t && { ...t, steps: t.steps.map((s) => (s.status === "running" ? { ...s, status: "error", result: msg } : s.status === "pending" ? { ...s, status: "error", result: "not reached" } : s)) });
-      await sleep(1800);
-      setTheatre(null);
       setError(msg);
       lastError.current = msg;
       setDraft(q);
@@ -254,30 +200,6 @@ export function ExploreWorkspace({ user }: { user: SessionUser }) {
   useEffect(() => {
     if (currentHistory().length === 0 && window.matchMedia("(pointer: fine)").matches) promptRef.current?.focus();
   }, []);
-
-  // ---------------------------------------------------------------- the orb follows whoever is listening
-  useEffect(() => {
-    if (!voice.connected) return;
-    const id = window.setInterval(() => {
-      const l = levelsRef.current();
-      setRawLevel(Math.max(l.input, l.output));
-    }, 100);
-    return () => window.clearInterval(id);
-  }, [voice.connected]);
-  const level = voice.connected ? rawLevel : 0;
-  const orbState: OrbState = listening
-    ? "listening"
-    : voice.connected
-      ? voice.state === "speaking"
-        ? "composing"
-        : voice.state === "thinking"
-          ? "working"
-          : voice.state === "connecting"
-            ? "connecting"
-            : "listening"
-      : draft.trim()
-        ? "composing"
-        : "breathing";
 
   // ---------------------------------------------------------------- what the voice agent can do here
   const at = deck.index; // 0 is the prompt, 1.. are answers
@@ -362,7 +284,6 @@ export function ExploreWorkspace({ user }: { user: SessionUser }) {
           {...promptProps}
           onPick={(q) => void ask(q, "ui")}
           inputRef={promptRef}
-          orb={{ state: orbState, level }}
           voiceLive={voice.connected}
           answered={entries.map((e) => e.answer.question)}
           count={entries.length}
@@ -378,12 +299,12 @@ export function ExploreWorkspace({ user }: { user: SessionUser }) {
     }
     const e = entries.find((x) => x.id === id);
     if (!e) return null;
-    return <AnswerScene answer={e.answer} idea={idea} onIdea={(q) => void ask(q, "ui")} narration={{ available: !voice.connected, speaking, onSpeak: () => speakAnswer(e.id, e.answer), onStop: stopSpeech }} />;
+    return <CohortAnswerView answer={e.answer} idea={idea} onIdea={(q) => void ask(q, "ui")} narration={{ available: !voice.connected, speaking, onSpeak: () => speakAnswer(e.id, e.answer), onStop: stopSpeech }} />;
   };
 
   return (
     <>
-      <AppChrome user={user} active="explore" heat={0.35}>
+      <AppChrome user={user} active="explore" heat={0}>
         {entries.length > 0 && <Filmstrip scenes={deck.scenes} index={deck.index} onGo={deck.go} />}
         <SceneDeck deck={deck} render={renderScene} className={styles.deck} />
         {deck.id !== "ask" && (
@@ -400,20 +321,6 @@ export function ExploreWorkspace({ user }: { user: SessionUser }) {
         )}
       </AppChrome>
 
-      <AnimatePresence>
-        {theatre && (
-          <motion.div key="theatre" className="fixed inset-0 z-[60]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.55, delay: 0.15 } }} transition={{ duration: 0.4 }}>
-            <ProcessingTheatre
-              steps={theatre.steps}
-              title="Asking the cohort"
-              subtitle={`“${theatre.question.length > 90 ? `${theatre.question.slice(0, 89).trimEnd()}…` : theatre.question}”`}
-              voiceLevel={level}
-              exiting={theatre.exiting}
-              onExited={() => exited.current?.()}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }

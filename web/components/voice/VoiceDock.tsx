@@ -207,16 +207,16 @@ export function VoiceDock({ preview }: { /** Dev harness only: render a state st
                 }
               }}
               onClick={(e) => e.preventDefault()}
-              className="relative grid size-[56px] touch-none select-none place-items-center rounded-full outline-none transition-[box-shadow,opacity] focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-40 sm:size-[64px]"
+              className="relative grid size-[64px] touch-none select-none place-items-center rounded-full outline-none transition-[box-shadow,opacity] focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-40 sm:size-[76px]"
               style={{
                 background: "radial-gradient(circle at 50% 36%, rgba(246,180,26,0.30), rgba(10,8,5,0.94) 74%)",
                 border: `1px solid ${state === "error" ? "rgba(255,74,61,0.55)" : "rgba(246,180,26,0.5)"}`,
-                boxShadow: "0 0 calc(10px + var(--lvl, 0) * 42px) rgba(246,180,26, calc(0.2 + var(--lvl, 0) * 0.5))",
+                boxShadow: "0 0 calc(14px + var(--lvl, 0) * 46px) rgba(246,180,26, calc(0.3 + var(--lvl, 0) * 0.5))",
                 transform: "scale(calc(1 + var(--lvl, 0) * 0.1))",
                 opacity: muted ? 0.62 : 1,
               }}
             >
-              <span className="pointer-events-none grid place-items-center max-sm:[&_canvas]:!size-[52px]">
+              <span className="pointer-events-none grid place-items-center [&_canvas]:!size-[58px] sm:[&_canvas]:!size-[68px]">
                 <VoiceOrb state={state} />
               </span>
             </button>

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { routeToScene } from "@/components/agent/explore/sceneRoutes";
 import { AppChrome } from "@/components/scenes";
-import { GoldOrb } from "@/components/theatre";
 import { fromApi, fromLocal, levelOf, type AlarmsPayload, type QueuePayload, type Snapshot } from "@/components/queue/model";
 import { Watchtower } from "@/components/queue/Watchtower";
 import { loadDataset } from "@/lib/data";
@@ -76,15 +75,14 @@ export function Queue({ user, canSeeRows }: { user: SessionUser; canSeeRows: boo
   });
 
   return (
-    <AppChrome user={user} active="advisor" heat={snap && snap.atRisk > 0 ? 0.3 : 0}>
+    <AppChrome user={user} active="advisor" heat={0}>
       {snap ? (
         <Watchtower snap={snap} canSeeRows={canSeeRows} staff={staff} onStaff={setStaffWanted} />
       ) : (
         <div className="grid flex-1 place-items-center px-6 text-center" role="status">
           <div className="flex flex-col items-center gap-4">
-            <GoldOrb state={failed ? "breathing" : "searching"} size={110} paused={failed} aria-label="Watchtower scoring" />
-            <div className="display text-3xl font-extrabold text-cream">{failed ? "No data to score" : "Scoring every current student"}</div>
-            <p className="serif max-w-sm text-lg text-muted">{failed ? "Neither the API nor the local dataset could be read." : "The Watchtower is running the trained model over the current cohort."}</p>
+            <div className="display text-2xl font-semibold text-cream">{failed ? "No data to score" : "Scoring every current student"}</div>
+            <p className="max-w-sm text-sm leading-relaxed text-muted">{failed ? "Neither the API nor the local dataset could be read." : "The Watchtower is running the trained model over the current cohort."}</p>
           </div>
         </div>
       )}

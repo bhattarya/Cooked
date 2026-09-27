@@ -3,7 +3,6 @@
 import { useAdvisorSession } from "./agent/AdvisorSession";
 import { careersInput } from "./agent/scenes/model";
 import { routeToScene } from "./agent/explore/sceneRoutes";
-import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AppChrome, SceneDeck, useSceneDeck } from "@/components/scenes";
@@ -25,7 +24,7 @@ import { screenContext, sceneSentence, type LabScene, type LabView } from "./lab
 
 const SCENES: { id: LabScene; label: string }[] = [
   { id: "lab", label: "Shape a future" },
-  { id: "constellation", label: "Constellation" },
+  { id: "constellation", label: "Trajectory" },
   { id: "arena", label: "Arena" },
   { id: "cards", label: "Model cards" },
 ];
@@ -108,7 +107,7 @@ export function ModelLab({ user }: { user: SessionUser }) {
         const on = s.id === deck.id;
         return (
           <button key={s.id} type="button" onClick={() => deck.go(i)} aria-current={on ? "step" : undefined} className={`num relative rounded-full px-2.5 py-1 text-[10.5px] uppercase tracking-[0.12em] transition focus-visible:outline focus-visible:outline-1 focus-visible:outline-gold ${on ? "text-gold" : "text-dim hover:text-muted"}`}>
-            {on && <motion.span layoutId="lab-tab" className="absolute inset-x-2.5 -bottom-px h-px bg-gold" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
+            {on && <span className="absolute inset-x-2.5 -bottom-px h-px bg-gold" />}
             {s.label}
           </button>
         );
@@ -117,7 +116,7 @@ export function ModelLab({ user }: { user: SessionUser }) {
   );
 
   return (
-    <AppChrome user={user} active="lab" heat={sim.result?.risk ?? 0} right={tabs}>
+    <AppChrome user={user} active="lab" heat={0} right={tabs}>
       {auditInput && <p className="px-6 py-2 text-xs text-muted">Based on your audit · scenario changes are exploratory. Assumed: {auditInput.assumed.join(", ") || "none"}.{auditInput.clamped.length ? ` Limited to training range: ${auditInput.clamped.join(", ")}.` : ""}</p>}
       <SceneDeck
         deck={deck}

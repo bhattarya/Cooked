@@ -31,12 +31,10 @@ export function Home({ ds: _ds, live: _live, name: _name, error, hasJourney, onF
           <div className="home-kicker"><span className="home-kicker-dot" /> Personal degree intelligence</div>
           <h1 className="home-title mt-6">Your degree,<span>decoded.</span></h1>
           <p className="home-lede mt-6 max-w-xl">Upload the audit you already have. COOKED turns the fine print into a clear path, a little less panic, and one very opinionated next move.</p>
-          <div className="mt-8 flex flex-wrap gap-3"><div className="home-stat"><strong>01</strong><span>audit in</span></div><div className="home-stat"><strong>∞</strong><span>questions out</span></div><div className="home-stat"><strong>24/7</strong><span>voice ready</span></div></div>
           {hasJourney && <button onClick={onResume} className="home-resume mt-9">Continue your active plan <span>↗</span></button>}
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 30, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .75, delay: .12, ease: [.22, 1, .36, 1] }} className="relative">
-          <div className="home-float-chip home-float-chip-top"><span className="home-live-dot" /> Reader online</div>
           <div className={`upload-card ${over ? "upload-card-over" : ""}`} onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={drop}>
             <div className="upload-card-head"><span>Start here</span><b>01 / 03</b></div>
             <div className="upload-icon-wrap" aria-hidden><div className="upload-icon">↑</div></div>
@@ -46,9 +44,19 @@ export function Home({ ds: _ds, live: _live, name: _name, error, hasJourney, onF
             <button type="button" disabled={loadingFile} onClick={() => input.current?.click()} className="upload-button"><span>{loadingFile ? "Reading your audit…" : "Choose degree audit"}</span><span aria-hidden>↗</span></button>
             <div className="upload-foot"><span>Private by default</span><span>Up to 8 MB</span><span>PDFs welcome</span></div>
           </div>
+          {/* Quiet, always-available fallback: no audit on hand, or the demo needs a guaranteed-working path.
+              Real synthetic students, checked against the trained model — same pipeline as a real upload. */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-center text-[13px] text-muted">
+            <span className="text-dim">No audit on hand?</span>
+            {SAMPLES.map((s) => (
+              <button key={s.id} onClick={() => onSample(s.id)} className="underline decoration-line-2 underline-offset-4 transition hover:text-text hover:decoration-gold/60">
+                {s.label}
+              </button>
+            ))}
+          </div>
         </motion.div>
 
-        {error && <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="home-error lg:col-start-2"><span className="home-error-mark">!</span><div><strong>That upload needs another look.</strong><p>{error}</p><button onClick={() => onSample(SAMPLES[0].id)}>Try Alex Chen’s sample plan →</button></div></motion.div>}
+        {error && <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="home-error lg:col-start-2"><span className="home-error-mark">!</span><div><strong>That upload needs another look.</strong><p>{error}</p><button onClick={() => onSample(SAMPLES[0].id)}>Try a sample plan →</button></div></motion.div>}
       </div>
     </section>
   );

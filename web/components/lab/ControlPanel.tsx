@@ -51,13 +51,13 @@ export function ControlPanel({ sim }: { sim: LabSim }) {
   const { scenario: s, set, result } = sim;
   const eff = result?.effective;
   return (
-    <aside aria-label="Scenario controls" className="panel relative flex min-h-0 flex-col gap-[clamp(12px,2.2vh,26px)] overflow-hidden p-3.5 lg:overflow-y-auto">
+    <aside aria-label="Scenario controls" className="rounded-xl border border-line bg-panel flex min-h-0 flex-col gap-5 overflow-hidden p-4 lg:overflow-y-auto">
       <header>
-        <div className="label !text-gold">The control room</div>
-        <h2 className="display mt-1.5 text-[34px] font-extrabold leading-[0.92] sm:text-[38px]">
-          Shape a <span className="text-gold-grad">future</span>
+        <div className="label !text-gold">Scenario</div>
+        <h2 className="display mt-1.5 text-2xl font-bold">
+          Shape a future
         </h2>
-        <p className="serif mt-1 text-[15px] leading-tight text-muted">Drag anything. Four models answer.</p>
+        <p className="mt-2 text-xs leading-relaxed text-muted">Adjust a scenario or tell the voice agent what to change. Each update scores all four trained tasks.</p>
       </header>
 
       <div className="grid gap-1.5">
@@ -90,7 +90,7 @@ export function ControlPanel({ sim }: { sim: LabSim }) {
         />
       </div>
 
-      <div className="grid grid-cols-6 gap-x-4 gap-y-[clamp(14px,3.6vh,38px)]">
+      <div className="grid grid-cols-6 gap-x-4 gap-y-5">
         <FieldSlider field="completed_terms" sim={sim} className="col-span-3" />
         <FieldSlider field="credits_per_term" sim={sim} className="col-span-3" />
         <FieldSlider field="work_hours" sim={sim} className="col-span-3" />

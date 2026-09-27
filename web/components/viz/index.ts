@@ -1,5 +1,6 @@
 // Chart library. Import from "@/components/viz".
 export * from "./Donut";
+export * from "./RiskMeter";
 export * from "./Bars";
 export * from "./LineChart";
 export * from "./Scatter";

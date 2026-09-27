@@ -1,7 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
-import { Bars, CountUp, Donut, LineChart, int, viz, type BarItem, type DonutSlice } from "@/components/viz";
+import { Bars, Donut, LineChart, int, viz, type BarItem, type DonutSlice } from "@/components/viz";
 import { MIN_N, fmtN, fmtValue, type CohortAnswer, type Reading } from "./model";
 
 // Bars' vertical plot area starts 42px in and stops 8px short of the right edge; the n strip below lines up with those margins.
@@ -19,7 +18,7 @@ const axisFmt = (unit: CohortAnswer["unit"]) => (v: number) => (unit === "years"
 export function AnswerChart({ a, r, height }: { a: CohortAnswer; r: Reading; height: number }) {
   switch (r.kind) {
     case "bars":
-      return r.rows.length === 2 ? <CohortDuel a={a} r={r} /> : <CohortBars a={a} r={r} height={height} />;
+      return <CohortBars a={a} r={r} height={height} />;
     case "line":
       return <CohortLine a={a} r={r} height={height} />;
     case "donut":
@@ -73,32 +72,6 @@ function CohortBars({ a, r, height }: { a: CohortAnswer; r: Reading; height: num
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-/** Exactly two groups: two big numbers on zero-based bars, so the size of the gap reads honestly. */
-function CohortDuel({ a, r }: { a: CohortAnswer; r: Reading }) {
-  const reduced = !!useReducedMotion();
-  const max = Math.max(...r.rows.map((x) => x.value ?? 0)) || 1;
-  const fmt = (v: number) => fmtValue(v, a.unit);
-  return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-8 sm:gap-10">
-      {r.rows.map((x, i) => (
-        <div key={x.label}>
-          <div className="flex items-end justify-between gap-4">
-            <div className="min-w-0">
-              <div className="truncate text-[15px] text-cream sm:text-lg">{x.label}</div>
-              <div className="num text-[11.5px] text-muted">{fmtN(x.n)}</div>
-            </div>
-            <CountUp value={x.value ?? 0} format={fmt} className="display shrink-0 text-6xl font-black leading-[0.85] text-cream sm:text-7xl xl:text-8xl" />
-          </div>
-          <div className="mt-3 h-4 overflow-hidden rounded-full bg-white/[0.05] sm:h-5" role="img" aria-label={`${x.label}: ${fmt(x.value ?? 0)}, ${fmtN(x.n)}`}>
-            <motion.div className="h-full rounded-full bg-gradient-to-r from-gold-lo to-gold" style={{ boxShadow: "0 0 24px rgba(246,180,26,0.35)" }} initial={reduced ? false : { width: 0 }} animate={{ width: `${((x.value ?? 0) / max) * 100}%` }} transition={{ duration: 1, delay: 0.15 + i * 0.12, ease: [0.16, 1, 0.3, 1] }} />
-          </div>
-        </div>
-      ))}
-      <p className="num text-[10.5px] uppercase tracking-[0.12em] text-dim">bars start at zero</p>
     </div>
   );
 }

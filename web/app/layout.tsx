@@ -8,10 +8,10 @@ import "./globals.css";
 //   sans     Geist          — clean UI/body text
 //   mono     Geist Mono     — every number, tabular
 //   serif    Instrument Serif italic — the occasional editorial line
-const display = Big_Shoulders({ variable: "--f-display", subsets: ["latin"], display: "swap" });
-const sans = Geist({ variable: "--f-sans", subsets: ["latin"], display: "swap" });
-const mono = Geist_Mono({ variable: "--f-mono", subsets: ["latin"], display: "swap" });
-const serif = Instrument_Serif({ variable: "--f-serif", subsets: ["latin"], weight: "400", style: ["normal", "italic"], display: "swap" });
+const display = Big_Shoulders({ variable: "--f-display", subsets: ["latin"], display: "swap", fallback: ["impact", "sans-serif"] });
+const sans = Geist({ variable: "--f-sans", subsets: ["latin"], display: "swap", fallback: ["system-ui", "sans-serif"] });
+const mono = Geist_Mono({ variable: "--f-mono", subsets: ["latin"], display: "swap", fallback: ["monospace"] });
+const serif = Instrument_Serif({ variable: "--f-serif", subsets: ["latin"], weight: "400", style: ["normal", "italic"], display: "swap", fallback: ["georgia", "serif"] });
 
 export const metadata: Metadata = {
   title: "COOKED — know before it's too late",

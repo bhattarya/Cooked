@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { RiskRing, Stat, patternColor, riskTone } from "@/components/viz";
+import { RiskMeter, Stat, patternColor, riskTone } from "@/components/viz";
 import { Chip, Provenance } from "@/components/scenes";
 import type { SponsorLive } from "../Sponsors";
 import { riskTakeaway } from "./copy";
@@ -61,13 +61,15 @@ export function RiskScene({ j, live, canHear, onHear, onAsk, onNext }: { j: Jour
         </motion.div>
       </header>
 
-      <div className="relative order-first min-h-[300px] min-w-0 lg:order-none lg:h-full lg:max-h-[min(640px,100%)] lg:min-h-0">
+      {/* RiskMeter (number + label + n) renders taller than the old needle gauge did; the single-column
+          reserved height needs to clear it or the header row below starts overlapping it. */}
+      <div className="relative order-first min-h-[420px] min-w-0 lg:order-none lg:h-full lg:max-h-[min(640px,100%)] lg:min-h-0">
         <Stage>
           {(box) => {
             const ring = box.desk ? Math.max(220, Math.min(box.w, box.h - 108, 540)) : Math.min(box.w, 270);
             return (
               <div className="flex h-full flex-col items-center justify-center gap-4">
-                <RiskRing value={risk} size={ring} label="model risk of getting cooked" n={st.time_to_degree.support} />
+                <RiskMeter value={risk} size={ring} label="model risk of getting cooked" n={st.time_to_degree.support} />
                 <div className="grid w-full max-w-[34rem] grid-cols-3 divide-x divide-line border-t border-line pt-3">
                   <div className="px-3 first:pl-0">
                     {share !== null ? (

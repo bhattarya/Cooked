@@ -5,14 +5,13 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { finishRedirect, signInWithGoogle } from "@/lib/auth";
 import type { SignInMethod } from "@/lib/session";
 import { Flame } from "./brand";
-import { AskLine } from "./landing/AskLine";
-import { Embers } from "./landing/Embers";
 import { EmblemStage } from "./landing/EmblemStage";
 import { line, rise, stagger, fade } from "./landing/motion";
 import { usePrefersReducedMotion } from "./landing/prefs";
 import { SignIn } from "./landing/SignIn";
 import { SponsorStrip } from "./landing/SponsorStrip";
 import { Stats } from "./landing/Stats";
+import { VoiceInvite } from "./landing/VoiceInvite";
 import styles from "./landing/landing.module.css";
 
 const ERRORS: Record<string, string> = {
@@ -124,8 +123,6 @@ export function Landing({ method, signedIn, error }: { method: SignInMethod; sig
           <div className="absolute inset-0" style={{ background: "radial-gradient(120% 90% at 50% 45%, transparent 52%, rgba(0,0,0,0.62) 100%)" }} />
         </div>
 
-        {!reduced && <Embers anchor={emblemBox} leaving={leaving} />}
-
         <motion.header variants={stagger(0.9)} className={`${FRAME} relative z-30 flex items-center justify-between pt-4 xl:pt-7`}>
           <motion.span variants={fade} className="flex items-center gap-2.5 text-[11px] uppercase tracking-[0.22em] text-muted">
             <Flame size={22} />
@@ -167,7 +164,7 @@ export function Landing({ method, signedIn, error }: { method: SignInMethod; sig
 
           <motion.div variants={stagger(1.15, 0.1)} className="relative z-30 w-full xl:order-3 xl:max-w-[400px] xl:justify-self-start">
             <motion.div variants={rise} onPointerMove={spotlight} className={`${styles.door} mx-auto w-full max-w-[420px] p-4 sm:p-6 xl:mx-0 xl:max-w-none`}>
-              <AskLine reduced={reduced} />
+              <VoiceInvite />
               <div className="my-4 h-px bg-gradient-to-r sm:my-5 from-transparent via-line-2 to-transparent" />
               <SignIn method={method} signedIn={signedIn} busy={busy} problem={problem} onGoogle={google} onGuest={() => go("/auth/guest", true)} onContinue={() => go("/app")} />
             </motion.div>

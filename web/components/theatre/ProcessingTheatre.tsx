@@ -250,7 +250,7 @@ export function ProcessingTheatre({ steps, title, subtitle, voiceLevel = 0, exit
   const root = useRef<HTMLDivElement>(null);
   const { w, h } = useElementSize(root);
   const reduced = !!useReducedMotion();
-  const layout = useMemo(() => (w && h ? computeLayout(w, h, steps.length, { title, subtitle }) : null), [w, h, steps.length, title, subtitle]);
+  const layout = useMemo(() => (w && h ? computeLayout(w, h, steps.length) : null), [w, h, steps.length]);
 
   // one flash per completion: remember what each step looked like last render and compare
   const [seen, setSeen] = useState(() => statusMap(steps));

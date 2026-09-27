@@ -1,6 +1,6 @@
 "use client";
 
-import { Bars, Dumbbell, RiskRing, type BarItem, type DumbbellItem } from "@/components/viz";
+import { Bars, Dumbbell, RiskMeter, type BarItem, type DumbbellItem } from "@/components/viz";
 import { Chip, Provenance, SceneFrame } from "@/components/scenes";
 import type { Answer } from "@/lib/agentApi";
 import type { SponsorLive } from "../Sponsors";
@@ -26,7 +26,7 @@ export function RepairStage({ j, r, box, onAskAbout }: { j: Journey; r: RepairFu
       <Honest title={reading.kind === "nothing" ? "nothing to repair" : "COOKED refuses to prescribe"} tone={reading.kind === "nothing" ? "cool" : "hot"}>
         <div className="flex flex-wrap items-center gap-6">
           <div className="w-[210px] shrink-0">
-            <RiskRing value={risk} size={210} label="model risk" showNeedle={false} />
+            <RiskMeter value={risk} size={210} label="model risk" />
           </div>
           <div className="min-w-0 flex-1">
             {reading.kind === "nothing" ? (

@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useEffect, useState, type RefObject } from "react";
 import cutout from "./emblem-cutout.webp";
 import { EXPO } from "./motion";
-import { Rings } from "./Rings";
 import styles from "./landing.module.css";
 
 // Where the flames sit inside the emblem artwork, as a share of its width and height.
@@ -15,8 +14,6 @@ const FLAMES = [
   { left: 19, top: 38, w: 16, h: 24, dur: 2.3, delay: -1.4 },
   { left: 65, top: 30, w: 16, h: 24, dur: 3.4, delay: -0.4 },
 ];
-
-const ALPHA_MASK = `url(${cutout.src})`;
 
 /**
  * The centrepiece. Layers, back to front: hairline rings, a breathing gold bloom, the emblem
@@ -62,8 +59,6 @@ export function EmblemStage({
 
   return (
     <div ref={boxRef} className={`relative ${className}`}>
-      <Rings sx={sx} sy={sy} />
-
       <motion.div
         aria-hidden
         className="pointer-events-none absolute -inset-[20%]"
@@ -88,7 +83,6 @@ export function EmblemStage({
               {FLAMES.map((f, i) => (
                 <span key={i} aria-hidden className={styles.flame} style={{ left: `${f.left}%`, top: `${f.top}%`, width: `${f.w}%`, height: `${f.h}%`, animationDuration: `${f.dur}s`, animationDelay: `${f.delay}s` }} />
               ))}
-              <span aria-hidden className={styles.glint} style={{ WebkitMaskImage: ALPHA_MASK, maskImage: ALPHA_MASK, WebkitMaskSize: "100% 100%", maskSize: "100% 100%" }} />
             </motion.div>
           </div>
         </motion.div>

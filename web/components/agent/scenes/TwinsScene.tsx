@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Bars, Donut, Scatter, type BarItem, type ScatterGroup, type ScatterPoint } from "@/components/viz";
+import { Bars, Donut, Stat, riskTone, type BarItem } from "@/components/viz";
 import { Chip, Provenance, SceneFrame } from "@/components/scenes";
 import type { Dataset } from "@/lib/types";
 import type { SponsorLive } from "../Sponsors";
@@ -9,32 +9,10 @@ import { twinsTakeaway } from "./copy";
 import { Action, Honest, Sponsors, Stage, fit } from "./kit";
 import { pct, type Journey, type TwinFacts } from "./model";
 
-const GROUPS: ScatterGroup[] = [
-  { key: "rest", label: "Other alumni", color: "var(--dim)" },
-  { key: "twin-ok", label: "Twins who finished on time", color: "var(--cool)" },
-  { key: "twin-bad", label: "Twins who got cooked", color: "var(--hot)" },
-];
-
-/** Scene 3: the twins. Every alumnus as a dot, your matched twins lit up, and what became of them. */
-export function TwinsScene({ j, tw, ds, live, onNext }: { j: Journey; tw: TwinFacts | null; ds: Dataset | null; live: SponsorLive; onNext: () => void }) {
+/** Scene 3: the twins. The real share who got cooked as the headline, with a clean breakdown of what became of them. */
+export function TwinsScene({ j, tw, ds: _ds, live, onNext }: { j: Journey; tw: TwinFacts | null; ds: Dataset | null; live: SponsorLive; onNext: () => void }) {
   const { st } = j;
   const { twins } = st;
-  const k = st.terms.length;
-
-  // x: credits attempted per term over the same window the twins were matched on; y: what actually happened
-  const points = useMemo<ScatterPoint[] | null>(() => {
-    if (!ds || twins.refused || !k) return null;
-    const ids = new Set(twins.ids);
-    const out: ScatterPoint[] = [];
-    for (const a of ds.alumni) {
-      const n = Math.min(k, a.terms.length);
-      if (!n) continue;
-      let s = 0;
-      for (let i = 0; i < n; i++) s += a.terms[i][0];
-      out.push({ x: Math.round((s / n) * 100) / 100, y: a.ttd, group: ids.has(a.id) ? (a.cooked ? "twin-bad" : "twin-ok") : "rest", id: a.id });
-    }
-    return out;
-  }, [ds, twins.refused, twins.ids, k]);
 
   const dest = useMemo<BarItem[]>(() => {
     if (!tw || !tw.reported) return [];
@@ -100,25 +78,17 @@ export function TwinsScene({ j, tw, ds, live, onNext }: { j: Journey; tw: TwinFa
               </Honest>
             );
           }
-          if (!points || !tw) return <Honest title="loading the alumni">Placing 3,200 synthetic alumni and your {twins.n} twins.</Honest>;
+          if (!tw) return <Honest title="loading the alumni">Matching your {twins.n} twins and totting up what happened to them.</Honest>;
           const wide = box.desk && box.w >= 640;
-          const H = box.desk ? box.h : 0;
+          const cookedShare = share ?? tw.cooked / tw.n;
           return (
-            <div className={`grid h-full min-h-0 gap-4 ${wide ? "grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]" : "grid-cols-1"}`}>
-              <div className="min-h-0 min-w-0">
-                <div className="label mb-1">every alumnus · credits per term against years to degree</div>
-                <Scatter
-                  points={points}
-                  groups={GROUPS}
-                  you={{ x: st.avg_credits.value, y: st.time_to_degree.mid, label: "You" }}
-                  xLabel="credits per term"
-                  yLabel="years to degree"
-                  xFormat={(v) => String(Math.round(v))}
-                  yFormat={(v) => String(Math.round(v * 10) / 10)}
-                  height={box.desk ? Math.max(260, H - 92) : 300}
-                  tooltip={(p, g) => ({ title: p.id ?? "alumnus", rows: [{ label: "credits per term", value: p.x.toFixed(1) }, { label: "years to degree", value: p.y.toFixed(1), strong: true }], note: g.label })}
-                  label={`${points.length} alumni plotted; your ${twins.n} twins are highlighted, ${tw.cooked} of them got cooked.`}
-                />
+            <div className={`grid h-full min-h-0 gap-5 ${wide ? "grid-cols-[minmax(0,17rem)_minmax(0,1fr)]" : "grid-cols-1"}`}>
+              <div className="flex min-h-0 flex-col justify-center gap-1">
+                <div className="label">of {twins.n} matched twins</div>
+                <Stat label="" value={cookedShare * 100} format={(v) => `${Math.round(v)}%`} unit="cooked" size="hero" tone={riskTone(cookedShare)} />
+                <p className="text-[12.5px] leading-snug text-muted">
+                  <span className="num text-text">{tw.cooked}</span> of {tw.n} twins got cooked; <span className="num text-text">{tw.onTime}</span> finished on time.
+                </p>
               </div>
               <div className="flex min-h-0 min-w-0 flex-col gap-3">
                 <div>
@@ -128,12 +98,12 @@ export function TwinsScene({ j, tw, ds, live, onNext }: { j: Journey; tw: TwinFa
                       { label: "Finished on time", value: tw.onTime, color: "var(--cool)", n: tw.onTime },
                       { label: "Got cooked", value: tw.cooked, color: "var(--hot)", n: tw.cooked },
                     ]}
-                    centerValue={(share ?? tw.cooked / tw.n) * 100}
+                    centerValue={cookedShare * 100}
                     centerFormat={(v) => `${Math.round(v)}%`}
                     centerLabel="got cooked"
                     labels="none"
                     unit="twins"
-                    height={fit(box, 0.34, 150, 200, 190)}
+                    height={fit(box, 0.3, 140, 180, 170)}
                     thickness={0.24}
                   />
                 </div>
