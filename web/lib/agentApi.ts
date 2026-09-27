@@ -1,6 +1,7 @@
 "use client";
 
 // Typed calls for the voice agent. Every number in these responses carries a tool_result_id.
+import type { ArenaReport, ModelLabScenario, SimulateResponse } from "./arena-types";
 import { authHeaders } from "./auth";
 import { api, type Call, type ServerDrill, type ServerNarration, type ServerRepair, type ServerState } from "./live";
 
@@ -78,8 +79,11 @@ export const getState = (id: string, work?: number, plan?: number) =>
   );
 export const runDrill = (id: string, load?: number, work?: number) => api<ServerDrill>("/drill", { campus_id: id, plan_load: load, work_hours: work });
 export const findRepair = (id: string, work?: number) => api<ServerRepair>("/repair", { campus_id: id, work_hours: work });
-export const narrate = (kind: "alarm" | "drill" | "repair", id: string, work?: number, wait = true) =>
-  api<ServerNarration>("/narrate", { kind, campus_id: id, work_hours: work, wait });
+export const narrate = (kind: "alarm" | "drill" | "repair", id: string, work?: number, wait = true, plan?: number) =>
+  api<ServerNarration>("/narrate", { kind, campus_id: id, work_hours: work, plan_load: plan, wait });
 export const alarmCheck = (id: string) => api<{ id: number | null; fires: boolean; decision: string; tool_result_id: string }>(`/students/${id}/alarm/check`, {});
 export const remember = (id: string, note: string) => api<{ stored: "backboard" | "local" }>(`/students/${id}/memory`, { kind: "decision", note });
 export const getMyths = () => api<Myths>("/myths");
+// The careers scene scores the student's own record as a Model Lab scenario and reads how far to trust each model.
+export const simulateScenario = (scenario: ModelLabScenario) => api<SimulateResponse>("/model-lab/simulate", scenario);
+export const getArena = () => api<ArenaReport>("/model-lab/arena");

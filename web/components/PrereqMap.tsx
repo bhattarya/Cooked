@@ -6,10 +6,10 @@ import { majorSubject, NEXT_TERM } from "@/lib/engine";
 import type { Course } from "@/lib/types";
 
 type NodeState = "done" | "inferred" | "ip" | "open" | "blocked";
-const COLORS: Record<NodeState, string> = { done: "#2dd4bf", inferred: "#2dd4bf", ip: "#ffb020", open: "#eef0f5", blocked: "#555a68" };
+const COLORS: Record<NodeState, string> = { done: "var(--cool)", inferred: "var(--cool)", ip: "var(--gold)", open: "var(--cream)", blocked: "var(--dim)" };
 
 // Layered prerequisite graph for one major, lit up by what the student has done.
-export function PrereqMap({ catalog, major, done, ip, picks = [] }: { catalog: Course[]; major: string; done: string[]; ip: string[]; picks?: string[] }) {
+export function PrereqMap({ catalog, major, done, ip, picks = [], maxHeight }: { catalog: Course[]; major: string; done: string[]; ip: string[]; picks?: string[]; maxHeight?: number }) {
   const [hover, setHover] = useState<string | null>(null);
   const { nodes, edges, W, H } = useMemo(() => {
     const byId = new Map(catalog.map((c) => [c.id, c]));
@@ -101,8 +101,8 @@ export function PrereqMap({ catalog, major, done, ip, picks = [] }: { catalog: C
 
   const nodeW = 116;
   return (
-    <div className="overflow-x-auto">
-      <svg width={W} height={H} className="min-w-full">
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block", maxHeight, aspectRatio: `${W} / ${H}` }} role="img" aria-label={`Prerequisite map for ${major}: ${done.length} courses done, ${ip.length} in progress${picks.length ? `, ${picks.length} highlighted` : ""}.`}>
         {edges.map((e, i) => {
           const x1 = e.a.x + nodeW;
           const y1 = e.a.y + 11;
@@ -116,7 +116,7 @@ export function PrereqMap({ catalog, major, done, ip, picks = [] }: { catalog: C
               key={i}
               d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
               fill="none"
-              stroke={on ? "#ff5a1f" : src.st === "done" || src.st === "inferred" ? "rgba(45,212,191,0.35)" : "rgba(255,255,255,0.08)"}
+              stroke={on ? "var(--gold-hi)" : src.st === "done" || src.st === "inferred" ? "rgba(61,219,180,0.4)" : "rgba(255,220,140,0.11)"}
               strokeWidth={on ? 1.8 : 1}
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1, opacity: related && !on ? 0.15 : 1 }}
@@ -144,18 +144,19 @@ export function PrereqMap({ catalog, major, done, ip, picks = [] }: { catalog: C
                 width={nodeW}
                 height={22}
                 rx={11}
-                fill={n.st === "done" ? "rgba(45,212,191,0.12)" : n.st === "inferred" ? "rgba(45,212,191,0.05)" : n.st === "ip" ? "rgba(255,176,32,0.12)" : "rgba(255,255,255,0.02)"}
-                stroke={picked ? "#ff5a1f" : col}
+                fill={n.st === "done" ? "rgba(61,219,180,0.13)" : n.st === "inferred" ? "rgba(61,219,180,0.05)" : n.st === "ip" ? "rgba(246,180,26,0.14)" : "rgba(255,248,231,0.02)"}
+                stroke={picked ? "var(--gold-hi)" : col}
                 strokeOpacity={n.st === "blocked" && !picked ? 0.4 : 0.9}
-                strokeWidth={picked ? 1.8 : 1}
+                strokeWidth={picked ? 2.2 : 1}
+                style={picked ? { filter: "drop-shadow(0 0 5px rgba(255,209,92,0.7))" } : undefined}
                 strokeDasharray={(n.st === "open" || n.st === "inferred") && !picked ? "3 3" : undefined}
               />
               {n.st === "ip" && (
-                <rect x={n.x} y={n.y} width={nodeW} height={22} rx={11} fill="none" stroke="#ffb020">
+                <rect x={n.x} y={n.y} width={nodeW} height={22} rx={11} fill="none" stroke="var(--gold)">
                   <animate attributeName="stroke-opacity" values="0.9;0.1;0.9" dur="1.8s" repeatCount="indefinite" />
                 </rect>
               )}
-              <text x={n.x + 10} y={n.y + 15} fontSize={10.5} fill={n.st === "blocked" ? "#8b90a0" : "#eef0f5"} className="num">
+              <text x={n.x + 10} y={n.y + 15} fontSize={10.5} fill={n.st === "blocked" ? "var(--dim)" : "var(--text)"} className="num">
                 {n.c.id}
               </text>
               {n.c.gates > 0 && (
@@ -165,8 +166,8 @@ export function PrereqMap({ catalog, major, done, ip, picks = [] }: { catalog: C
               )}
               {hover === n.c.id && (
                 <g>
-                  <rect x={n.x} y={n.y - 30} width={Math.max(nodeW, n.c.title.length * 6 + 20)} height={24} rx={6} fill="#11141b" stroke="rgba(255,255,255,0.13)" />
-                  <text x={n.x + 8} y={n.y - 14} fontSize={10.5} fill="#eef0f5">
+                  <rect x={n.x} y={n.y - 30} width={Math.max(nodeW, n.c.title.length * 6 + 20)} height={24} rx={6} fill="var(--panel-2)" stroke="var(--line-2)" />
+                  <text x={n.x + 8} y={n.y - 14} fontSize={10.5} fill="var(--text)">
                     {n.c.title} · {n.c.credits}cr · {n.c.offered.join("/")}
                   </text>
                 </g>
@@ -191,7 +192,7 @@ export function PrereqMap({ catalog, major, done, ip, picks = [] }: { catalog: C
           </span>
         ))}
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full ring-2 ring-heat" />
+          <span className="h-2 w-2 rounded-full ring-2 ring-gold-hi" />
           in the repair plan
         </span>
         <span className="num">▸n = courses it gates downstream</span>

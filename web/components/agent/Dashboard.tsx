@@ -1,182 +1,57 @@
 "use client";
 
-import { motion } from "motion/react";
-import { useMemo } from "react";
-import type { Myths } from "@/lib/agentApi";
-import type { ServerDrill, ServerRepair, ServerState } from "@/lib/live";
-import type { Dataset, Term } from "@/lib/types";
-import { RangeTile } from "../Gauges";
-import { PrereqMap } from "../PrereqMap";
-import { TrajectoryField } from "../TrajectoryField";
-import { DrillView, RepairView } from "./AnswerCard";
-import { SponsorChip, type SponsorLive } from "./Sponsors";
+import { SceneDeck, type SceneDeckState } from "@/components/scenes";
+import type { Answer } from "@/lib/agentApi";
+import type { Dataset } from "@/lib/types";
+import type { SponsorLive } from "./Sponsors";
+import { AnswerScene } from "./scenes/AnswerScene";
+import { CareersScene } from "./scenes/CareersScene";
+import { DrillScene } from "./scenes/DrillScene";
+import type { CareersState, DeckScene, Journey, TwinFacts } from "./scenes/model";
+import { RepairScene } from "./scenes/RepairScene";
+import { RiskScene } from "./scenes/RiskScene";
+import { TimelineScene } from "./scenes/TimelineScene";
+import { TwinsScene } from "./scenes/TwinsScene";
 
-export type FullState = ServerState & {
-  terms: { attempted: number; earned: number; withdrawals: number }[];
-  courses_done: string[];
-  courses_in_progress: string[];
-  major: string;
-  track: string;
-  entry_type: string;
-  credits_earned: number;
-  credits_required: number;
-  work_hours: number;
-};
+export type { FullState } from "./scenes/model";
 
-const riskCol = (r: number) => (r >= 0.5 ? "#ff2e4d" : r >= 0.2 ? "#ffb020" : "#2dd4bf");
-const verdict = (r: number) => (r >= 0.5 ? "cooked" : r >= 0.2 ? "on watch" : "on track");
-
-function Card({ title, sponsors, children, delay = 0, className = "" }: { title: string; sponsors?: React.ReactNode; children: React.ReactNode; delay?: number; className?: string }) {
-  return (
-    <motion.section initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.6, ease: [0.16, 1, 0.3, 1] }} className={`panel overflow-hidden ${className}`}>
-      <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
-        <h3 className="label">{title}</h3>
-        <span className="ml-auto flex flex-wrap gap-1.5">{sponsors}</span>
-      </div>
-      {children}
-    </motion.section>
-  );
+export interface DeckActions {
+  ask: () => void;
+  askAbout: (question: string) => void;
+  hear: () => void;
+  canHear: boolean;
+  go: (scene: DeckScene) => void;
+  selectAnswer: (i: number) => void;
 }
 
-export function Dashboard({
-  name,
-  st,
-  drill,
-  repair,
-  myths,
-  ds,
-  highlight,
-  live,
-}: {
-  name: string | null;
-  st: FullState;
-  drill: ServerDrill | null;
-  repair: ServerRepair | null;
-  myths: Myths | null;
-  ds: Dataset | null;
-  highlight: string[];
-  live: SponsorLive;
-}) {
-  const risk = st.risk.value;
-  const col = riskCol(risk);
-  const terms: Term[] = useMemo(() => st.terms.map((t) => [t.attempted, t.earned, t.withdrawals, 0, 0]), [st.terms]);
-  const load = terms.length ? Math.round(terms.reduce((s, t) => s + t[0], 0) / terms.length) : 15;
-  const twinIds = useMemo(() => new Set(st.twins.ids), [st.twins.ids]);
-  const years = st.plan?.projected_years.value ?? null;
+/** The scene deck: exactly one hero visualisation on screen, each written from the loaded student's real data. */
+export function Dashboard({ deck, j, tw, ds, live, careers, answers, answerIndex, overrides, actions }: { deck: SceneDeckState; j: Journey; tw: TwinFacts | null; ds: Dataset | null; live: SponsorLive; careers: CareersState; answers: Answer[]; answerIndex: number; overrides: { drill?: Answer; repair?: Answer }; actions: DeckActions }) {
+  const next = () => void deck.next();
+
+  const scene = (id: DeckScene) => {
+    switch (id) {
+      case "risk":
+        return <RiskScene j={j} live={live} canHear={actions.canHear} onHear={actions.hear} onAsk={actions.ask} onNext={next} />;
+      case "timeline":
+        return <TimelineScene j={j} tw={tw} live={live} onNext={next} />;
+      case "twins":
+        return <TwinsScene j={j} tw={tw} ds={ds} live={live} onNext={next} />;
+      case "drill":
+        return j.drill ? <DrillScene d={j.drill} answer={overrides.drill} live={live} onNext={next} /> : null;
+      case "repair":
+        return j.repair ? <RepairScene j={j} r={j.repair} answer={overrides.repair} live={live} onNext={next} onAskAbout={actions.askAbout} /> : null;
+      case "careers":
+        return <CareersScene state={careers} live={live} onNext={() => actions.go("answer")} />;
+      case "answer":
+        return <AnswerScene answers={answers} index={answerIndex} onSelect={actions.selectAnswer} j={j} ds={ds} live={live} onAsk={actions.ask} onGo={actions.go} onAskAbout={actions.askAbout} />;
+    }
+  };
 
   return (
-    <div className="space-y-5">
-      {/* hero */}
-      <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="relative overflow-hidden rounded-3xl border border-line bg-panel p-6 sm:p-8">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full blur-3xl" style={{ background: `${col}33` }} />
-        <div className="relative grid gap-6 lg:grid-cols-[1fr_auto]">
-          <div>
-            <div className="label">{st.major} · {st.track} · {st.entry_type === "Transfer" ? "transfer" : "first-time"}</div>
-            <h1 className="display mt-2 text-4xl font-semibold leading-tight sm:text-5xl">
-              {name ? `${name}, you're ` : "You're "}
-              <span style={{ color: col }}>{verdict(risk)}</span>.
-            </h1>
-            <p className="mt-3 max-w-xl text-muted">
-              {st.terms_done.value} terms in, averaging <span className="num text-text">{st.avg_credits.value}</span> credits a term with{" "}
-              <span className="num text-text">{st.credits_earned}</span> of {st.credits_required} credits earned.{" "}
-              {st.twins.refused ? "Not enough close matches for outcome ranges yet." : <>Compared against <span className="num text-text">{st.twins.n}</span> alumni who looked like you at this point.</>}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              <SponsorChip k="model" live={live.model} />
-              <SponsorChip k="tiger" live={live.tiger} />
-            </div>
-          </div>
-          <div className="flex items-end gap-8">
-            <div>
-              <div className="label">model risk</div>
-              <div className="num text-6xl font-semibold" style={{ color: col, textShadow: `0 0 30px ${col}66` }}>
-                {Math.round(risk * 100)}
-                <span className="text-2xl">%</span>
-              </div>
-            </div>
-            {years !== null && (
-              <div>
-                <div className="label">projected finish</div>
-                <div className="num text-6xl font-semibold" style={{ color: years > 5 ? "#ff2e4d" : years > 4 ? "#ffb020" : "#2dd4bf" }}>
-                  {years}
-                  <span className="text-2xl text-muted"> yrs</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.section>
-
-      <p className="rounded-xl border border-line bg-white/[0.02] px-4 py-2.5 text-[12px] leading-relaxed text-muted">
-        Compared against <span className="text-text">synthetic</span> HackUMBC 2026 alumni (a simulation, not UMBC records). Nothing here is a fact about real UMBC
-        graduates or a prediction about you; it shows what happened to similar simulated students. Source:{" "}
-        <a href="https://github.com/jasonpaluck/hackumbc-2026" target="_blank" rel="noreferrer" className="text-text underline decoration-white/25 underline-offset-2 hover:decoration-white/60">
-          HackUMBC 2026 dataset (UMBC DoIT, CC0)
-        </a>
-        .
-      </p>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <RangeTile label="Expected delay" lo={st.delay.low} mid={st.delay.mid} hi={st.delay.high} max={5} fmt={(x) => `+${x.toFixed(1)}y`} hint="beyond 4 years · model p25–p75" tr={st.delay.tool_result_id} n={st.delay.support} color={col} />
-        {st.still_seeking_risk ? (
-          <RangeTile label="Still seeking a job" lo={st.still_seeking_risk.low} mid={st.still_seeking_risk.mid} hi={st.still_seeking_risk.high} max={0.4} fmt={(x) => `${Math.round(x * 100)}%`} hint="at 6 months · matched twins, 90% interval · excludes No Response (outcome unknown)" tr={st.still_seeking_risk.tool_result_id} n={st.still_seeking_risk.support} color="#ffb020" />
-        ) : (
-          <div className="panel flex items-center p-4 text-sm text-muted">Job outcomes: not enough balanced twins.</div>
-        )}
-        {st.degree_burden ? (
-          <RangeTile label="Degree burden" lo={st.degree_burden.low} mid={st.degree_burden.mid} hi={st.degree_burden.high} max={1.2} fmt={(x) => x.toFixed(2)} hint="net cost ÷ first salary · nominal dollars" tr={st.degree_burden.tool_result_id} n={st.degree_burden.support} color="#a78bfa" />
-        ) : (
-          <div className="panel flex items-center p-4 text-sm text-muted">Degree burden: not enough salaried twins.</div>
-        )}
-      </div>
-
-      {ds && (
-        <Card title="Your line against 3,200 alumni" delay={0.1} sponsors={<SponsorChip k="tiger" live={live.tiger} compact />}>
-          <div className="p-5">
-            <TrajectoryField alumni={ds.alumni} height={320} highlight={twinIds} focus={{ terms, planLoad: load, color: col }} intro={false} />
-          </div>
-        </Card>
-      )}
-
-      <div className="grid gap-5 xl:grid-cols-2">
-        {drill && (
-          <Card title={`Stress test · ${drill.sims} simulated futures`} delay={0.15} sponsors={<><SponsorChip k="tiger" live={live.tiger} compact /><SponsorChip k="model" live={live.model} compact /></>}>
-            <div className="p-5">
-              <DrillView v={{ type: "drill", drill }} />
-              <div className="num mt-2 text-[10.5px] text-dim">{drill.rows_stored} trajectories written to app.drill_trajectory</div>
-            </div>
-          </Card>
-        )}
-        {repair && (
-          <Card title="The fix" delay={0.2} sponsors={<SponsorChip k="model" live={live.model} compact />}>
-            <div className="p-5">
-              <RepairView v={{ type: "repair", repair }} />
-            </div>
-          </Card>
-        )}
-      </div>
-
-      {ds && (
-        <Card title={`Your ${st.major} prerequisite map`} delay={0.25} sponsors={highlight.length ? <span className="text-[11px] text-heat">highlighting your last question</span> : undefined}>
-          <div className="p-5">
-            <PrereqMap catalog={ds.catalog} major={st.major} done={st.courses_done} ip={st.courses_in_progress} picks={highlight} />
-          </div>
-        </Card>
-      )}
-
-      {myths && (
-        <Card title="What the data says" delay={0.3}>
-          <div className="grid gap-px bg-line sm:grid-cols-2 lg:grid-cols-4">
-            {[...myths.held_up, ...myths.items.slice(0, 2)].map((m) => (
-              <div key={m.title} className="bg-panel p-4">
-                <div className={`num text-2xl font-semibold ${myths.held_up.includes(m) ? "text-cool" : "text-hot"}`}>{m.value}</div>
-                <div className="mt-1 text-sm">{myths.held_up.includes(m) ? m.title : `Myth: ${m.title}`}</div>
-                <div className="mt-1 text-[11px] leading-snug text-dim">{m.evidence}</div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-    </div>
+    <SceneDeck
+      deck={deck}
+      // the deck reserves room for its left rail with padding that its absolutely-positioned scenes ignore, so each scene keeps clear of the rail itself
+      render={(id) => <div className="h-full lg:pl-36 xl:pl-32">{scene(id as DeckScene)}</div>}
+    />
   );
 }

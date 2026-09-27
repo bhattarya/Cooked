@@ -11,7 +11,7 @@ export const SPONSORS: Record<SponsorKey, { label: string; color: string; role: 
   backboard: { label: "Backboard", color: "#c4b5fd", role: "remembers your decisions" },
   tiger: { label: "Tiger Data", color: "#fbbf24", role: "3,200 alumni + drill simulations" },
   digitalocean: { label: "DigitalOcean", color: "#3b82f6", role: "hosts the agents" },
-  model: { label: "COOKED model", color: "#ff5a1f", role: "trained risk + time-to-degree" },
+  model: { label: "COOKED model", color: "#f6b41a", role: "trained risk + time-to-degree" },
 };
 
 export interface SponsorLive {
@@ -54,6 +54,30 @@ export function SponsorChip({ k, live, compact = false }: { k: SponsorKey; live:
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: live ? s.color : "var(--dim)" }} />
       {s.label}
       {!compact && !live && <span className="text-dim">· {FALLBACK[k]}</span>}
+    </span>
+  );
+}
+
+const ORDER: SponsorKey[] = ["gemini", "elevenlabs", "backboard", "tiger", "model", "digitalocean"];
+
+/** Six quiet dots for the header: lit when that service is live, dim when its fallback is running. Hover for which. */
+export function SponsorDots({ live }: { live: SponsorLive }) {
+  return (
+    <span role="group" aria-label="Which sponsor services are live" className="hidden items-center gap-1.5 xl:flex">
+      {ORDER.map((k) => {
+        const s = SPONSORS[k];
+        return (
+          <span
+            key={k}
+            tabIndex={0}
+            role="img"
+            aria-label={live[k] ? `${s.label} live` : `${s.label} not configured, using ${FALLBACK[k]}`}
+            title={live[k] ? `${s.label}: ${s.role}` : `${s.label} not configured: ${FALLBACK[k]}`}
+            className="h-2 w-2 rounded-full transition"
+            style={{ background: live[k] ? s.color : "var(--line-2)", boxShadow: live[k] ? `0 0 8px ${s.color}` : undefined }}
+          />
+        );
+      })}
     </span>
   );
 }
