@@ -296,12 +296,21 @@ def _parse_oracle_audit(pages: list[str]) -> TextParse | None:
     major = "Information Systems" if re.search(r"Information Systems\s*-\s*B", text[:1500], re.IGNORECASE) else "Computer Science"
     name = re.search(r"Student's Name:\s*([^\n]+)", text)
     try:
-        out.profile = AuditProfile(first_name=_first_name(name.group(1) if name else None), major=major,
-                                   entry_type="Transfer" if transfer else "First-Time Freshman",
-                                   credits_earned=earned, credits_required=required,
-                                   terms=terms, in_progress=ip[:12])
+        profile = AuditProfile(first_name=_first_name(name.group(1) if name else None), major=major,
+                                entry_type="Transfer" if transfer else "First-Time Freshman",
+                                credits_earned=earned, credits_required=required,
+                                terms=terms, in_progress=ip[:12])
     except ValidationError:
         return out
+    # A name and totals with nothing the model can actually score is worse than an honest failure:
+    # never let a hollow parse produce a confident "0 terms, 0 credits" verdict. Check the SAME
+    # row-building term_rows() the model features come from, not just whether `earned` is nonzero
+    # (a name-only match with every course misclassified as ungraded would otherwise slip through).
+    counted_rows, _passed = term_rows(profile)
+    if len(counted_rows) == 0 and earned <= 0:
+        out.warnings = [*warnings, "The credit table didn't match a readable pattern closely enough to trust; nothing here would be counted."]
+        return out
+    out.profile = profile
     out.courses = sum(len(t.courses) for t in terms) + len(ip)
     out.confidence = 0.95 if abs(used - earned - enrolled) < 0.01 else 0.65
     out.warnings = warnings
