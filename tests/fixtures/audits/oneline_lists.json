@@ -1,0 +1,124 @@
+{
+ "first_name": "Priya",
+ "major": "Computer Science",
+ "track": "Cybersecurity",
+ "entry_type": "First-Time Freshman",
+ "residency": "In-State",
+ "credits_required": 120,
+ "credits_earned": 46,
+ "terms": [
+  {
+   "label": "Fall 2022",
+   "courses": [
+    {
+     "course_id": "CMSC201",
+     "credits": 4.0,
+     "grade": "A"
+    },
+    {
+     "course_id": "MATH151",
+     "credits": 4.0,
+     "grade": "A-"
+    },
+    {
+     "course_id": "ENGL100",
+     "credits": 3.0,
+     "grade": "A"
+    }
+   ],
+   "attempted": 11.0,
+   "earned": 11.0,
+   "withdrawals": 0,
+   "failures": 0
+  },
+  {
+   "label": "Spring 2023",
+   "courses": [
+    {
+     "course_id": "CMSC202",
+     "credits": 4.0,
+     "grade": "A"
+    },
+    {
+     "course_id": "MATH152",
+     "credits": 4.0,
+     "grade": "B+"
+    },
+    {
+     "course_id": "CMSC203",
+     "credits": 3.0,
+     "grade": "A-"
+    },
+    {
+     "course_id": "PSYC100",
+     "credits": 3.0,
+     "grade": "A"
+    }
+   ],
+   "attempted": 14.0,
+   "earned": 14.0,
+   "withdrawals": 0,
+   "failures": 0
+  },
+  {
+   "label": "Fall 2023",
+   "courses": [
+    {
+     "course_id": "CMSC341",
+     "credits": 3.0,
+     "grade": "A-"
+    },
+    {
+     "course_id": "CMSC313",
+     "credits": 3.0,
+     "grade": "B+"
+    },
+    {
+     "course_id": "MATH221",
+     "credits": 3.0,
+     "grade": "A"
+    }
+   ],
+   "attempted": 9.0,
+   "earned": 9.0,
+   "withdrawals": 0,
+   "failures": 0
+  },
+  {
+   "label": "Spring 2024",
+   "courses": [
+    {
+     "course_id": "CMSC331",
+     "credits": 3.0,
+     "grade": "A"
+    },
+    {
+     "course_id": "STAT355",
+     "credits": 3.0,
+     "grade": "B+"
+    },
+    {
+     "course_id": "HIST101",
+     "credits": 3.0,
+     "grade": "A-"
+    },
+    {
+     "course_id": "ECON101",
+     "credits": 3.0,
+     "grade": "B"
+    }
+   ],
+   "attempted": 12.0,
+   "earned": 12.0,
+   "withdrawals": 0,
+   "failures": 0
+  }
+ ],
+ "in_progress": [
+  "CMSC421",
+  "CMSC471"
+ ],
+ "completed_courses": [],
+ "method": "text",
+ "min_confidence": 0.6
+}

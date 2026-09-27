@@ -181,6 +181,51 @@ class ModelLabRequest(StrictModel):
     engagement_count: Annotated[int, Field(ge=0, le=20)] = 3
 
 
+# ---------- mltruth: receipt + model-lab-from-student (additive) ----------
+class ReceiptTerm(StrictModel):
+    label: str
+    attempted: float
+    earned: float
+    withdrawals: int
+    failures: int
+    gpa: float | None = None
+    counted: bool
+    note: str | None = None
+    tool_result_id: str
+
+
+class ReceiptTotals(StrictModel):
+    credits_earned: int
+    credits_in_progress: int
+    credits_required: int
+    terms_completed: int
+    withdrawals: int
+    repeats: int
+    tool_result_id: str
+
+
+class ReceiptFeature(StrictModel):
+    name: str
+    label: str
+    value: float
+    unit: str
+    note: str
+    tool_result_id: str
+
+
+class Receipt(StrictModel):
+    campus_id: CampusID
+    terms: list[ReceiptTerm]
+    totals: ReceiptTotals
+    features: list[ReceiptFeature]
+    tool_result_id: str
+
+
+class FromStudentRequest(StrictModel):
+    student_id: CampusID
+    overrides: dict[str, Any] = Field(default_factory=dict)
+
+
 class SayRequest(StrictModel):
     line: Literal["greeting", "thanks", "ask_work", "ready", "listening"]
     name: Annotated[str, Field(max_length=60)] | None = None
@@ -229,3 +274,29 @@ class Myth(StrictModel):
 
 class MythsReport(StrictModel):
     items: list[Myth] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------- manual audit entry (audit agent)
+class ManualCourse(StrictModel):
+    id: Annotated[str, Field(min_length=3, max_length=12)]
+    credits: Annotated[float, Field(ge=0, le=8)] = 3
+    grade: Annotated[str, Field(max_length=3)] = ""
+
+
+class ManualTerm(StrictModel):
+    label: Annotated[str, Field(max_length=30)]
+    courses: Annotated[list[ManualCourse], Field(max_length=12)] = Field(default_factory=list)
+    credits_attempted: Annotated[float, Field(ge=0, le=30)] | None = None
+    credits_earned: Annotated[float, Field(ge=0, le=30)] | None = None
+    withdrawals: Annotated[int, Field(ge=0, le=8)] | None = None
+
+
+class ManualAuditRequest(StrictModel):
+    first_name: Annotated[str, Field(max_length=30)] | None = None
+    major: Literal["Computer Science", "Information Systems"] = "Computer Science"
+    track: Annotated[str, Field(max_length=40)] | None = None
+    entry_type: Literal["Transfer", "First-Time Freshman"] = "First-Time Freshman"
+    residency: Literal["In-State", "Out-of-State"] = "In-State"
+    credits_required: Annotated[int, Field(ge=60, le=200)] = 120
+    terms: Annotated[list[ManualTerm], Field(max_length=20)] = Field(default_factory=list)
+    in_progress: Annotated[list[str], Field(max_length=12)] = Field(default_factory=list)

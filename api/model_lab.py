@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 from api.engine import Engine, NotReady
-from api.schemas import ModelLabRequest
+from api.schemas import FromStudentRequest, ModelLabRequest
 from ml.candidates import FAMILY_LABELS, KINDS
 from ml.outcomes import scenario_outcome_features
 from ml.snapshots import ATT, EARNED, FEATURES, K_MAX, REP, F, W, history_features, stage_features
@@ -401,4 +401,50 @@ def _simulate(ctx: Context, requested: ModelLabRequest) -> dict:
         ],
         "tool_result_id": tr,
         "disclaimer": DISCLAIMER,
+    }
+
+
+def _terms_used(engine: Engine, cid: str) -> np.ndarray:
+    return engine.people.terms_of(cid)[:K_MAX]
+
+
+def scenario_from_student(engine: Engine, cid: str) -> ModelLabRequest:
+    """Turn a real profile's audit-derived state into the lab's scenario shape (§ from-student)."""
+    s = engine.current(cid)
+    terms = _terms_used(engine, cid)
+    k = len(terms)
+    att = terms[:, ATT] if k else np.zeros(0)
+    return ModelLabRequest(
+        major=s["major"], entry_type=s["entry_type"], residency=s["residency"],
+        work_hours=int(min(max(s["work_hours"] or 0, 0), 50)),
+        completed_terms=min(k, K_MAX),
+        credits_per_term=round(float(att.mean())) if k else 12,
+        earned_ratio=round(float(terms[:, EARNED].sum() / terms[:, ATT].sum()), 4) if k and terms[:, ATT].sum() else 1.0,
+        withdrawals=int(terms[:, W].sum()) if k else 0,
+        failures=int(terms[:, F].sum()) if k else 0,
+        enrollment_gaps=int(engine.people.gaps.get(cid, 0) > 0),
+    )
+
+
+def from_student(engine: Engine, body: FromStudentRequest) -> dict:
+    """The lab scenario derived from a real audit profile, overrides applied on top (§ contract)."""
+    engine.current(body.student_id)  # NotFound if unknown
+    base = scenario_from_student(engine, body.student_id)
+    scenario = ModelLabRequest(**{**base.model_dump(), **body.overrides})
+    baseline_result = simulate(engine, base)
+    result = simulate(engine, scenario)
+    return {
+        **result,
+        "derived_from": {
+            "student_id": body.student_id,
+            "terms_used": base.completed_terms,
+            "source": "audit" if body.student_id.startswith("USR-") else "dataset",
+        },
+        "baseline": {
+            "scenario": baseline_result["scenario"],
+            "risk": baseline_result["risk"],
+            "time_to_degree": baseline_result["time_to_degree"],
+            "pattern": baseline_result["pattern"],
+            "tool_result_id": baseline_result["tool_result_id"],
+        },
     }

@@ -57,6 +57,12 @@ class TwinIndex:
             self._by_k[k] = pd.DataFrame(rows, index=ids)
         return self._by_k[k]
 
+    @staticmethod
+    def features(static_row, terms: np.ndarray) -> dict[str, float]:
+        """The student's matching features, computed on the same first-K_MATCH_MAX-terms window
+        the alumni table uses (a senior with 10 terms is matched on their first 8, like alumni)."""
+        return stage_features(static_row, terms, min(len(terms), K_MATCH_MAX))
+
     def find(self, feats: dict[str, float], k: int, min_support: int = MIN_SUPPORT) -> TwinResult:
         k = min(k, K_MATCH_MAX)
         tab = self.table(k)

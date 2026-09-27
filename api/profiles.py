@@ -144,8 +144,9 @@ class AuditProfile(BaseModel):
 def term_rows(p: AuditProfile) -> tuple[np.ndarray, set[str]]:
     """Regular terms in time order -> [attempted, earned, W, F, repeats]; plus passed courses.
     Named Fall/Spring terms are sorted by date; unnamed ones ("Term 1") keep the audit's order;
-    Summer and Winter sessions are excluded, like feat.person_term."""
-    regular = [t for t in p.terms if not re.search(r"summer|winter", t.label, re.IGNORECASE)]
+    Summer, Winter and transfer/AP-credit blocks are excluded, like feat.person_term: they
+    satisfy prerequisites (below) but never count as an enrolled term for the model."""
+    regular = [t for t in p.terms if not re.search(r"summer|winter|transfer|advanced placement|\bap\b", t.label, re.IGNORECASE)]
     dated = [(TERM.match(t.label.strip().title()), i, t) for i, t in enumerate(regular)]
     if all(m for m, _, _ in dated):
         ordered = [t for _, _, t in sorted(dated, key=lambda x: int(x[0].group(2)) * 2 + (x[0].group(1) == "Fall"))]
@@ -153,7 +154,8 @@ def term_rows(p: AuditProfile) -> tuple[np.ndarray, set[str]]:
         ordered = regular
     seen: set[str] = set()
     passed: set[str] = set(p.completed_courses)
-    # Summer/Winter do not affect the regular-term model, but still satisfy course prerequisites.
+    # Excluded blocks (Summer/Winter/transfer) don't affect the regular-term model, but their
+    # courses still satisfy prerequisites.
     passed.update(c.course_id for t in p.terms for c in t.courses if c.grade in PASS)
     rows = []
     for t in ordered:
@@ -179,6 +181,18 @@ def term_rows(p: AuditProfile) -> tuple[np.ndarray, set[str]]:
         if att:
             rows.append([att, earned, w, f, rep])
     return (np.array(rows, dtype=float) if rows else np.zeros((0, 5))), passed
+
+
+def credits_earned_total(p: AuditProfile) -> int:
+    """Everything passed, Summer/Winter/transfer included (what the degree counts), unlike the
+    model rows in term_rows, which exclude those blocks."""
+    total = 0.0
+    for t in p.terms:
+        if t.courses:
+            total += sum(c.credits for c in t.courses if c.grade.upper() in PASS)
+        elif t.credits_earned is not None:
+            total += t.credits_earned
+    return round(total)
 
 
 def register(people, pid: str, p: AuditProfile) -> None:

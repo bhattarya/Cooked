@@ -12,7 +12,7 @@ import pandas as pd
 
 from ml.fire_drill import _row
 from ml.model_interface import Models
-from ml.snapshots import FEATURES, People, stage_features
+from ml.snapshots import FEATURES, People
 from ml.twins import MIN_SUPPORT, TwinIndex
 
 NEXT_TERM = ("Spring 2027", "Spring")
@@ -231,7 +231,7 @@ def run_repair(
         lower = max(0.0, work - 10)
         s = static.copy()
         s["work_hours"] = lower
-        alt = index.find(stage_features(s, base, k), k)
+        alt = index.find(index.features(s, base), k)
         if not alt.refused:
             now = people.static.loc[twin_ids]
             then = people.static.loc[alt.ids]
