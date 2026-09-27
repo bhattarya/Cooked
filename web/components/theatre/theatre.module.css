@@ -1,0 +1,79 @@
+/* Local motion for the theatre. Every loop here is switched off under reduced motion. */
+
+.glow {
+  position: absolute;
+  inset: -55%;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: breathe 5.5s ease-in-out infinite;
+  transition: opacity 0.15s linear;
+}
+.glowStill {
+  position: absolute;
+  inset: -55%;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(0.94); filter: brightness(0.92); }
+  50% { transform: scale(1.06); filter: brightness(1.12); }
+}
+
+/* a bead that is working: slow spinner ring + pulsing halo */
+.spin { animation: spin 1.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.beadPulse { animation: bead-pulse 1.8s ease-in-out infinite; }
+@keyframes bead-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+/* the faint outer orbit slowly creeps */
+.drift { animation: dash-drift 60s linear infinite; }
+@keyframes dash-drift { to { stroke-dashoffset: -400; } }
+
+/* dashes that run along a path: `spark` toward the next node, `sparkSlow` an idle trickle on lit segments */
+.spark { animation: spark 1.2s linear infinite; }
+.sparkSlow { animation: spark 5s linear infinite; opacity: 0.5; }
+@keyframes spark { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -1; } }
+
+/* spoke from the orb to the working node */
+.flow { animation: flow 0.9s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -22; } }
+
+.pulseStroke { animation: pulse-stroke 1.3s ease-in-out infinite; }
+@keyframes pulse-stroke {
+  0%, 100% { stroke-opacity: 0.45; }
+  50% { stroke-opacity: 1; }
+}
+
+.caret::after {
+  content: "▍";
+  margin-left: 2px;
+  color: var(--gold-hi);
+  animation: caret 1s steps(1) infinite;
+}
+@keyframes caret { 50% { opacity: 0; } }
+
+/* the sweep of light across a thinking chip's label */
+.shimmer {
+  background: linear-gradient(100deg, var(--muted) 30%, var(--gold-hi) 50%, var(--muted) 70%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2.2s linear infinite;
+}
+@keyframes shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+
+/* timeline rows share whatever height is left; when a row is too short its details drop out rather than overflow */
+.row { container-type: size; }
+@container (max-height: 54px) { .rowText { display: none; } }
+@container (max-height: 34px) { .rowChips { display: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .glow, .spin, .beadPulse, .drift, .spark, .sparkSlow, .flow, .pulseStroke, .shimmer { animation: none; }
+  .shimmer { color: var(--text); background: none; -webkit-background-clip: initial; background-clip: initial; }
+  .caret::after { animation: none; }
+}
