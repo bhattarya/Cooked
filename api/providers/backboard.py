@@ -58,7 +58,10 @@ def remember(conn, campus_id: str, note: str) -> bool:
         "threads/messages",
         {"assistant_id": assistant, "memory": "Auto", "stream": False, "content": f"Remember: {note}"},
     )
-    if body and body.get("thread_id"):
+    # Backboard returns HTTP 200 even when the underlying chat call failed (e.g. no chat credit
+    # left on the account): the storage/memory side still writes, but `status` marks the reply
+    # itself unusable. Writing the memory succeeded either way, so this only gates the boolean.
+    if body and body.get("thread_id") and body.get("status") != "FAILED":
         conn.execute(
             "UPDATE app.memory_link SET thread_id=%s WHERE campus_id=%s", (body["thread_id"], campus_id)
         )
@@ -81,4 +84,8 @@ def recall(conn, campus_id: str) -> str | None:
             "content": "In one sentence, what decisions has this student made about their plan?",
         },
     )
-    return body.get("content") if body else None
+    # A "FAILED" status (e.g. the account is out of chat credit) still comes back as HTTP 200 with
+    # `content` set to a billing message -- never show that to a user as if it were a real summary.
+    if not body or body.get("status") == "FAILED":
+        return None
+    return body.get("content")
