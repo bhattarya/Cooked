@@ -71,10 +71,12 @@ make dev-web      # Next.js app; uses the API when /healthz reports mode=models
 
 | Model | Held-out result |
 | --- | --- |
-| Risk of getting cooked, per stage k=0..6 (boosted trees, Platt-calibrated) | AUC 0.834 enrollment-only, 0.940 after one term, 0.967 after three; calibration slope 0.87–1.14 |
-| Time to degree p25/p50/p75 | MAE 0.47 y after one term (baseline 1.02 y); p25–p75 covers ~48% |
+| Risk of getting cooked, per stage k=0..6 (logistic regression, Platt-calibrated; the arena champion) | AUC 0.834 enrollment-only, 0.925 after one term, 0.967 after three; calibration slope 0.89–1.13 (k ≤ 3) |
+| Time to degree p25/p50/p75 (gradient boosting; the arena champion) | MAE 0.47 y after one term (baseline 1.02 y); p25–p75 covers ~48% |
 | Autopsy clusters (k-means, 5 patterns) | bootstrap ARI 0.92 mean |
 | Twin matcher (Gower, caliper 0.10, SMD < 0.1 on work hours and load) | refuses below 30 balanced twins |
+
+Career destination and first-job salary are also modelled, and every task is contested by four model families (baseline, linear, random forest, gradient boosting) in the **model arena**: the champion is picked on a validation slice of the training years, holdout results are reported honestly (the career model does not beat the class-frequency baseline), and each task has a plain-English model card. See [models/README.md](models/README.md) and `GET /model-lab/arena`.
 
 All six §7.5 gates pass (`models/manifest.json`). Isotonic calibration on ~300 rows failed the slope gate, so Platt scaling is used; the change is recorded in `ml/risk_model.py`. Artifacts are SHA-256 checked and the API refuses to start on a mismatch. CI retrains from scratch before running tests.
 

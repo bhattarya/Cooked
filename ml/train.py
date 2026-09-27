@@ -1,8 +1,9 @@
 """Train, validate and freeze every COOKED model: python -m ml.train
 
-Reads the loaded feat schema, fits the stage models, clusters and shock rates, evaluates the
-§7.5 gates, and writes models/cooked-v1.joblib plus models/manifest.json (checksums, metrics,
-gates). The API refuses to start on a checksum mismatch.
+Reads the loaded feat schema, runs the model arena (four competing families per task, champion
+picked on a validation slice; see ml/arena.py), fits clusters and shock rates, evaluates the
+§7.5 gates on the shipped champions, and writes models/cooked-v1.joblib, models/arena.json and
+models/manifest.json (checksums, metrics, gates). The API refuses to start on a checksum mismatch.
 """
 
 from __future__ import annotations
@@ -15,9 +16,10 @@ import joblib
 import numpy as np
 import sklearn
 
+from ml.arena import run_arena
+from ml.arena_metrics import dumps
 from ml.autopsy import fit_autopsy
-from ml.model_interface import ARTIFACT, MANIFEST, Models, sha256
-from ml.risk_model import fit_models
+from ml.model_interface import ARENA, ARTIFACT, MANIFEST, Models, sha256
 from ml.shocks import measure_shocks
 from ml.snapshots import FEATURES, load_people, stage_features
 from ml.twins import TwinIndex
@@ -32,15 +34,27 @@ def main():
         people = load_people(conn)
     print(f"Loaded {len(people.alumni_ids)} alumni and {len(people.current_ids)} current students")
 
-    risk, ttd, metrics, training_ids = fit_models(people)
+    arena = run_arena(people)
+    metrics, outcome_metrics, training_ids = arena.metrics, arena.outcome_metrics, arena.training_ids
     autopsy = fit_autopsy(people)
     shocks = measure_shocks(people)
     g = gates(metrics, autopsy, training_ids, people.current_ids)
 
     OUT.mkdir(exist_ok=True)
-    bundle = {"risk": risk, "ttd": ttd, "autopsy": autopsy, "shocks": shocks, "features": FEATURES}
+    bundle = {
+        "risk": arena.shipped["risk"],
+        "ttd": arena.shipped["ttd"],
+        "career": arena.shipped["career"],
+        "salary": arena.shipped["salary"],
+        "arena": arena.models,
+        "champions": arena.champions,
+        "autopsy": autopsy,
+        "shocks": shocks,
+        "features": FEATURES,
+    }
     joblib.dump(bundle, OUT / ARTIFACT, compress=3)
     (OUT / "training_ids.json").write_text(json.dumps(training_ids))
+    (OUT / ARENA).write_text(dumps(arena.report))
 
     version = "cooked-v1-" + datetime.now(UTC).strftime("%Y%m%d%H%M")
     manifest = {
@@ -53,8 +67,11 @@ def main():
         "files": {
             ARTIFACT: sha256(OUT / ARTIFACT),
             "training_ids.json": sha256(OUT / "training_ids.json"),
+            ARENA: sha256(OUT / ARENA),
         },
+        "champions": arena.champions,
         "metrics": {str(k): v for k, v in metrics.items()},
+        "outcome_metrics": outcome_metrics,
         "autopsy": {"stats": autopsy["stats"], "stability": autopsy["stability"]},
         "shocks": shocks,
         "gates": g,
@@ -86,6 +103,11 @@ def main():
     for name, gate in g.items():
         print(f"  gate {name}: {'PASS' if gate['pass'] else 'FAIL'}")
     print(f"  twin support: {supported}/{scored} current students with 1+ terms")
+    for task, block in arena.report["tasks"].items():
+        c = block["champion"]
+        print(f"  arena {task}: champion {c['family']}, beats baseline {c['beats_baseline']}, beats linear {c['beats_linear']}")
+    print(f"  career: macro F1 {outcome_metrics['career']['macro_f1']:.3f}, top-2 {outcome_metrics['career']['top2_accuracy']:.3f}")
+    print(f"  salary: MAE ${outcome_metrics['salary']['mae']:,.0f} (baseline ${outcome_metrics['salary']['mae_baseline']:,.0f})")
 
 
 if __name__ == "__main__":

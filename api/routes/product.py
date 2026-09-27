@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, File, Path, Query, UploadFile
 from fastapi.responses import Response
 
-from api import agent, explore
+from api import agent, explore, model_lab
 from api.auth import CurrentUser, require_signed_in
 from api.engine import NotFound, db, get_engine
 from api.schemas import (
@@ -21,6 +21,7 @@ from api.schemas import (
     FeedbackRequest,
     FeedbackResult,
     MemoryRequest,
+    ModelLabRequest,
     NarrateRequest,
     RepairRequest,
     SayRequest,
@@ -35,6 +36,21 @@ PlanLoad = Annotated[float | None, Query(ge=3, le=21)]
 
 def wrap(data) -> Envelope[Data]:
     return Envelope[Data](model_version=get_engine().version, data=data)
+
+
+@router.get("/model-lab/arena", response_model=Envelope[Data])
+def model_lab_arena():
+    """The frozen model arena: four competing model families per task, the pre-registered
+    champion, holdout metrics, curves, feature importance and a plain-English card for each task."""
+    return wrap(model_lab.arena(get_engine()))
+
+
+@router.post("/model-lab/simulate", response_model=Envelope[Data])
+def model_lab_simulate(body: ModelLabRequest):
+    """Score one interactive, synthetic planning scenario with every model in the arena: the
+    champion of each task answers, the other families answer beside it, and `drivers` lists the
+    inputs moving the risk."""
+    return wrap(model_lab.simulate(get_engine(), body))
 
 
 @router.get("/students/{id}/state", response_model=Envelope[Data])

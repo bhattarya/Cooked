@@ -155,6 +155,31 @@ class ExploreRequest(StrictModel):
     question: Annotated[str, Field(min_length=1, max_length=500)]
 
 
+class ModelLabRequest(StrictModel):
+    major: Literal["Computer Science", "Information Systems"] = "Computer Science"
+    entry_type: Literal["Transfer", "First-Time Freshman"] = "First-Time Freshman"
+    residency: Literal["In-State", "Out-of-State"] = "In-State"
+    work_hours: Annotated[int, Field(ge=0, le=50)] = 15
+    completed_terms: Annotated[int, Field(ge=0, le=6)] = 3
+    credits_per_term: Annotated[int, Field(ge=3, le=18)] = 12
+    earned_ratio: Annotated[
+        float,
+        Field(
+            ge=0.5,
+            le=1,
+            description="Share of attempted credits earned. In the data credits are only lost to "
+            "withdrawn or failed courses, so any shortfall the withdrawal and failure counts do "
+            "not explain is counted as further withdrawals.",
+        ),
+    ] = 1.0
+    withdrawals: Annotated[int, Field(ge=0, le=10)] = 0
+    failures: Annotated[int, Field(ge=0, le=10)] = 0
+    enrollment_gaps: Annotated[int, Field(ge=0, le=4)] = 0
+    internship_count: Annotated[int, Field(ge=0, le=4)] = 1
+    credential_count: Annotated[int, Field(ge=0, le=8)] = 1
+    engagement_count: Annotated[int, Field(ge=0, le=20)] = 3
+
+
 class SayRequest(StrictModel):
     line: Literal["greeting", "thanks", "ask_work", "ready", "listening"]
     name: Annotated[str, Field(max_length=60)] | None = None

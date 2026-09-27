@@ -96,6 +96,21 @@ def explorer(page: Page):
     page.goto(f"{WEB}/app", wait_until="domcontentloaded")
 
 
+@step("Four-model lab: controls drive donut, line, bars and constellation")
+def model_lab(page: Page):
+    page.goto(f"{WEB}/app/lab", wait_until="domcontentloaded")
+    expect(page.get_by_text("Shape a future. Watch")).to_be_visible(timeout=T)
+    expect(page.get_by_text("Academic risk", exact=True).first).to_be_visible(timeout=T)
+    expect(page.get_by_text("Career destination", exact=True).first).to_be_visible(timeout=T)
+    expect(page.get_by_text("Trajectory constellation")).to_be_visible(timeout=T)
+    page.get_by_label("Work / week").fill("30")
+    expect(page.get_by_text("30h", exact=True)).to_be_visible(timeout=T)
+    page.wait_for_timeout(1200)
+    assert page.locator("svg").count() >= 3
+    page.screenshot(path=SHOTS / "e2e-model-lab.png", full_page=True)
+    page.goto(f"{WEB}/app", wait_until="domcontentloaded")
+
+
 @step("Sample audit: every agent finishes, dashboard appears")
 def pipeline(page: Page):
     page.get_by_text("Working 22 h").first.click()
@@ -176,6 +191,7 @@ def main():
         guard(page)
         landing(page)
         workspace(page)
+        model_lab(page)
         explorer(page)
         pipeline(page)
         q_course(page)

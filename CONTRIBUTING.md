@@ -19,7 +19,7 @@ Never push straight to `main`. Deploys run from `main` only after CI passes.
 | --- | --- | --- |
 | Anything in Python (`api/`, `ml/`, `worker/`, `scripts/`) | `make test` and `.venv/bin/ruff check .` | |
 | API routes or schemas (`api/`) | `make openapi` | `docs/openapi.json` (CI rejects a stale one) |
-| Models or features (`ml/`) | `make train`: all six gates must print PASS | `models/` (artifact, manifest, training ids) |
+| Models or features (`ml/`) | `make train`: all six gates must print PASS | `models/` (artifact, `arena.json`, manifest, training ids) |
 | Database schema | add a **new** file `db/NN_name.sql`, then `make migrate` | never edit a migration that has been applied |
 | `web/scripts/build-data.mjs` | `npm --prefix web run data` | `web/public/data/*.json` |
 | Anything in `web/` | `npm --prefix web run lint` and `make check` | |
@@ -47,7 +47,7 @@ Never push straight to `main`. Deploys run from `main` only after CI passes.
 | --- | --- |
 | `db/` | Ordered SQL migrations: raw, feat, app schemas, hypertables, continuous aggregates, roles |
 | `scripts/` | Loader, migrations, bootstrap, smoke tests, `e2e_demo.py` |
-| `ml/` | Snapshots, risk and time-to-degree models, autopsy clusters, twins, shocks, fire drill, repair, gates, `train.py` |
+| `ml/` | Snapshots, model arena (`candidates.py`, `arena.py`), autopsy clusters, twins, shocks, fire drill, repair, gates, `train.py` |
 | `models/` | Frozen artifact plus checksummed manifest (metrics and gate results) |
 | `api/` | FastAPI app: `engine.py` (tools), `routes/product.py`, `provenance.py`, `providers/` (Gemini, ElevenLabs, Backboard) |
 | `worker/` | Watchtower: scores every current student and manages alarms |

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 from sklearn.metrics import adjusted_rand_score
 from sklearn.preprocessing import StandardScaler
 
@@ -31,6 +32,7 @@ def fit_autopsy(people: People, seed: int = 7, boots: int = 20) -> dict:
     scaler = StandardScaler().fit(X)
     Z = scaler.transform(X)
     km = KMeans(N_CLUSTERS, n_init=20, random_state=seed).fit(Z)
+    pca = PCA(n_components=2, random_state=seed).fit(Z)
     centroids = scaler.inverse_transform(km.cluster_centers_)
     names = _name_clusters(centroids)
 
@@ -67,6 +69,7 @@ def fit_autopsy(people: People, seed: int = 7, boots: int = 20) -> dict:
     return {
         "scaler": scaler,
         "kmeans": km,
+        "pca": pca,
         "names": names,
         "labels": labels,
         "stats": stats,

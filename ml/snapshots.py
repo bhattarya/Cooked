@@ -51,6 +51,25 @@ BEHAVIOUR = [
     "earned_ratio",
 ]
 FEATURES = STATIC + BEHAVIOUR
+FEATURE_LABELS = {
+    "entry_transfer": "Entered as a transfer student",
+    "out_of_state": "Out-of-state resident",
+    "work_hours": "Weekly work hours",
+    "major_cs": "Computer Science major",
+    "k": "Terms completed",
+    "att_mean": "Average credits attempted per term",
+    "earned_mean": "Average credits earned per term",
+    "att_min": "Lightest term load",
+    "att_last": "Most recent term load",
+    "low_share": "Share of terms under 12 credits",
+    "w_sum": "Total withdrawals",
+    "f_sum": "Total failed courses",
+    "rep_sum": "Total repeated courses",
+    "earned_ratio": "Share of attempted credits earned",
+    "internship_count": "Internships",
+    "credential_count": "Credentials earned",
+    "engagement_count": "Campus engagement activities",
+}
 K_MAX = 6  # models exist for k = 0..K_MAX; later students use K_MAX with their first K_MAX terms
 
 # columns of a term row
@@ -113,7 +132,8 @@ def load_people(conn) -> People:
 
     alumni_out = frame(
         "SELECT campus_id, first_destination, first_job_annual_salary_usd::float AS salary, "
-        "net_cost_usd::float AS net_cost, internship_count, graduation_year FROM feat.alumni"
+        "net_cost_usd::float AS net_cost, internship_count, credential_count, "
+        "engagement_activity_count AS engagement_count, graduation_year FROM feat.alumni"
     ).set_index("campus_id")
 
     current_extra = frame(

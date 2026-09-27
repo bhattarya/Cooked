@@ -459,6 +459,111 @@
         "title": "MemoryRequest",
         "type": "object"
       },
+      "ModelLabRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "completed_terms": {
+            "default": 3,
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Completed Terms",
+            "type": "integer"
+          },
+          "credential_count": {
+            "default": 1,
+            "maximum": 8.0,
+            "minimum": 0.0,
+            "title": "Credential Count",
+            "type": "integer"
+          },
+          "credits_per_term": {
+            "default": 12,
+            "maximum": 18.0,
+            "minimum": 3.0,
+            "title": "Credits Per Term",
+            "type": "integer"
+          },
+          "earned_ratio": {
+            "default": 1.0,
+            "description": "Share of attempted credits earned. In the data credits are only lost to withdrawn or failed courses, so any shortfall the withdrawal and failure counts do not explain is counted as further withdrawals.",
+            "maximum": 1.0,
+            "minimum": 0.5,
+            "title": "Earned Ratio",
+            "type": "number"
+          },
+          "engagement_count": {
+            "default": 3,
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Engagement Count",
+            "type": "integer"
+          },
+          "enrollment_gaps": {
+            "default": 0,
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Enrollment Gaps",
+            "type": "integer"
+          },
+          "entry_type": {
+            "default": "First-Time Freshman",
+            "enum": [
+              "Transfer",
+              "First-Time Freshman"
+            ],
+            "title": "Entry Type",
+            "type": "string"
+          },
+          "failures": {
+            "default": 0,
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Failures",
+            "type": "integer"
+          },
+          "internship_count": {
+            "default": 1,
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Internship Count",
+            "type": "integer"
+          },
+          "major": {
+            "default": "Computer Science",
+            "enum": [
+              "Computer Science",
+              "Information Systems"
+            ],
+            "title": "Major",
+            "type": "string"
+          },
+          "residency": {
+            "default": "In-State",
+            "enum": [
+              "In-State",
+              "Out-of-State"
+            ],
+            "title": "Residency",
+            "type": "string"
+          },
+          "withdrawals": {
+            "default": 0,
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Withdrawals",
+            "type": "integer"
+          },
+          "work_hours": {
+            "default": 15,
+            "maximum": 50.0,
+            "minimum": 0.0,
+            "title": "Work Hours",
+            "type": "integer"
+          }
+        },
+        "title": "ModelLabRequest",
+        "type": "object"
+      },
       "NarrateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1229,6 +1334,100 @@
         "summary": "Me",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/model-lab/arena": {
+      "get": {
+        "description": "The frozen model arena: four competing model families per task, the pre-registered\nchampion, holdout metrics, curves, feature importance and a plain-English card for each task.",
+        "operationId": "model_lab_arena_model_lab_arena_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service unavailable"
+          }
+        },
+        "summary": "Model Lab Arena",
+        "tags": [
+          "product"
+        ]
+      }
+    },
+    "/model-lab/simulate": {
+      "post": {
+        "description": "Score one interactive, synthetic planning scenario with every model in the arena: the\nchampion of each task answers, the other families answer beside it, and `drivers` lists the\ninputs moving the risk.",
+        "operationId": "model_lab_simulate_model_lab_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelLabRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_dict_str__Any__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service unavailable"
+          }
+        },
+        "summary": "Model Lab Simulate",
+        "tags": [
+          "product"
         ]
       }
     },
